@@ -1,0 +1,32 @@
+/*
+Theme Name:     Elevation Athletics React
+Theme URI:      https://elevationathletics.ca
+Description:    React-powered WordPress theme scaffold for Elevation Athletics.
+Author:         Elevation Athletics
+Version:        1.0.0
+Text Domain:    ea-react-theme
+Tags:           react, javascript, wordpress, theme
+*/
+
+@import url('assets/css/app.css');
+
+:root {
+  color-scheme: light;
+}
+
+/*
+ * FIX: The original rule gave .ea-react-root display:grid + place-items:center
+ * which horizontally and vertically centred the React app like a modal,
+ * collapsing it to content-width. Replaced with a plain block so the
+ * full-page React layout fills the viewport naturally.
+ */
+body {
+  margin: 0;
+  padding: 0;
+  background: #fff;
+}
+
+.ea-react-root {
+  min-height: 100vh;
+  display: block;    /* was: grid / place-items:center — that centred and shrank the app */
+}

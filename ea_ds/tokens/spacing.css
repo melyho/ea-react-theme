@@ -1,0 +1,49 @@
+/* ============================================================
+   Elevation Athletics — Spacing, radii, shadows, layout
+   ============================================================ */
+:root {
+  /* Spacing scale (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
+
+  /* Radii — brand direction: SQUARE corners everywhere. The only rounded
+     elements are buttons and location cards (their own tokens below), plus
+     genuinely circular things (pills/dots). */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-pill: 999px;   /* dots / pagination — circular, not a corner */
+  --radius-circle: 50%;
+
+  /* The two intentional exceptions */
+  --radius-button: 8px;         /* buttons stay gently rounded */
+  --radius-location-card: 8px;  /* location cards — slightly rounded */
+  --radius-badge: 4px;          /* badges / status chips — slight rounding */
+  --radius-faq: var(--radius-location-card); /* FAQ cards match location cards */
+  --radius-input: 6px;          /* text inputs — slight rounding */
+
+  /* Shadows — soft, low-contrast lift on white cards */
+  --shadow-card: 0 1px 4px rgba(16, 65, 79, 0.06);
+  --shadow-card-hover: 0 4px 16px rgba(16, 65, 79, 0.10);
+  --shadow-pop: 0 8px 24px rgba(16, 65, 79, 0.14);
+  --shadow-faq: 0 1px 3px rgba(16, 65, 79, 0.05);
+
+  /* Borders */
+  --border-width: 1px;
+  --border-width-strong: 2px;
+
+  /* Layout */
+  --container-max: 1280px;
+  --page-gutter: 80px;
+  --nav-height: 96px;
+}

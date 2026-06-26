@@ -1,0 +1,12 @@
+/* ============================================================
+   Elevation Athletics Design System — global CSS entry point
+   Consumers link THIS file. It is only a list of @imports.
+   ============================================================ */
+@import "./tokens/fonts.css";
+@import "./tokens/colors.css";
+@import "./tokens/typography.css";
+@import "./tokens/spacing.css";
+@import "./tokens/base.css";
+
+/* Original Figma Variables — fig-tokens.css was not shipped with this bundle; nothing
+   references its --fig* aliases, so the import is omitted to avoid a 404. */

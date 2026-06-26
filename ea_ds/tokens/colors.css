@@ -1,0 +1,72 @@
+/* ============================================================
+   Elevation Athletics — Color tokens
+   Extracted from the EA website Figma (Pickleball + Badminton)
+   ============================================================ */
+:root {
+  /* —— Brand blues (the octopus & sky) —— */
+  --ea-sky:          #46AFE3; /* PRIMARY sky / octopus body / section tint */
+  --ea-sky-light:    #9FE0FF; /* rgb(159,224,255) soft sky / secondary fills */
+  --ea-sky-soft:     #D0F5FF; /* rgb(208,245,255) chip / wash background */
+  --ea-blue:         #0092DB; /* rgb(0,146,219)  PRIMARY action / CTA */
+  --ea-blue-court:   #46AFE3; /* rgb(70,175,227) court surface blue */
+  --ea-link:         #007ABA; /* rgb(0,122,186)  links / highlight */
+
+  /* —— Deep teals (text & dark surfaces) —— */
+  --ea-teal-700:     #006F8D; /* rgb(0,111,141)  deep teal accents */
+  --ea-teal-800:     #005F79; /* rgb(0,95,121) */
+  --ea-teal-900:     #004356; /* rgb(0,67,86)   darkest surface / footer */
+  --ea-navy:         #10414F; /* rgb(16,65,79)  display headings */
+  --ea-ink:          #1E526E; /* rgb(30,82,110) body text */
+  --ea-court-shadow: #397999; /* rgb(57,121,153) court line / shade */
+
+  /* —— Peach & coral (mascot gear, warm sections) —— */
+  --ea-peach:        #FFBB91; /* warm section background / mascot gear */
+  --ea-peach-light:  #FFBEB3; /* rgb(255,190,179) soft coral */
+  --ea-orange:       #FFBC78; /* rgb(255,188,120) ball / paddle warm */
+  --ea-coral:        #FFAA8C; /* rgb(255,170,140) coral */
+  --ea-coral-deep:   #FF9481; /* rgb(255,148,129) coral shade */
+  --ea-orange-mid:   #FF9257; /* rgb(255,146,87)  mid orange */
+  --ea-orange-dark:  #D36D36; /* rgb(211,109,54)  dark orange / trident */
+  --ea-orange-hot:   #F55D1B; /* rgb(245,93,27)   hottest orange accent */
+
+  /* —— Neutrals —— */
+  --ea-white:        #FFFFFF;
+  --ea-paper:        #FFFFFF;
+  --ea-mist:         #F2F2F2; /* rgb(242,242,242) closed-chip bg */
+  --ea-line:         #E5E5E5; /* rgb(229,229,229) hairline / divider */
+  --ea-line-soft:    #D3D3D3; /* rgb(211,211,211) light placeholder */
+  --ea-muted:        #787878; /* rgb(120,120,120) muted / disabled text */
+  --ea-slate:        #47636B; /* rgb(71,99,107)  secondary meta text */
+
+  /* —— Semantic status (program enrolment) —— */
+  --ea-success:      #2FA36B; /* enrolment open */
+  --ea-success-bg:   #E3F6EC;
+  --ea-warning:      #D9912A; /* limited spots */
+  --ea-warning-bg:   #FCF1DD;
+  --ea-danger:       #D6603B; /* enrolment closed (warm) */
+  --ea-danger-bg:    #FBE9E2;
+  --ea-neutral:      #9AA6AB; /* inactive */
+  --ea-neutral-bg:   #F2F2F2;
+
+  /* —— Semantic aliases —— */
+  --text-display:    var(--ea-navy);
+  --text-heading:    var(--ea-navy);
+  --text-body:       var(--ea-ink);
+  --text-muted:      var(--ea-slate);
+  --text-link:       var(--ea-link);
+  --text-on-dark:    var(--ea-white);
+
+  --surface-page:    var(--ea-white);
+  --surface-card:    var(--ea-white);
+  --surface-warm:    var(--ea-peach);
+  --surface-sky:     var(--ea-sky);
+  --surface-dark:    var(--ea-teal-900);
+  --surface-wash:    var(--ea-white);
+
+  --action-primary:  var(--ea-blue);
+  --action-primary-hover: #007BC0;
+  --action-on-primary: var(--ea-white);
+
+  --border-card:     var(--ea-line);
+  --border-strong:   var(--ea-navy);
+}

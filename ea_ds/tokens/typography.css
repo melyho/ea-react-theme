@@ -1,0 +1,56 @@
+/* ============================================================
+   Elevation Athletics — Typography tokens
+   Display: BBH Bogle (used UPPERCASE for headlines & section titles)
+   Body / UI: Inclusive Sans
+   ============================================================ */
+:root {
+  --font-display: "BBH Bogle", system-ui, sans-serif;
+  --font-body: "Inclusive Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Weights — Inclusive Sans body scale */
+  --fw-regular: 400;  /* @kind other */
+  --fw-medium:  500;  /* @kind other */
+  --fw-semibold: 600; /* @kind other */
+  --fw-bold:    700;  /* @kind other */
+
+  /* Display type scale (BBH Bogle, uppercase) */
+  --fs-display-xl: 80px; /* big hero "PLAY PICKLEBALL IN BC" */
+  --fs-display-lg: 64px; /* page hero */
+  --fs-display-md: 48px; /* section header "FOLLOW US ON INSTAGRAM" */
+  --fs-display-sm: 40px; /* sub-section */
+  --fs-display-xs: 24px; /* small caps title */
+
+  /* Body type scale (Inclusive Sans) */
+  --fs-body-lg: 20px;
+  --fs-body-md: 18px;
+  --fs-body:    16px;
+  --fs-body-sm: 15px;
+  --fs-label:   14px;
+
+  /* Line heights */
+  --lh-display: 1.0;   /* @kind other */
+  --lh-tight:   1.15;  /* @kind other */
+  --lh-body:    1.5;   /* @kind other */
+
+  /* Letter spacing */
+  --ls-display: 0.02em;  /* slight positive tracking on caps headlines */
+  --ls-body:    -0.02em; /* Inclusive Sans body runs slightly tight */
+}
+
+/* —— Type helper classes (optional convenience) —— */
+.ea-display {
+  font-family: var(--font-display);
+  font-weight: var(--fw-regular);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-display);
+  line-height: var(--lh-display);
+  color: var(--text-display);
+}
+.ea-body {
+  font-family: var(--font-body);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  letter-spacing: var(--ls-body);
+  color: var(--text-body);
+}

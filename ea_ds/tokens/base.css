@@ -1,0 +1,41 @@
+/* ============================================================
+   Elevation Athletics — Base reset & document defaults
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  letter-spacing: var(--ls-body);
+  color: var(--text-body);
+  background: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-regular);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-display);
+  line-height: var(--lh-display);
+  color: var(--text-heading);
+  margin: 0;
+}
+
+p { margin: 0; }
+
+a {
+  color: var(--text-link);
+  text-decoration: none;
+  font-weight: var(--fw-semibold);
+}
+a:hover { text-decoration: underline; }
+
+img, svg { display: block; max-width: 100%; }
+
+button { font-family: var(--font-body); cursor: pointer; }
