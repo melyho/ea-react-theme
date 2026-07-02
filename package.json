@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "zip": "powershell -NoProfile -ExecutionPolicy Bypass -File zip-theme.ps1",
+    "release": "vite build && powershell -NoProfile -ExecutionPolicy Bypass -File zip-theme.ps1"
   },
   "dependencies": {
     "react": "^18.3.1",

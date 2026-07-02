@@ -6,7 +6,8 @@
 
 @font-face {
   font-family: "BBH Bogle";
-  src: url("../assets/fonts/BBHBogle-Regular.ttf") format("truetype");
+  src: url("../assets/fonts/BBHBogle-Regular.woff2") format("woff2"),
+       url("../assets/fonts/BBHBogle-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -14,7 +15,8 @@
 
 @font-face {
   font-family: "Inclusive Sans";
-  src: url("../assets/fonts/InclusiveSans.ttf") format("truetype");
+  src: url("../assets/fonts/InclusiveSans.woff2") format("woff2"),
+       url("../assets/fonts/InclusiveSans.ttf") format("truetype");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
@@ -22,7 +24,8 @@
 
 @font-face {
   font-family: "Inclusive Sans";
-  src: url("../assets/fonts/InclusiveSans-Italic.ttf") format("truetype");
+  src: url("../assets/fonts/InclusiveSans-Italic.woff2") format("woff2"),
+       url("../assets/fonts/InclusiveSans-Italic.ttf") format("truetype");
   font-weight: 400 700;
   font-style: italic;
   font-display: swap;

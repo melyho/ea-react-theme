@@ -19,6 +19,7 @@
   --fs-display-md: 48px; /* section header "FOLLOW US ON INSTAGRAM" */
   --fs-display-sm: 40px; /* sub-section */
   --fs-display-xs: 24px; /* small caps title */
+  --fs-display-xxs: 16px; /* small caps title */
 
   /* Body type scale (Inclusive Sans) */
   --fs-body-lg: 20px;

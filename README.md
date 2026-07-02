@@ -101,6 +101,29 @@ npm run build     # rebuild after editing src/
 
 ---
 
+## Packaging the theme for upload
+
+To install/update the theme on another WordPress site (**Appearance → Themes →
+Add New → Upload Theme**), package it into a zip:
+
+```bash
+npm run zip       # deletes the old zip, then repackages this folder
+npm run release   # runs `npm run build` first, then zips (fresh compiled JS)
+```
+
+Use **`npm run release`** most of the time so the upload always has an up-to-date
+`assets/js/main.js`.
+
+- The zip is written **one level up** at `wp-content/themes/ea-react-theme.zip`,
+  with the theme nested under a top-level `ea-react-theme/` folder (what WordPress
+  expects).
+- Dev-only files (`node_modules`, `.git`, `.vscode`, the script itself) are
+  excluded. Add more names to the `$exclude` array in
+  [zip-theme.ps1](zip-theme.ps1) to trim the package further.
+- Runs on Windows via PowerShell's built-in `Compress-Archive` — no extra tools.
+
+---
+
 ## Project structure
 
 ```
@@ -131,7 +154,13 @@ header.php / footer.php    minimal HTML shell + wp_head()/wp_footer()
 functions.php              enqueues assets, Customizer images, Free Trial REST + admin
 vite.config.js             IIFE build config (entry = src/main.jsx)
 style.css                  WordPress theme header + base styles
+zip-theme.ps1              packages the theme into an uploadable .zip (see below)
 ```
+
+`functions.php` covers: asset enqueue + `wp_localize_script`; the Customizer
+sections (**EA Images**, **EA Text**, **EA Options**, **EA Social Links**); the
+footer menu locations; and the **Free Trial** and **Newsletter** REST endpoints +
+their admin list screens.
 
 > **Heads up:** there are stale copies of `main.jsx`/`App.jsx` under
 > `assets/js/`. The **live source is `src/`** — Vite builds from `src/main.jsx`
@@ -208,8 +237,14 @@ Everything common lives in [src/lib/shared.jsx](src/lib/shared.jsx):
 - **`NavSection`** — a custom header (not the DS `NavBar`) so it can do dropdown
   submenus, a mobile hamburger menu, and the admin-swappable logo. It builds its
   link tree from the WordPress **Primary Menu**; with no menu assigned it falls
-  back to a small example tree.
-- **`PageFooter`** — logo, contact, socials, and link columns.
+  back to a small example tree. It's `position: sticky` with a fixed per-breakpoint
+  height (`NAV_HEIGHT`), and **collapses to the hamburger below `NAV_COLLAPSE_WIDTH`
+  (1024px)** — a wider breakpoint than the page's 768px mobile layout, so the full
+  nav never gets squished on tablet widths.
+- **`PageFooter`** — logo, contact, socials, and two link columns. The **Quick
+  Links**, **More Sports**, and **Contact** groups are driven by WordPress menus
+  (Appearance → Menus) with hardcoded fallbacks; the **social icons** come from the
+  Customizer (EA Social Links). The copyright line moves below everything on mobile.
 - **`useViewport()`** — `{ isMobile, isTablet, width }`, breakpoints at 768/1024.
 - **`useDSComponents()`** — returns the DS component bundle, polling briefly in
   case it loads just after React.
@@ -228,8 +263,11 @@ app. `getThemeData()` reads it:
 | `themeUrl` | Theme folder URL (used by `t.asset('file.png')` for bundled images) |
 | `apiUrl`   | REST base, e.g. `http://site.local/wp-json/` |
 | `nonce`    | `X-WP-Nonce` for authenticated REST calls |
-| `images`   | Admin-uploaded image URLs from the Customizer |
-| `menus`    | `{ primary, footer }` menu trees from Appearance → Menus |
+| `images`   | Admin-uploaded image URLs from the Customizer (**EA Images**) |
+| `texts`    | Editable copy strings from the Customizer (**EA Text**) — see below |
+| `options`  | Layout toggles from the Customizer (**EA Options**): `useCarousel` (bool), `sports` (array of sport codes) |
+| `social`   | Social profile URLs from the Customizer (**EA Social Links**): `instagram`, `facebook` |
+| `menus`    | Menu trees from Appearance → Menus: `primary`, plus footer columns `footerQuickLinks`, `footerMoreSports`, `footerContact` |
 
 ---
 
@@ -265,6 +303,74 @@ Keep filenames lowercase, no spaces.
 
 ---
 
+## Editing text through wp-admin
+
+Nearly all on-page copy (headings, subtext, buttons, form labels, footer
+headings, …) is editable under **Appearance → Customize → EA Text**. Fields are
+grouped and labelled by section (`Hero — Heading`, `Footer — Copyright`, etc.).
+Each field ships with its current copy as the default; **clear a field to restore
+that default** (React also keeps the same string as a final fallback, so nothing
+renders blank).
+
+How it works (mirrors the images pipeline):
+
+- `ea_react_text_fields()` / `ea_customize_texts()` in [functions.php](functions.php)
+  register the controls (single-line `text` or multi-line `textarea`).
+- `ea_react_texts()` collects them into `window.eaReactData.texts`.
+- React reads them via `getThemeData().texts.<key>`, e.g.
+  `t.texts.heroHeading || 'Play pickleball in Ontario'`.
+
+**To add a new editable string:** add an entry to `ea_react_text_fields()` with a
+unique setting slug, a `key`, a `label`, a `type` (`text`/`textarea`), and a
+`default`; then read `t.texts.<key>` in the component with the same string as an
+inline fallback; then `npm run build`.
+
+One special field: **Free Trial — Session options** is a textarea, one session per
+line — those lines become the "Choose Session" dropdown options.
+
+## Layout options (EA Options)
+
+**Appearance → Customize → EA Options** holds behaviour toggles, exposed as
+`window.eaReactData.options`:
+
+- **Show photo carousel** (`useCarousel`, default on) — when on, the section under
+  the hero is a photo carousel (`NewProgramsSection`); when off, it's the **Free
+  Trial** registration form (`FreeTrialSection`). Same slot, swapped by the toggle.
+- **Active Programs sports** (`sports`) — a multi-select of the sports present in
+  the live feed (Pickleball / Badminton / Basketball / Sports Camp). Filters which
+  programs appear in the Active Programs section. Implemented with a small custom
+  `EA_Multi_Select_Control`.
+
+## Social links (EA Social Links)
+
+**Appearance → Customize → EA Social Links** — plain URL fields for the footer
+social icons (Instagram, Facebook), exposed as `window.eaReactData.social`. **No
+WordPress menu required.** Clear a field to hide that icon; clear all and the whole
+"Follow us on our socials!" block disappears.
+
+---
+
+## Live "Active Programs" feed
+
+The Active Programs section is data-driven from a public JSON feed
+(`PROGRAMS_DATA_URL` in [src/pages/HomePage.jsx](src/pages/HomePage.jsx)):
+
+1. `useProgramsFeed()` fetches the rows once on mount (client-side, cache-busted).
+2. `buildCityList(rows, sports, userCoords)` keeps only active EA/TS rows whose
+   sport is selected (EA Options), then **collapses them into one card per city**
+   with a program count (deduped by normalized city name).
+3. Cards are capped at `PROGRAMS_LIMIT` (6) and each links out to its program URL.
+4. **"Locations Near Me"** button (left of "View All Locations") asks for the
+   visitor's location via the browser Geolocation API and re-sorts the cards
+   nearest-first, using a hardcoded `CITY_COORDS` table + Haversine distance.
+   Requires **HTTPS**; on failure it falls back to the alphabetical order.
+
+If the fetch fails or returns nothing, the section falls back to the bundled
+`LOCATIONS` cards, so it never renders empty. New cities in the feed need a
+`CITY_COORDS` entry to participate in the nearest-first sort.
+
+---
+
 ## The Free Trial form (React ↔ WordPress REST)
 
 The home page's Free Trial form (`FreeTrialSection` in
@@ -290,6 +396,34 @@ so entries only ever come from the form.
 
 ---
 
+## The Newsletter signup (React ↔ WordPress REST)
+
+Works like the Free Trial form, with **per-location** tracking:
+
+```
+POST  {apiUrl}ea/v1/newsletter
+body: { email, location, website }   // `location` optional; `website` is a honeypot
+```
+
+Server side (in [functions.php](functions.php)):
+
+1. `ea_handle_newsletter()` validates the email and keeps **one `ea_newsletter`
+   record per email** (deduped by address).
+2. If a `location` is provided, it's added to that subscriber's `_ea_locations`
+   set (so one email can be subscribed to several locations).
+3. It emails the admin (best-effort → Mailpit locally).
+
+Subscribers are listed under **wp-admin → Newsletter**, with an **Email**,
+**Locations**, and **Subscribed** column.
+
+Two entry points on the home page:
+
+- **Newsletter section** (bottom) — general signup (no location).
+- **Location card "Subscribe" button** — opens a **popup** (`NewsletterModal`)
+  pre-tagged with that card's location; enter email → confirmation, all in place.
+
+---
+
 ## How the assets load
 
 ```
@@ -310,7 +444,8 @@ WordPress page load
       │              FaqItem, NewsletterForm, Badge, Input, Carousel, Logo
       └── assets/js/main.js (Vite IIFE build)
             renders the page component for data-page into #ea-react-root
-            + reads window.eaReactData (siteUrl, themeUrl, apiUrl, nonce, images, menus)
+            + reads window.eaReactData
+              (siteUrl, themeUrl, apiUrl, nonce, images, texts, options, social, menus)
 ```
 
 ### Why the build is an IIFE, not an ES module
@@ -334,3 +469,7 @@ that loads after React and the DS bundle.
 | Page renders the home page instead | The WP page slug doesn't match a `PAGES` key in [src/main.jsx](src/main.jsx). |
 | Free Trial email not arriving | Check Local → Tools → **Open Mailpit**; the entry is still saved under **Free Trials** regardless. |
 | Components look unstyled briefly | DS bundle loads just after React; `useDSComponents()` polls and re-renders. Falls back to `FB.*` styles until then. |
+| Edited copy not changing | Confirm you edited the right field in **Customize → EA Text** and clicked **Publish** (transport is `refresh`, so the preview reloads). |
+| "Locations Near Me" does nothing | Geolocation needs **HTTPS** and permission; on plain `http://` it silently falls back to the default order. |
+| Active Programs cards empty / wrong sport | Check **Customize → EA Options → Active Programs sports**, and that the JSON feed is reachable (else it falls back to the bundled `LOCATIONS`). |
+| Nav squished on tablet | It collapses to the hamburger below 1024px (`NAV_COLLAPSE_WIDTH` in `shared.jsx`) — raise it if needed. |

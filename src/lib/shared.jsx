@@ -13,6 +13,17 @@
  */
 import { useState, useEffect } from 'react';
 
+// Below this viewport width the nav collapses to the hamburger menu. It's wider
+// than the page's 768px mobile breakpoint because the full nav (logo + links +
+// CTA) needs more room than the page content does.
+const NAV_COLLAPSE_WIDTH = 1024;
+
+// Fixed height (px) of the nav bar, per state. The header is locked to this height
+// AND the page content is offset by the same value, so the gap below the fixed nav
+// is always exactly the first section's own top padding — consistent on every
+// screen. `collapsed` = the hamburger (narrow) layout.
+const NAV_HEIGHT = (collapsed) => (collapsed ? 72 : 92);
+
 // ─── EA Design System hook ────────────────────────────────────────────────────
 export function useDSComponents() {
   const [ds, setDs] = useState(
@@ -52,6 +63,9 @@ export function getThemeData() {
     apiUrl:  d.apiUrl  || '/wp-json/',        // REST base, e.g. http://site.local/wp-json/
     nonce:   d.nonce   || '',                 // X-WP-Nonce for authenticated REST calls
     images:  d.images  || {},                // { hero, heroMobile, spotlight1, ... } from the Customizer
+    texts:   d.texts   || {},                // { heroDesc, programsDesc, ... } editable copy from the Customizer
+    options: d.options || {},                // { useCarousel, ... } layout toggles from the Customizer
+    social:  d.social  || {},                // { instagram, facebook } profile links from the Customizer
     menus:   d.menus   || {},
     asset:   (file) => `${themeUrl}/assets/images/${file}`,   // bundled fallback path
     logoBase: themeUrl ? `${themeUrl}/assets/images/` : '../assets/images/',
@@ -131,13 +145,16 @@ function navLinks(t) {
     return roots;
   }
   return [
-    { label: 'Lessons & Leagues', href: `${t.siteUrl}/programs/`, children: [
-      { label: 'Newmarket & Aurora', href: `${t.siteUrl}/programs/lessons/` },
-      { label: 'Caledon', href: `${t.siteUrl}/programs/leagues/` },
-      { label: 'Georgina', href: `${t.siteUrl}/programs/leagues/` },
-      { label: 'Richmond Hill', href: `${t.siteUrl}/programs/leagues/` },
+    { label: 'Locations', href: `${t.siteUrl}/programs/`, children: [
+      { label: 'Ontario', href: `${t.siteUrl}/programs/lessons/` },
+      { label: 'Alberta', href: `${t.siteUrl}/programs/leagues/` },
+      { label: 'BC', href: `${t.siteUrl}/programs/leagues/` },
     ] },
-    { label: 'Camps', href: 'https://elevationathletics.ca/camps/', target: '_blank' },
+     { label: 'Getting Started', href: `${t.siteUrl}/programs/`, children: [
+      { label: 'FAQ', href: `${t.siteUrl}/programs/lessons/` },
+      { label: 'Buy a Paddle', href: `${t.siteUrl}/programs/leagues/` },
+    ] },
+    { label: 'Who We Are', href: 'https://elevationathletics.ca/camps/', target: '_blank' },
   ];
 }
 
@@ -200,15 +217,22 @@ function NavSection({ DS, t, isMobile }) {
     else { setOpenIdx(null); }
   }, [isMobile]);
 
+  const ctaLabel = t.texts.navCta || 'Find a League Near You';
   const cta = Button
-    ? <Button variant="primary">Book Your Free Trial</Button>
-    : <button style={FB.btn('primary')}>Book Your Free Trial</button>;
+    ? <Button variant="primary">{ctaLabel}</Button>
+    : <button style={FB.btn('primary')}>{ctaLabel}</button>;
+
+  const contactHref = `${t.siteUrl || ''}/contact/`;
+  const contact = (
+    <a href={contactHref} style={{ ...linkStyle, display: 'inline-flex', alignItems: 'center' }}>{t.texts.navConnect || 'Connect with us'}</a>
+  );
 
   return (
     <header style={{
-      position: 'relative', zIndex: 50,
+      position: 'sticky', top: 0, left: 0, right: 0, zIndex: 50,
       display: 'flex', alignItems: 'center', gap: 40,
-      minHeight: 65, padding: isMobile ? '20px 18px' : '20px 40px',
+      height: NAV_HEIGHT(isMobile), boxSizing: 'border-box',
+      padding: isMobile ? '0 18px' : '0 40px',
       background: 'var(--ea-white, #fff)', borderBottom: '1px solid var(--border-card, #E5E5E5)',
     }}>
       <a href={t.siteUrl || '/'} style={{ display: 'flex', flex: 'none' }}>
@@ -264,7 +288,8 @@ function NavSection({ DS, t, isMobile }) {
       )}
 
       {/* ── Right side: CTA (desktop) / hamburger (mobile) ── */}
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 20 }}>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 36 }}>
+        {!isMobile && contact}
         {!isMobile && cta}
         {isMobile && (
           <button
@@ -314,7 +339,7 @@ function NavSection({ DS, t, isMobile }) {
               </div>
             );
           })}
-          <div style={{ marginTop: 16 }}>{cta}</div>
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>{contact}{cta}</div>
         </div>
       )}
     </header>
@@ -334,6 +359,15 @@ const FOOTER_MORE_SPORTS = [
   { label: 'Camps',                  href: '#' },
   { label: 'Community Partnerships', href: '#' },
 ];
+// Fallback used when the matching WP menu (Appearance → Menus) is not assigned.
+const FOOTER_CONTACT = [
+  { label: 'pickleball@elevationathletics.ca', href: 'mailto:pickleball@elevationathletics.ca' },
+];
+
+// Map WP menu items to the flat {label, href, target} shape the footer uses.
+function flatMenu(items) {
+  return (items || []).map((m) => ({ label: m.title, href: m.url, target: m.target }));
+}
 
 function PageFooter({ isMobile, t }) {
   const logoSrc = t.images.logo || t.asset('ea-logo.svg');   // same logo as the nav bar
@@ -341,7 +375,7 @@ function PageFooter({ isMobile, t }) {
   // Display-scale heading, matching the section titles used across the site.
   const heading = {
     fontFamily: 'var(--font-display, "BBH Bogle", system-ui, sans-serif)',
-    fontSize: 'var(--fs-display-xs)',
+    fontSize: isMobile ? 'var(--fs-display-xxs, 16px)' : 'var(--fs-display-xs, 24px)',
     fontWeight: 'var(--fw-regular, 400)',   // <h4> defaults to bold; BBH Bogle ships Regular only → reset to avoid faux-bold
     lineHeight: 'var(--lh-display, 1)',
     letterSpacing: 'var(--ls-display, 0.02em)',
@@ -353,7 +387,7 @@ function PageFooter({ isMobile, t }) {
   const link = {
     display: 'block', marginTop: 12, textDecoration: 'none',
     fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
-    fontSize: 'var(--fs-body, 16px)',
+    fontSize: isMobile ? 'var(--fs-body-sm, 14px)' : 'var(--fs-body, 16px)',
     lineHeight: 'var(--lh-body, 1.5)',
     letterSpacing: 'var(--ls-body, -0.02em)',
     color: 'var(--ea-ink, #0D5265)',
@@ -361,8 +395,35 @@ function PageFooter({ isMobile, t }) {
   const LinkColumn = ({ title, links }) => (
     <div>
       <h4 style={heading}>{title}</h4>
-      <nav>{links.map((l) => <a key={l.label} href={l.href} style={link}>{l.label}</a>)}</nav>
+      <nav>{links.map((l) => <a key={l.label} {...linkAttrs(l)} style={link}>{l.label}</a>)}</nav>
     </div>
+  );
+
+  // Each footer group is driven by a WP menu (Appearance → Menus) when assigned,
+  // otherwise the hardcoded fallback above.
+  const m = t.menus || {};
+  const quickLinks  = m.footerQuickLinks && m.footerQuickLinks.length ? flatMenu(m.footerQuickLinks) : FOOTER_QUICK_LINKS;
+  const moreSports  = m.footerMoreSports && m.footerMoreSports.length ? flatMenu(m.footerMoreSports) : FOOTER_MORE_SPORTS;
+  const contactList = m.footerContact && m.footerContact.length ? flatMenu(m.footerContact) : FOOTER_CONTACT;
+
+  // Social icons come from Customizer URL fields (EA Social Links); blank = hidden.
+  const social = t.social || {};
+  const socials = [
+    { label: 'Instagram', icon: 'instagram.svg', href: social.instagram },
+    { label: 'Facebook',  icon: 'facebook.svg',  href: social.facebook },
+  ].filter((s) => s.href);
+
+  // Desktop: sits under the left block. Mobile: moved below everything, centred.
+  const copyright = (
+    <p style={{
+      fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+      fontSize: 'var(--fs-label, 14px)', letterSpacing: 'var(--ls-body, -0.02em)',
+      color: 'var(--text-muted, #47636B)',
+      marginTop: 32, marginBottom: 0,
+      textAlign: 'left',
+    }}>
+      © {new Date().getFullYear()} {t.texts.footerCopyright || 'Elevation Athletics. All rights reserved.'}
+    </p>
   );
 
   return (
@@ -381,37 +442,39 @@ function PageFooter({ isMobile, t }) {
         {/* Left block: logo, contact, socials, copyright */}
         <div style={{ gridColumn: isMobile ? '1 / -1' : undefined }}>
           <a href={t.siteUrl || '/'} style={{ display: 'inline-flex' }}>
-            <img src={logoSrc} alt="Elevation Athletics" style={{ display: 'block', height: 80, width: 'auto' }} />
+            <img src={logoSrc} alt="Elevation Athletics" style={{ display: 'block', height: isMobile ? 56 : 80, width: 'auto' }} />
           </a>
 
-          <h4 style={{ ...heading, marginTop: 28 }}>Contact Us</h4>
-          <a href="mailto:pickleball@elevationathletics.ca"
-             style={{ ...link, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <img src={t.asset('mail.svg')} alt="" aria-hidden="true" style={{ display: 'block', height: 24, width: 'auto' }} /> pickleball@elevationathletics.ca
-          </a>
-
-          <h4 style={{ ...heading, marginTop: 28 }}>Follow us on our socials!</h4>
-          <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-            <a href="#" aria-label="Instagram" style={{ display: 'inline-flex' }}>
-              <img src={t.asset('instagram.svg')} alt="Instagram" width={34} height={34} style={{ display: 'block' }} />
+          <h4 style={{ ...heading, marginTop: 28 }}>{t.texts.footerContactHeading || 'Contact Us'}</h4>
+          {contactList.map((c) => (
+            <a key={c.href || c.label} {...linkAttrs(c)}
+               style={{ ...link, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <img src={t.asset('mail.svg')} alt="" aria-hidden="true" style={{ display: 'block', height: 24, width: 'auto' }} /> {c.label}
             </a>
-            <a href="#" aria-label="Facebook" style={{ display: 'inline-flex' }}>
-              <img src={t.asset('facebook.svg')} alt="Facebook" width={34} height={34} style={{ display: 'block' }} />
-            </a>
-          </div>
+          ))}
 
-          <p style={{
-            fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
-            fontSize: 'var(--fs-label, 14px)', letterSpacing: 'var(--ls-body, -0.02em)',
-            color: 'var(--text-muted, #47636B)', marginTop: 32,
-          }}>
-            © {new Date().getFullYear()} Elevation Athletics. All rights reserved.
-          </p>
+          {socials.length > 0 && (
+            <>
+              <h4 style={{ ...heading, marginTop: 28 }}>{t.texts.footerSocialsHeading || 'Follow us on our socials!'}</h4>
+              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                {socials.map((s) => (
+                  <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} style={{ display: 'inline-flex' }}>
+                    <img src={t.asset(s.icon)} alt={s.label} width={34} height={34} style={{ display: 'block' }} />
+                  </a>
+                ))}
+              </div>
+            </>
+          )}
+
+          {!isMobile && copyright}
         </div>
 
-        <LinkColumn title="Quick Links" links={FOOTER_QUICK_LINKS} />
-        <LinkColumn title="More Sports" links={FOOTER_MORE_SPORTS} />
+        <LinkColumn title={t.texts.footerQuickLinksTitle || 'Quick Links'} links={quickLinks} />
+        <LinkColumn title={t.texts.footerMoreSportsTitle || 'More Sports'} links={moreSports} />
       </div>
+
+      {/* Mobile: copyright sits below everything, full width and centred. */}
+      {isMobile && <div style={{ maxWidth: 1184, margin: '0 auto' }}>{copyright}</div>}
     </footer>
   );
 }
@@ -419,11 +482,15 @@ function PageFooter({ isMobile, t }) {
 // ─── Layout — the shell every page renders inside ─────────────────────────────
 export function Layout({ children }) {
   const DS = useDSComponents();
-  const { isMobile } = useViewport();
+  const { isMobile, width } = useViewport();
   const t = getThemeData();
+  // The nav collapses to the hamburger at a wider breakpoint than the page's
+  // 768px mobile layout, so it never gets squished on tablet-ish widths.
+  const navCollapsed = width < NAV_COLLAPSE_WIDTH;
   return (
     <div style={{ background: '#fff', minHeight: '100vh', fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)' }}>
-      <NavSection DS={DS} t={t} isMobile={isMobile} />
+      <NavSection DS={DS} t={t} isMobile={navCollapsed} />
+      {/* A sticky nav stays in normal flow, so the content needs no offset. */}
       {children}
       <PageFooter isMobile={isMobile} t={t} />
     </div>
