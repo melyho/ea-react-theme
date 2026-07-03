@@ -73,21 +73,119 @@ function HeroImageSection({ isMobile, t }) {
   );
 }
 
+function LinkedCarousel({ slides, alt = '', ratio = '3 / 4', autoPlay = false, interval = 4000, style = {} }) {
+  const [index, setIndex] = useState(0);
+  const count = slides.length;
+
+  useEffect(() => {
+    if (!autoPlay || count < 2) return undefined;
+    const timer = setInterval(() => setIndex((current) => (current + 1) % count), interval);
+    return () => clearInterval(timer);
+  }, [autoPlay, count, interval]);
+
+  if (!count) return null;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, ...style }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: ratio, overflow: 'hidden', background: 'var(--ea-mist)' }}>
+        {slides.map((slide, slideIndex) => {
+          const visible = slideIndex === index;
+          const image = (
+            <img
+              src={slide.src}
+              alt={alt}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          );
+          const sharedStyle = {
+            position: 'absolute',
+            inset: 0,
+            opacity: visible ? 1 : 0,
+            pointerEvents: visible ? 'auto' : 'none',
+            transition: 'opacity .4s ease',
+          };
+          return slide.href ? (
+            <a key={slideIndex} href={slide.href} style={{ ...sharedStyle, display: 'block' }}>
+              {image}
+            </a>
+          ) : (
+            <div key={slideIndex} style={sharedStyle}>
+              {image}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {slides.map((slide, slideIndex) => (
+          <button
+            key={`${slideIndex}-dot`}
+            type="button"
+            onClick={() => setIndex(slideIndex)}
+            aria-label={`Slide ${slideIndex + 1}`}
+            style={{
+              width: 8,
+              height: 8,
+              padding: 0,
+              border: 'none',
+              borderRadius: 'var(--radius-pill)',
+              cursor: 'pointer',
+              background: slideIndex === index ? '#8ac4e7' : 'var(--ea-line-soft)',
+              transition: 'background .25s ease',
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function NewProgramsSection({ DS, isMobile, t }) {
   const { Carousel, SectionHeading } = DS;
 
   // Slides for the carousel — admin-set Customizer photos (EA Images → Carousel
   // image 1–3) when present, else the bundled program photos so it's never empty.
-  const carouselImages = [
-    t.images.carousel1 || t.asset('hero.png'),
-    t.images.carousel2 || t.asset('net.png'),
-    t.images.carousel3 || t.asset('birdie.png'),
-  ].filter(Boolean);
+  const carouselSlides = [
+    { src: t.images.carousel1 || t.asset('hero.png'), href: t.carouselLinks.carousel1 },
+    { src: t.images.carousel2 || t.asset('net.png'), href: t.carouselLinks.carousel2 },
+    { src: t.images.carousel3 || t.asset('birdie.png'), href: t.carouselLinks.carousel3 },
+  ].filter((slide) => slide.src);
+  const carouselImages = carouselSlides.map((slide) => slide.src);
+  const hasCarouselLinks = carouselSlides.some((slide) => slide.href);
+
+  const fallbackCarouselImage = carouselSlides[0] ? (
+    carouselSlides[0].href ? (
+      <a href={carouselSlides[0].href} style={{ display: 'block', width: '100%', maxWidth: 380 }}>
+        <img src={carouselSlides[0].src} alt="Our new programs" style={{ width: '100%', aspectRatio: '4 / 5', objectFit: 'cover', display: 'block' }} />
+      </a>
+    ) : (
+      <img src={carouselSlides[0].src} alt="Our new programs" style={{ width: '100%', maxWidth: 380, aspectRatio: '4 / 5', objectFit: 'cover', display: 'block' }} />
+    )
+  ) : null;
+
+  const linkedCarousel = (
+    <LinkedCarousel
+      slides={carouselSlides}
+      alt="Our new programs"
+      ratio="4 / 5"
+      autoPlay
+      interval={4000}
+      style={{ width: '100%', maxWidth: 380 }}
+    />
+  );
 
   // Portrait "poster"/flyer proportions (4:5).
-  const carousel = Carousel
-    ? <Carousel images={carouselImages} alt="Our new programs" ratio="4 / 5" autoPlay interval={4000} style={{ width: '100%', maxWidth: 380 }} />
-    : <img src={carouselImages[0]} alt="Our new programs" style={{ width: '100%', maxWidth: 380, aspectRatio: '4 / 5', objectFit: 'cover', display: 'block' }} />;
+  const standardCarousel = Carousel ? (
+    <Carousel images={carouselImages} alt="Our new programs" ratio="4 / 5" autoPlay interval={4000} style={{ width: '100%', maxWidth: 380 }} />
+  ) : (
+    fallbackCarouselImage
+  );
+
+  const carousel = hasCarouselLinks ? linkedCarousel : standardCarousel;
 
   // Heading text. On mobile it matches the other section headers (SectionHeading "lg");
   // on desktop it's overlaid on top of the illustration in the left column.

@@ -127,6 +127,8 @@ function ea_react_enqueue_assets() {
             // Admin-swappable images (Appearance → Customize → EA Images).
             // Empty string = "not set", and React falls back to the bundled asset.
             'images'   => ea_react_images(),
+            // Optional links for each image in the New Programs carousel.
+            'carouselLinks' => ea_react_carousel_links(),
             // Admin-editable marketing copy (Appearance → Customize → EA Text).
             'texts'    => ea_react_texts(),
             // Layout toggles (Appearance → Customize → EA Options).
@@ -197,6 +199,45 @@ function ea_customize_images( $wp_customize ) {
     }
 }
 add_action( 'customize_register', 'ea_customize_images' );
+
+// ─── Optional carousel image links (Appearance → Customize → EA Carousel Links) ─
+function ea_react_carousel_link_fields() {
+    return array(
+        'ea_carousel_link_1' => array( 'key' => 'carousel1', 'label' => 'Carousel image 1 link' ),
+        'ea_carousel_link_2' => array( 'key' => 'carousel2', 'label' => 'Carousel image 2 link' ),
+        'ea_carousel_link_3' => array( 'key' => 'carousel3', 'label' => 'Carousel image 3 link' ),
+    );
+}
+
+function ea_react_carousel_links() {
+    $links = array();
+    foreach ( ea_react_carousel_link_fields() as $setting => $meta ) {
+        $links[ $meta['key'] ] = esc_url( get_theme_mod( $setting, '' ) );
+    }
+    return $links;
+}
+
+function ea_customize_carousel_links( $wp_customize ) {
+    $wp_customize->add_section( 'ea_carousel_links', array(
+        'title'       => __( 'EA Carousel Links', 'ea-react-theme' ),
+        'description' => __( 'Optional destination URLs for each New Programs carousel image. Leave blank to keep that image unlinked.', 'ea-react-theme' ),
+        'priority'    => 31,
+    ) );
+
+    foreach ( ea_react_carousel_link_fields() as $setting => $meta ) {
+        $wp_customize->add_setting( $setting, array(
+            'default'           => '',
+            'sanitize_callback' => 'esc_url_raw',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( $setting, array(
+            'type'    => 'url',
+            'label'   => $meta['label'],
+            'section' => 'ea_carousel_links',
+        ) );
+    }
+}
+add_action( 'customize_register', 'ea_customize_carousel_links' );
 
 // ─── Swappable copy via the Customizer (Appearance → Customize → EA Text) ──────
 // Each control stores a string as a theme_mod. ea_react_texts() collects them for
