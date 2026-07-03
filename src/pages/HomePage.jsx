@@ -2,8 +2,11 @@
  * src/pages/HomePage.jsx — the badminton marketing home page.
  * Rendered when the mount div has data-page="home" (front-page.php / index.php).
  */
-import { useState, useEffect } from 'react';
-import { Layout, useDSComponents, useViewport, getThemeData, FB, MediaSlot } from '../lib/shared.jsx';
+import { useState, useEffect, useRef } from 'react';
+import { Layout, useDSComponents, useViewport, getThemeData, FB, MediaSlot, ActionButton } from '../lib/shared.jsx';
+
+// Scroll offset so a smooth-scrolled section isn't hidden under the sticky nav.
+const SCROLL_OFFSET = 100;
 
 // ─── Consistent section spacing ───────────────────────────────────────────────
 const SECTION_MAX = 1184;                                          // content max-width
@@ -26,7 +29,7 @@ function HeroSection({ DS, isMobile, t }) {
   const primaryCta = t.texts.heroBtnPrimary || 'Find a League Near You';
   const secondaryCta = t.texts.heroBtnSecondary || 'New to Pickleball? Start Here';
   return (
-    <section style={{ textAlign: 'center', padding: isMobile ? '40px 20px 40px' : '60px 24px 36px', maxWidth: 1000, margin: '0 auto' }}>
+    <section id="hero" style={{ textAlign: 'center', padding: isMobile ? '40px 20px 40px' : '60px 24px 36px', maxWidth: 1000, margin: '0 auto', scrollMarginTop: SCROLL_OFFSET }}>
       {SectionHeading
         ? <SectionHeading level={isMobile ? 'xl' : 'lg'} align="center" as="h1">{heading}</SectionHeading>
         : <h1 style={FB.h(isMobile ? 36 : 56)}>{heading}</h1>
@@ -51,17 +54,8 @@ function HeroSection({ DS, isMobile, t }) {
           marginLeft: isMobile ? 'auto' : undefined,
           marginRight: isMobile ? 'auto' : undefined,
         }}>
-          {Button ? (
-            <>
-              <Button variant="primary"   size={isMobile ? 'md' : 'lg'} full>{primaryCta}</Button>
-              <Button variant="secondary" size={isMobile ? 'md' : 'lg'} full>{secondaryCta}</Button>
-            </>
-          ) : (
-            <>
-              <button style={{ ...FB.btn('primary'),   width: '100%' }}>{primaryCta}</button>
-              <button style={{ ...FB.btn('secondary'), width: '100%' }}>{secondaryCta}</button>
-            </>
-          )}
+          <ActionButton DS={DS} link={t.links.heroPrimary}   variant="primary"   size={isMobile ? 'md' : 'lg'} full>{primaryCta}</ActionButton>
+          <ActionButton DS={DS} link={t.links.heroSecondary} variant="secondary" size={isMobile ? 'md' : 'lg'} full>{secondaryCta}</ActionButton>
         </div>
       </div>
     </section>
@@ -105,7 +99,7 @@ function NewProgramsSection({ DS, isMobile, t }) {
   // ── Mobile: heading (consistent with other sections) → carousel → full-bleed SVG ──
   if (isMobile) {
     return (
-      <section style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: 0 }}>
+      <section id="new-programs" style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: 0, scrollMarginTop: SCROLL_OFFSET }}>
         <div style={{ padding: '16px 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ textAlign: 'center', width: '75%' }}>{mobileHeading}</div>
           <div style={{
@@ -129,7 +123,7 @@ function NewProgramsSection({ DS, isMobile, t }) {
 
   // ── Desktop: heading overlaid on the illustration (left), carousel panel (right) ──
   return (
-    <section style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile) }}>
+    <section id="new-programs" style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile), scrollMarginTop: SCROLL_OFFSET }}>
       <div style={{ display: 'flex', alignItems: 'stretch' }}>
         {/* Illustration — fills its column at its natural ratio; the carousel panel
             drives the row height and the image covers the area, cropping from the
@@ -161,6 +155,116 @@ function NewProgramsSection({ DS, isMobile, t }) {
         </div>
       </div>
     </section>
+  );
+}
+
+// ─── SessionSelect — custom dropdown styled to the Design System tokens ────────
+// Replaces the native <select> with a button + floating popover so the option
+// list matches the DS (input radius, pop shadow, hover/selected states) and looks
+// consistent across browsers. Closes on outside click / Escape; keyboard-navigable.
+function SessionSelect({ id, value, options, placeholder = 'Select Choice', onChange }) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);          // highlighted row (keyboard)
+  const rootRef = useRef(null);
+  const listRef = useRef(null);
+
+  // Close when clicking outside or pressing Escape.
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => { if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') { setOpen(false); } };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  // When opening, highlight the current selection.
+  useEffect(() => { if (open) setActive(options.indexOf(value)); }, [open, value, options]);
+
+  const choose = (opt) => { onChange(opt); setOpen(false); };
+
+  const onTriggerKey = (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault(); setOpen(true); setActive((i) => (i < 0 ? 0 : i));
+    }
+  };
+  const onListKey = (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(options.length - 1, i + 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (active >= 0) choose(options[active]); }
+    else if (e.key === 'Home') { e.preventDefault(); setActive(0); }
+    else if (e.key === 'End') { e.preventDefault(); setActive(options.length - 1); }
+  };
+
+  const controlBase = {
+    width: '100%', boxSizing: 'border-box',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+    padding: '12px 16px', textAlign: 'left',
+    fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: 16,
+    background: 'var(--surface-card, #fff)',
+    border: '0.5px solid var(--border-card, #E5E5E5)',
+    borderRadius: 'var(--radius-input, 6px)',
+    outline: 'none',
+    cursor: 'pointer', transition: 'border-color .15s ease, box-shadow .15s ease',
+  };
+
+  return (
+    <div ref={rootRef} style={{ position: 'relative' }}>
+      <button
+        type="button" id={id}
+        role="combobox" aria-haspopup="listbox" aria-expanded={open}
+        onClick={() => setOpen((o) => !o)} onKeyDown={onTriggerKey}
+        style={{ ...controlBase, color: value ? 'var(--ea-ink, #1E526E)' : 'var(--ea-muted, #787878)' }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || placeholder}</span>
+        <span style={{ display: 'inline-flex', color: 'var(--ea-navy, #10414F)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .18s ease' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+        </span>
+      </button>
+
+      {open && (
+        <ul
+          ref={listRef} role="listbox" tabIndex={-1} aria-activedescendant={active >= 0 ? `${id}-opt-${active}` : undefined}
+          onKeyDown={onListKey}
+          style={{
+            position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40,
+            margin: 0, padding: 6, listStyle: 'none',
+            background: 'var(--surface-card, #fff)',
+            border: '1px solid var(--border-card, #E5E5E5)',
+            borderRadius: 'var(--radius-input, 6px)',
+            boxShadow: '0 4px 24px rgba(16, 65, 79, .02)',
+            maxHeight: 260, overflowY: 'auto',
+          }}
+        >
+          {options.map((opt, i) => {
+            const selected = opt === value;
+            const highlighted = i === active;
+            return (
+              <li
+                key={opt} id={`${id}-opt-${i}`} role="option" aria-selected={selected}
+                onMouseEnter={() => setActive(i)} onClick={() => choose(opt)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                  padding: '10px 12px', borderRadius: 'var(--radius-input, 6px)', cursor: 'pointer',
+                  fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: 15,
+                  color: 'var(--ea-ink, #1E526E)',
+                  fontWeight: selected ? 700 : 500,
+                  background: highlighted ? 'var( --ea-mist, #F0F0F0)' : 'transparent',
+                  transition: 'background .12s ease',
+                }}
+              >
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt}</span>
+                {selected && (
+                  <span style={{ display: 'inline-flex', color: 'var(--ea-navy, #10414F)', flex: 'none' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -219,9 +323,9 @@ function FreeTrialSection({ DS, isMobile, t }) {
     color: 'var(--ea-ink, #1E526E)', background: '#fff',
   };
 
-  // Session options for the dropdown — editable in Appearance → Customize → EA Text
-  // ("Free Trial sessions", one per line). Falls back to the location list.
-  const sessionOptions = (t.texts.freeTrialSessions || '')
+  // Session options for the dropdown — editable in Appearance → Customize → EA Options
+  // ("Free Trial — session choices", one per line). Falls back to the location list.
+  const sessionOptions = ((t.options && t.options.freeTrialSessions) || '')
     .split('\n').map((s) => s.trim()).filter(Boolean);
   const sessions = sessionOptions.length ? sessionOptions : LOCATIONS(isMobile).map((l) => l.city);
 
@@ -244,18 +348,12 @@ function FreeTrialSection({ DS, isMobile, t }) {
       </div>
       <div style={{ marginTop: 20 }}>
         <label style={labelStyle} htmlFor="ft-session">{t.texts.freeTrialSessionLabel || 'Choose Session'}</label>
-        <div style={{ position: 'relative' }}>
-          <select
-            id="ft-session" value={form.session} onChange={update('session')}
-            style={{ ...inputStyle, appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: 40, cursor: 'pointer', color: form.session ? 'var(--ea-ink, #1E526E)' : 'var(--ea-muted, #787878)' }}
-          >
-            <option value="" disabled>Select Choice</option>
-            {sessions.map((s) => <option key={s} value={s} style={{ color: 'var(--ea-ink, #1E526E)' }}>{s}</option>)}
-          </select>
-          <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--ea-navy, #10414F)', display: 'inline-flex' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-          </span>
-        </div>
+        <SessionSelect
+          id="ft-session"
+          value={form.session}
+          options={sessions}
+          onChange={(val) => setForm((f) => ({ ...f, session: val }))}
+        />
       </div>
       {/* Honeypot — hidden from real users; bots that fill it are silently dropped. */}
       <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
@@ -305,7 +403,7 @@ function FreeTrialSection({ DS, isMobile, t }) {
   // ── Mobile: heading (consistent with other sections) → form → full-bleed SVG ──
   if (isMobile) {
     return (
-      <section style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: 0 }}>
+      <section id="new-programs" style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: 0, scrollMarginTop: SCROLL_OFFSET }}>
         <div style={{ padding: '16px 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ textAlign: 'center', width: '75%' }}>{mobileHeading}</div>
           <div style={{
@@ -330,7 +428,7 @@ function FreeTrialSection({ DS, isMobile, t }) {
 
   // ── Desktop: heading overlaid on the illustration (left), form panel (right) ──
   return (
-    <section style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile) }}>
+    <section id="new-programs" style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile), scrollMarginTop: SCROLL_OFFSET }}>
       <div style={{ display: 'flex', alignItems: 'stretch' }}>
         <div style={{ position: 'relative', flex: '0 1 832px', minWidth: 0, overflow: 'hidden' }}>
           <img
@@ -611,13 +709,16 @@ const PROGRAMS_LIMIT = 6;   // max city cards shown in the Active Programs secti
 
 // Popup newsletter signup, opened from a location card's Subscribe button. Mirrors
 // the Free Trial confirmation modal: enter email → submit → confirmation, all in place.
-function NewsletterModal({ DS, t, location, onClose }) {
+// When `startSubmitted` is true it opens straight to the thank-you view — used as a
+// confirmation dialog for forms that already handled their own submit (e.g. the
+// bottom-of-page newsletter section).
+function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
   const { Button } = DS;
   const [email, setEmail] = useState('');
   const [website, setWebsite] = useState('');   // honeypot
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(startSubmitted);
 
   const handleSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -734,7 +835,7 @@ function ProgramsSection({ DS, isMobile, t }) {
   // Which location's newsletter popup is open (null = closed).
   const [subscribeLoc, setSubscribeLoc] = useState(null);
   return (
-    <section style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile) }}>
+    <section id="active-programs" style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile), scrollMarginTop: SCROLL_OFFSET }}>
       {SectionHeading
         ? <SectionHeading level={ isMobile ? 'lg' : 'md' }>{t.texts.programsHeading || 'Our Active Programs'}</SectionHeading>
         : <h2 style={FB.h(32)}>{t.texts.programsHeading || 'Our Active Programs'}</h2>
@@ -742,19 +843,24 @@ function ProgramsSection({ DS, isMobile, t }) {
       <p style={{ fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: 16, color: 'var(--ea-ink, #1E526E)', lineHeight: 1.6, marginTop: 16, maxWidth: 640 }}>
         {t.texts.programsDesc || 'We run pickleball programs across the country. Click on any location card below to visit its program page and see all the lessons and leagues available in that area.'}
       </p>
-      <div style={{ marginTop: 28, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        {/* Left of "View All Locations": sort the cards nearest-first. */}
-        {Button
-          ? <Button variant="secondary" onClick={findNearMe} disabled={locating}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Locations Near Me')}</Button>
-          : <button onClick={findNearMe} disabled={locating} style={{ ...FB.btn('secondary'), opacity: locating ? 0.7 : 1 }}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Locations Near Me')}</button>
-        }
-        <a href={locationsHref} style={{ textDecoration: 'none', display: 'inline-flex' }}>
-          {Button
-            ? <Button variant="primary">{t.texts.programsViewAll || 'View All Locations'}</Button>
-            : <span style={FB.btn('primary')}>{t.texts.programsViewAll || 'View All Locations'}</span>
-          }
-        </a>
-      </div>
+      {/* Action buttons — each can be hidden via Customizer (EA Options). */}
+      {!(t.options.hideNearMe && t.options.hideViewAll) && (
+        <div style={{ marginTop: 28, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Left of "View All Locations": sort the cards nearest-first. */}
+          {!t.options.hideNearMe && (Button
+            ? <Button variant="secondary" onClick={findNearMe} disabled={locating}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Locations Near Me')}</Button>
+            : <button onClick={findNearMe} disabled={locating} style={{ ...FB.btn('secondary'), opacity: locating ? 0.7 : 1 }}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Locations Near Me')}</button>
+          )}
+          {!t.options.hideViewAll && (
+            <a href={locationsHref} style={{ textDecoration: 'none', display: 'inline-flex' }}>
+              {Button
+                ? <Button variant="primary">{t.texts.programsViewAll || 'View All Locations'}</Button>
+                : <span style={FB.btn('primary')}>{t.texts.programsViewAll || 'View All Locations'}</span>
+              }
+            </a>
+          )}
+        </div>
+      )}
       {geoError && (
         <p role="alert" style={{ marginTop: 10, marginBottom: 0, fontFamily: 'var(--font-body, sans-serif)', fontSize: 14, color: 'var(--ea-error, #C0392B)' }}>{geoError}</p>
       )}
@@ -792,7 +898,7 @@ function SpotlightSection({ DS, isMobile, isTablet, t }) {
   const cols = isMobile ? 'repeat(2, 1fr)' : isTablet ? '1fr 1fr' : 'repeat(3, 1fr)';
   const coachingHeading = t.texts.coachingHeading || 'Small Group Coaching';
   return (
-    <section style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile) }}>
+    <section id="coaching" style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile), scrollMarginTop: SCROLL_OFFSET }}>
       <div style={{ display: 'grid', gridTemplateColumns: cols, gap: isMobile ? 12 : 20, alignItems: 'start' }}>
         <div style={{ gridColumn: isMobile ? '1 / -1' : undefined }}>
           {SectionHeading
@@ -802,12 +908,11 @@ function SpotlightSection({ DS, isMobile, isTablet, t }) {
           <p style={{ fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: 16, color: 'var(--ea-ink, #1E526E)', lineHeight: 1.6, marginTop: 16 }}>
             {t.texts.coachingDesc || 'Small group coaching that meets every player where they are. Our sessions build skills, confidence, and a love of the game.'}
           </p>
-          <div style={{ marginTop: 24 }}>
-            {Button
-              ? <Button variant="primary">{t.texts.coachingCta || 'Learn More'}</Button>
-              : <button style={FB.btn('primary')}>{t.texts.coachingCta || 'Learn More'}</button>
-            }
-          </div>
+          {!(t.links.coachingCta && t.links.coachingCta.hidden) && (
+            <div style={{ marginTop: 24 }}>
+              <ActionButton DS={DS} link={t.links.coachingCta} variant="primary">{t.texts.coachingCta || 'Learn More'}</ActionButton>
+            </div>
+          )}
         </div>
         {/* Coloured tiles become real photos once set in Appearance → Customize → EA Images.
             Four show on mobile (2×2); the fifth is desktop-only. */}
@@ -838,7 +943,7 @@ function CommunitySection({ DS, isMobile, t }) {
   const communityRightFocus = 'top';
 
   return (
-    <section style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile) }}>
+    <section id="community" style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile), scrollMarginTop: SCROLL_OFFSET }}>
       {/* Top: solid-colour image block + intro copy (image hidden on mobile) */}
       <div style={{
         display: 'grid',
@@ -866,9 +971,9 @@ function CommunitySection({ DS, isMobile, t }) {
       {/* Bottom: two promo cards with solid-colour image areas */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, marginTop: isMobile ? 32 : 24 }}>
         {[
-          { bg: 'var(--ea-sky, #46AFE3)',  img: t.images.communityLeft,  focus: communityLeftFocus,  title: t.texts.partnershipsTitle || 'Community Partnerships',   cta: t.texts.partnershipsCta || 'Learn More',  blurb: t.texts.partnershipsBlurb || 'Help bring inclusive, low-cost badminton to your township. We\'ll set you up with courts, coaching, and leagues.' },
-          { bg: 'var(--ea-peach, #FFBB91)', img: t.images.communityRight, focus: communityRightFocus, title: t.texts.leadersTitle || 'Become a Community Leader', cta: t.texts.leadersCta || 'Apply Today', blurb: t.texts.leadersBlurb || 'Help bring inclusive, low-cost badminton to your township. We\'ll set you up with courts, coaching, and leagues.' },
-        ].map(({ bg, img, focus, title, cta, blurb }) => (
+          { bg: 'var(--ea-sky, #46AFE3)',  img: t.images.communityLeft,  focus: communityLeftFocus,  title: t.texts.partnershipsTitle || 'Community Partnerships',   cta: t.texts.partnershipsCta || 'Learn More',  link: t.links.partnershipsCta, blurb: t.texts.partnershipsBlurb || 'Help bring inclusive, low-cost badminton to your township. We\'ll set you up with courts, coaching, and leagues.' },
+          { bg: 'var(--ea-peach, #FFBB91)', img: t.images.communityRight, focus: communityRightFocus, title: t.texts.leadersTitle || 'Become a Community Leader', cta: t.texts.leadersCta || 'Apply Today', link: t.links.leadersCta, blurb: t.texts.leadersBlurb || 'Help bring inclusive, low-cost badminton to your township. We\'ll set you up with courts, coaching, and leagues.' },
+        ].map(({ bg, img, focus, title, cta, link, blurb }) => (
           // Background is the admin image (cover) when set, else the solid colour.
           // `focus` sets which part of the image stays visible (never cropped).
           // Fixed height; the white card is pinned to the bottom and the image/colour
@@ -889,10 +994,7 @@ function CommunitySection({ DS, isMobile, t }) {
               <p style={{ fontFamily: 'var(--font-body, sans-serif)', fontSize: 16, color: 'var(--ea-ink, #1E526E)', lineHeight: 1.6, margin: '12px 0 18px' }}>
                 {blurb}
               </p>
-              {Button
-                ? <Button variant="primary">{cta}</Button>
-                : <button style={FB.btn('primary')}>{cta}</button>
-              }
+              <ActionButton DS={DS} link={link} variant="primary">{cta}</ActionButton>
             </div>
           </div>
         ))}
@@ -905,9 +1007,10 @@ function NewsletterSection({ DS, isMobile, t }) {
   const { SectionHeading, Button } = DS;
   const [email, setEmail] = useState('');
   const [website, setWebsite] = useState('');   // honeypot
-  const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  // On success we pop the confirmation modal (same one the location cards use).
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -923,14 +1026,15 @@ function NewsletterSection({ DS, isMobile, t }) {
       const res = await fetch(`${t.apiUrl}ea/v1/newsletter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': t.nonce },
-        body: JSON.stringify({ email, website }),
+        // Bottom-of-page signup is tagged "General Badminton" in the admin.
+        body: JSON.stringify({ email, location: 'General Badminton', website }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data && data.message ? data.message : 'Something went wrong. Please try again.');
       }
-      setSubmitted(true);
       setEmail('');
+      setConfirmOpen(true);   // show the confirmation popup
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -945,7 +1049,7 @@ function NewsletterSection({ DS, isMobile, t }) {
     : (t.images.newsletter || t.asset('newsletter.svg'));
 
   return (
-    <section style={{ position: 'relative', marginTop: sectionGap(isMobile), background: '#fff', overflow: 'hidden' }}>
+    <section id="newsletter" style={{ position: 'relative', marginTop: sectionGap(isMobile), background: '#fff', overflow: 'hidden', scrollMarginTop: SCROLL_OFFSET }}>
       {/* Full-width decorative SVG; sets the section height. Content is overlaid on top. */}
       <img src={decor} alt="" aria-hidden="true" style={{ display: 'block', width: '100%', height: 'auto' }} />
 
@@ -963,39 +1067,38 @@ function NewsletterSection({ DS, isMobile, t }) {
           <p style={{ fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: isMobile ? 14 : 20, color: 'var(--ea-ink, #1E526E)', lineHeight: 1.6, marginTop: 12 }}>
             {t.texts.newsletterDesc || 'Stay updated on upcoming training sessions, leagues, and tournaments for pickleball in your area.'}
           </p>
-          {submitted ? (
-            <p style={{ marginTop: 20, color: 'var(--ea-success, #2FA36B)', fontWeight: 600 }}>{t.texts.newsletterThanks || 'Thanks for subscribing!'}</p>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              {/* Input + Subscribe joined into one pill (container clips the square button corners). */}
-              <div style={{
-                display: 'flex', marginTop: isMobile ? 16 : 24,
-                border: '1px solid #E5E5E5', borderRadius: 8, overflow: 'hidden', background: '#fff',
-              }}>
-                <input
-                  type="email" placeholder="Your Email" value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  style={{ flex: 1, minWidth: 0, padding: '12px 16px', border: 'none', outline: 'none', fontFamily: 'var(--font-body, sans-serif)', fontSize: isMobile ? 14 : 16, background: 'transparent' }}
-                />
-                {Button
-                  ? <Button variant="primary" type="submit" disabled={sending} style={{ borderRadius: 0 }}>{sending ? 'Subscribing…' : (t.texts.newsletterSubscribe || 'Subscribe')}</Button>
-                  : <button type="submit" disabled={sending} style={{ ...FB.btn('primary'), borderRadius: 0, opacity: sending ? 0.7 : 1 }}>{sending ? 'Subscribing…' : (t.texts.newsletterSubscribe || 'Subscribe')}</button>
-                }
-              </div>
-              {/* Honeypot — hidden from real users; bots that fill it are silently dropped. */}
-              <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
-                <label htmlFor="nl-website">Website</label>
-                <input id="nl-website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
-              </div>
-              {error && (
-                <p role="alert" style={{ marginTop: 12, marginBottom: 0, fontFamily: 'var(--font-body, sans-serif)', fontSize: 14, color: 'var(--ea-error, #C0392B)' }}>
-                  {error}
-                </p>
-              )}
-            </form>
-          )}
+          <form onSubmit={handleSubmit}>
+            {/* Input + Subscribe joined into one pill (container clips the square button corners). */}
+            <div style={{
+              display: 'flex', marginTop: isMobile ? 16 : 24,
+              border: '1px solid #E5E5E5', borderRadius: 8, overflow: 'hidden', background: '#fff',
+            }}>
+              <input
+                type="email" placeholder="Your Email" value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{ flex: 1, minWidth: 0, padding: '12px 16px', border: 'none', outline: 'none', fontFamily: 'var(--font-body, sans-serif)', fontSize: isMobile ? 14 : 16, background: 'transparent' }}
+              />
+              {Button
+                ? <Button variant="primary" type="submit" disabled={sending} style={{ borderRadius: 0 }}>{sending ? 'Subscribing…' : (t.texts.newsletterSubscribe || 'Subscribe')}</Button>
+                : <button type="submit" disabled={sending} style={{ ...FB.btn('primary'), borderRadius: 0, opacity: sending ? 0.7 : 1 }}>{sending ? 'Subscribing…' : (t.texts.newsletterSubscribe || 'Subscribe')}</button>
+              }
+            </div>
+            {/* Honeypot — hidden from real users; bots that fill it are silently dropped. */}
+            <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
+              <label htmlFor="nl-website">Website</label>
+              <input id="nl-website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+            </div>
+            {error && (
+              <p role="alert" style={{ marginTop: 12, marginBottom: 0, fontFamily: 'var(--font-body, sans-serif)', fontSize: 14, color: 'var(--ea-error, #C0392B)' }}>
+                {error}
+              </p>
+            )}
+          </form>
         </div>
       </div>
+      {confirmOpen && (
+        <NewsletterModal DS={DS} t={t} location="General Badminton" startSubmitted onClose={() => setConfirmOpen(false)} />
+      )}
     </section>
   );
 }

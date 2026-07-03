@@ -66,6 +66,7 @@ export function getThemeData() {
     texts:   d.texts   || {},                // { heroDesc, programsDesc, ... } editable copy from the Customizer
     options: d.options || {},                // { useCarousel, ... } layout toggles from the Customizer
     social:  d.social  || {},                // { instagram, facebook } profile links from the Customizer
+    links:   d.links   || {},                // { heroPrimary: {url, section}, ... } button destinations
     menus:   d.menus   || {},
     asset:   (file) => `${themeUrl}/assets/images/${file}`,   // bundled fallback path
     logoBase: themeUrl ? `${themeUrl}/assets/images/` : '../assets/images/',
@@ -174,6 +175,54 @@ function linkAttrs(item) {
   return attrs;
 }
 
+// Like linkAttrs, but always opens in a new tab. Used for the nav so its links open
+// a new tab regardless of the per-item "Link Target" set in Appearance → Menus.
+function navLinkAttrs(item) {
+  return { ...linkAttrs(item), target: '_blank', rel: 'noopener noreferrer' };
+}
+
+// Turn a Customizer button link ({ url, section }) into anchor props, or null when
+// there's no destination. A `section` smooth-scrolls to that element id; a `url`
+// navigates (external http(s) URLs open in a new tab).
+export function sectionLinkAttrs(link) {
+  const l = link || {};
+  if (l.section) {
+    return {
+      href: `#${l.section}`,
+      onClick: (e) => {
+        const el = typeof document !== 'undefined' && document.getElementById(l.section);
+        if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
+      },
+    };
+  }
+  if (l.url) {
+    return /^https?:\/\//i.test(l.url)
+      ? { href: l.url, target: '_blank', rel: 'noopener noreferrer' }
+      : { href: l.url };
+  }
+  return null;
+}
+
+// A DS Button (or inline fallback) that optionally links/scrolls per its Customizer
+// link. Renders as an <a> when a destination is set (Button supports `as="a"`), so
+// there's never an <a> nested inside a <button>.
+export function ActionButton({ DS, link, variant = 'primary', size, full = false, style, children }) {
+  // Buttons flagged hidden in the Customizer (EA Button Links → "hide this button")
+  // render nothing. Hero buttons never carry this flag, so they always show.
+  if (link && link.hidden) return null;
+  const Button = DS && DS.Button;
+  const attrs = sectionLinkAttrs(link);
+  if (Button) {
+    return attrs
+      ? <Button as="a" variant={variant} size={size} full={full} style={style} {...attrs}>{children}</Button>
+      : <Button variant={variant} size={size} full={full} style={style}>{children}</Button>;
+  }
+  const fb = { ...FB.btn(variant), ...(full ? { width: '100%' } : {}), ...style };
+  return attrs
+    ? <a {...attrs} style={{ ...fb, textDecoration: 'none' }}>{children}</a>
+    : <button style={fb}>{children}</button>;
+}
+
 // Down chevron; rotates when its menu is open.
 function Chevron({ open }) {
   return (
@@ -218,13 +267,15 @@ function NavSection({ DS, t, isMobile }) {
   }, [isMobile]);
 
   const ctaLabel = t.texts.navCta || 'Find a League Near You';
-  const cta = Button
-    ? <Button variant="primary">{ctaLabel}</Button>
-    : <button style={FB.btn('primary')}>{ctaLabel}</button>;
+  const cta = <ActionButton DS={DS} link={t.links.navCta} variant="primary">{ctaLabel}</ActionButton>;
 
-  const contactHref = `${t.siteUrl || ''}/contact/`;
+  // "Connect with us" smooth-scrolls to the footer (id="site-footer").
+  const scrollToFooter = (e) => {
+    const el = typeof document !== 'undefined' && document.getElementById('site-footer');
+    if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
+  };
   const contact = (
-    <a href={contactHref} style={{ ...linkStyle, display: 'inline-flex', alignItems: 'center' }}>{t.texts.navConnect || 'Connect with us'}</a>
+    <a href="#site-footer" onClick={scrollToFooter} style={{ ...linkStyle, display: 'inline-flex', alignItems: 'center' }}>{t.texts.navConnect || 'Connect with us'}</a>
   );
 
   return (
@@ -256,7 +307,7 @@ function NavSection({ DS, t, isMobile }) {
                 onMouseLeave={() => hasChildren && setOpenIdx(null)}
               >
                 <a
-                  {...linkAttrs(l)}
+                  {...navLinkAttrs(l)}
                   aria-haspopup={hasChildren || undefined}
                   aria-expanded={hasChildren ? openIdx === i : undefined}
                   style={{ ...linkStyle, display: 'inline-flex', alignItems: 'center' }}
@@ -274,7 +325,7 @@ function NavSection({ DS, t, isMobile }) {
                       padding: 8, display: 'flex', flexDirection: 'column',
                     }}>
                       {l.children.map((c) => (
-                        <a key={c.label} {...linkAttrs(c)} style={{
+                        <a key={c.label} {...navLinkAttrs(c)} style={{
                           ...linkStyle, fontWeight: 500, padding: '10px 12px', borderRadius: 6,
                         }}>{c.label}</a>
                       ))}
@@ -316,7 +367,7 @@ function NavSection({ DS, t, isMobile }) {
             return (
               <div key={l.label} style={{ borderBottom: '1px solid #F0F0F0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <a {...linkAttrs(l)} style={{ ...linkStyle, padding: '12px 0', flex: 1 }}>{l.label}</a>
+                  <a {...navLinkAttrs(l)} style={{ ...linkStyle, padding: '12px 0', flex: 1 }}>{l.label}</a>
                   {hasChildren && (
                     <button
                       type="button"
@@ -332,7 +383,7 @@ function NavSection({ DS, t, isMobile }) {
                 {hasChildren && expanded === i && (
                   <div style={{ paddingLeft: 16, paddingBottom: 8 }}>
                     {l.children.map((c) => (
-                      <a key={c.label} {...linkAttrs(c)} style={{ ...linkStyle, fontWeight: 500, display: 'block', padding: '8px 0' }}>{c.label}</a>
+                      <a key={c.label} {...navLinkAttrs(c)} style={{ ...linkStyle, fontWeight: 500, display: 'block', padding: '8px 0' }}>{c.label}</a>
                     ))}
                   </div>
                 )}
@@ -427,7 +478,7 @@ function PageFooter({ isMobile, t }) {
   );
 
   return (
-    <footer style={{
+    <footer id="site-footer" style={{
       background: 'var(--surface-page, #fff)', borderTop: '1px solid var(--border-card, #E5E5E5)',
       padding: isMobile ? '40px 20px' : '56px 40px',
     }}>

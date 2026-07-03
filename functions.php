@@ -133,6 +133,8 @@ function ea_react_enqueue_assets() {
             'options'  => ea_react_options(),
             // Social profile links (Appearance → Customize → EA Social Links).
             'social'   => ea_react_social(),
+            // Button destinations (Appearance → Customize → EA Button Links).
+            'links'    => ea_react_links(),
         )
     );
 }
@@ -253,10 +255,6 @@ function ea_react_text_fields() {
         'ea_txt_free_trial_session_label' => array(
             'key' => 'freeTrialSessionLabel', 'label' => 'Free Trial — Session field label', 'type' => 'text',
             'default' => 'Choose Session',
-        ),
-        'ea_txt_free_trial_sessions' => array(
-            'key' => 'freeTrialSessions', 'label' => 'Free Trial — Session options (one per line)', 'type' => 'textarea',
-            'default' => "Ontario\nBritish Columbia\nAlberta",
         ),
         'ea_txt_free_trial_submit' => array(
             'key' => 'freeTrialSubmit', 'label' => 'Free Trial — Submit button', 'type' => 'text',
@@ -416,8 +414,16 @@ function ea_react_options() {
         'useCarousel' => (bool) get_theme_mod( 'ea_use_carousel', true ),
         // Sports shown in the Active Programs section (defaults to Badminton).
         'sports'      => ea_sanitize_sports( get_theme_mod( 'ea_sports', array( 'bad' ) ) ),
+        // Hide the Active Programs action buttons (both shown by default).
+        'hideNearMe'  => (bool) get_theme_mod( 'ea_hide_near_me', false ),
+        'hideViewAll' => (bool) get_theme_mod( 'ea_hide_view_all', false ),
+        // Free Trial form session dropdown choices (one per line).
+        'freeTrialSessions' => (string) get_theme_mod( 'ea_free_trial_sessions', EA_FREE_TRIAL_SESSIONS_DEFAULT ),
     );
 }
+
+// Default choices for the Free Trial session dropdown (one per line).
+const EA_FREE_TRIAL_SESSIONS_DEFAULT = "Ontario\nBritish Columbia\nAlberta";
 
 // Define a simple <select multiple> control (WP core has no native multi-select).
 // Runs before the controls are added (priority 9 < default 10).
@@ -478,6 +484,97 @@ function ea_react_social() {
     return $social;
 }
 
+// ─── Button links via the Customizer (Appearance → Customize → EA Button Links) ─
+// Each button can smooth-scroll to a page section OR link to a URL (section wins).
+function ea_button_link_fields() {
+    return array(
+        // Hero buttons can't be hidden (no 'hideable') — they anchor the page.
+        'ea_link_hero_primary'   => array( 'key' => 'heroPrimary',    'label' => 'Hero — Primary button' ),
+        'ea_link_hero_secondary' => array( 'key' => 'heroSecondary',  'label' => 'Hero — Secondary button' ),
+        'ea_link_nav_cta'        => array( 'key' => 'navCta',         'label' => 'Navigation — CTA button',          'hideable' => true ),
+        'ea_link_coaching'       => array( 'key' => 'coachingCta',    'label' => 'Coaching — button',                'hideable' => true ),
+        'ea_link_partnerships'   => array( 'key' => 'partnershipsCta', 'label' => 'Community — Partnerships button',  'hideable' => true ),
+        'ea_link_leaders'        => array( 'key' => 'leadersCta',     'label' => 'Community — Leaders button',        'hideable' => true ),
+    );
+}
+
+// Sections a button can scroll to. Keys match the `id`s set on the React sections.
+function ea_section_choices() {
+    return array(
+        ''                => '— none (use URL) —',
+        'hero'            => 'Hero (top of page)',
+        'new-programs'    => 'New Programs / Free Trial',
+        'active-programs' => 'Active Programs',
+        'coaching'        => 'Coaching',
+        'community'       => 'Community',
+        'newsletter'      => 'Newsletter',
+    );
+}
+
+function ea_sanitize_section( $value ) {
+    return array_key_exists( (string) $value, ea_section_choices() ) ? (string) $value : '';
+}
+
+function ea_react_links() {
+    $links = array();
+    foreach ( ea_button_link_fields() as $slug => $meta ) {
+        $links[ $meta['key'] ] = array(
+            'url'     => esc_url( get_theme_mod( $slug, '' ) ),
+            'section' => ea_sanitize_section( get_theme_mod( $slug . '_section', '' ) ),
+            // Hideable buttons expose a "Hide this button" toggle; hero buttons never hide.
+            'hidden'  => ! empty( $meta['hideable'] ) && (bool) get_theme_mod( $slug . '_hidden', false ),
+        );
+    }
+    return $links;
+}
+
+function ea_customize_links( $wp_customize ) {
+    $wp_customize->add_section( 'ea_links', array(
+        'title'       => __( 'EA Button Links', 'ea-react-theme' ),
+        'description' => __( 'Give each button a destination. Choose a section to smooth-scroll there, or leave it on "none" and enter a URL.', 'ea-react-theme' ),
+        'priority'    => 34,
+    ) );
+    foreach ( ea_button_link_fields() as $slug => $meta ) {
+        // Scroll-to-section select.
+        $wp_customize->add_setting( $slug . '_section', array(
+            'default'           => '',
+            'sanitize_callback' => 'ea_sanitize_section',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( $slug . '_section', array(
+            'type'    => 'select',
+            'label'   => $meta['label'] . ' — scroll to section',
+            'choices' => ea_section_choices(),
+            'section' => 'ea_links',
+        ) );
+        // URL (used when no section is chosen).
+        $wp_customize->add_setting( $slug, array(
+            'default'           => '',
+            'sanitize_callback' => 'esc_url_raw',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( $slug, array(
+            'type'    => 'url',
+            'label'   => $meta['label'] . ' — or link URL',
+            'section' => 'ea_links',
+        ) );
+        // Hide toggle (hero buttons are always shown, so no toggle for them).
+        if ( ! empty( $meta['hideable'] ) ) {
+            $wp_customize->add_setting( $slug . '_hidden', array(
+                'default'           => false,
+                'sanitize_callback' => 'wp_validate_boolean',
+                'transport'         => 'refresh',
+            ) );
+            $wp_customize->add_control( $slug . '_hidden', array(
+                'type'    => 'checkbox',
+                'label'   => $meta['label'] . ' — hide this button',
+                'section' => 'ea_links',
+            ) );
+        }
+    }
+}
+add_action( 'customize_register', 'ea_customize_links' );
+
 function ea_customize_social( $wp_customize ) {
     $wp_customize->add_section( 'ea_social', array(
         'title'       => __( 'EA Social Links', 'ea-react-theme' ),
@@ -513,6 +610,40 @@ function ea_customize_options( $wp_customize ) {
         'type'        => 'checkbox',
         'label'       => __( 'Show photo carousel', 'ea-react-theme' ),
         'description' => __( 'Uncheck to show the Free Trial registration form instead.', 'ea-react-theme' ),
+        'section'     => 'ea_options',
+    ) );
+
+    $wp_customize->add_setting( 'ea_hide_near_me', array(
+        'default'           => false,
+        'sanitize_callback' => 'wp_validate_boolean',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'ea_hide_near_me', array(
+        'type'    => 'checkbox',
+        'label'   => __( 'Hide "Locations Near Me" button', 'ea-react-theme' ),
+        'section' => 'ea_options',
+    ) );
+
+    $wp_customize->add_setting( 'ea_hide_view_all', array(
+        'default'           => false,
+        'sanitize_callback' => 'wp_validate_boolean',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'ea_hide_view_all', array(
+        'type'    => 'checkbox',
+        'label'   => __( 'Hide "View All Locations" button', 'ea-react-theme' ),
+        'section' => 'ea_options',
+    ) );
+
+    $wp_customize->add_setting( 'ea_free_trial_sessions', array(
+        'default'           => EA_FREE_TRIAL_SESSIONS_DEFAULT,
+        'sanitize_callback' => 'sanitize_textarea_field',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'ea_free_trial_sessions', array(
+        'type'        => 'textarea',
+        'label'       => __( 'Free Trial — session choices', 'ea-react-theme' ),
+        'description' => __( 'One choice per line. These populate the "Choose Session" dropdown in the Free Trial form.', 'ea-react-theme' ),
         'section'     => 'ea_options',
     ) );
 
