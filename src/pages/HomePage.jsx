@@ -110,7 +110,7 @@ function LinkedCarousel({ slides, alt = '', ratio = '3 / 4', autoPlay = false, i
             transition: 'opacity .4s ease',
           };
           return slide.href ? (
-            <a key={slideIndex} href={slide.href} style={{ ...sharedStyle, display: 'block' }}>
+            <a key={slideIndex} target="_blank" rel="noopener noreferrer" href={slide.href} style={{ ...sharedStyle, display: 'block' }}>
               {image}
             </a>
           ) : (
