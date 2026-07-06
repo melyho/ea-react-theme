@@ -159,7 +159,7 @@ function NewProgramsSection({ DS, isMobile, t }) {
 
   const fallbackCarouselImage = carouselSlides[0] ? (
     carouselSlides[0].href ? (
-      <a href={carouselSlides[0].href} style={{ display: 'block', width: '100%', maxWidth: 380 }}>
+      <a href={carouselSlides[0].href} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', maxWidth: 380 }}>
         <img src={carouselSlides[0].src} alt="Our new programs" style={{ width: '100%', aspectRatio: '4 / 5', objectFit: 'cover', display: 'block' }} />
       </a>
     ) : (

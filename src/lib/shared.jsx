@@ -176,10 +176,28 @@ function linkAttrs(item) {
   return attrs;
 }
 
-// Like linkAttrs, but always opens in a new tab. Used for the nav so its links open
-// a new tab regardless of the per-item "Link Target" set in Appearance → Menus.
+// True when href points to a different host than the current page (i.e. an external
+// site). Relative and same-host URLs resolve to false; non-http(s) schemes (mailto:,
+// tel:, #anchors) are treated as internal so they don't force a new tab.
+function isExternalUrl(href) {
+  if (!href || typeof window === 'undefined') return false;
+  try {
+    const url = new URL(href, window.location.href);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+    return url.hostname !== window.location.hostname;
+  } catch {
+    return false;
+  }
+}
+
+// Like linkAttrs, but for the nav: open in a new tab only when the link points to an
+// external site. Internal (same-host) links stay in the current tab regardless of the
+// per-item "Link Target" set in Appearance → Menus.
 function navLinkAttrs(item) {
-  return { ...linkAttrs(item), target: '_blank', rel: 'noopener noreferrer' };
+  const href = item.href || '#';
+  return isExternalUrl(href)
+    ? { href, target: '_blank', rel: 'noopener noreferrer' }
+    : { href };
 }
 
 // Turn a Customizer button link ({ url, section }) into anchor props, or null when
