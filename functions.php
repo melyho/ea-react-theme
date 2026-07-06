@@ -137,6 +137,8 @@ function ea_react_enqueue_assets() {
             'social'   => ea_react_social(),
             // Button destinations (Appearance → Customize → EA Button Links).
             'links'    => ea_react_links(),
+            // FAQ page questions & answers (Appearance → Customize → EA FAQ).
+            'faqs'     => ea_react_faqs(),
         )
     );
 }
@@ -725,6 +727,113 @@ function ea_customize_texts( $wp_customize ) {
     }
 }
 add_action( 'customize_register', 'ea_customize_texts' );
+
+// ─── FAQ questions & answers via the Customizer (Appearance → Customize → EA FAQ) ─
+// The FAQ page (the WordPress Page with slug "faq") renders these rows as
+// collapsible cards. Each slot is a question (text) + answer (basic HTML allowed,
+// e.g. links) + an "open by default" toggle. Clear a question to hide that row.
+// ea_react_faqs() collects the non-empty rows for wp_localize_script so React
+// reads them from window.eaReactData.faqs.
+
+// How many editable FAQ slots to expose in the Customizer.
+const EA_FAQ_SLOTS = 12;
+
+// Seed content for the first slots (mirrors the FAQ page's built-in defaults).
+// A cleared question hides its row; unedited slots keep the copy below.
+function ea_faq_defaults() {
+    $hub = esc_url( home_url( '/locations/' ) );
+    return array(
+        array(
+            'q'    => 'How do i join a weekly league?',
+            'a'    => 'We have leagues across Canada! To find one near you, go to our <a href="' . $hub . '">league hub</a> and find your town or a nearby area. From there, check if any programs are currently open and register directly through the link on your town’s page.',
+            'open' => true,
+        ),
+        array(
+            'q'    => 'What are EA weekly pickleball leagues?',
+            'a'    => 'The EA Weekly Pickleball Leagues are development doubles leagues. You don’t need a registered partner—each week, you’ll be assigned to play with three other league members, earning individual points. EA Coaches tally points and rank players in the league standings, and you’ll play against a different set of players each week.',
+            'open' => true,
+        ),
+        array( 'q' => 'Do I need a partner to sign up?',        'a' => 'No. Register on your own and we’ll pair you with other players each week, so you always have a game.' ),
+        array( 'q' => 'What skill level are the leagues for?',  'a' => 'Our development leagues welcome all levels, from first-time players to experienced ones. Coaches help balance matchups so everyone gets competitive, fun games.' ),
+        array( 'q' => 'What equipment do I need?',              'a' => 'Just bring court shoes and comfortable clothing. Paddles and balls are provided at most locations — check your town’s page for specifics.' ),
+        array( 'q' => 'How long does a league season run?',     'a' => 'Season length varies by location. Each town’s registration page lists the exact number of weeks, dates, and times.' ),
+        array( 'q' => 'Can I get a refund if I can’t attend?',  'a' => 'Refund windows are listed on each program’s registration page. Reach out to your local EA Coach if you have questions about a specific league.' ),
+    );
+}
+
+// The slot's default (question/answer/open) or an empty row when unseeded.
+function ea_faq_default_for( $i ) {
+    $defaults = ea_faq_defaults();
+    return isset( $defaults[ $i - 1 ] )
+        ? $defaults[ $i - 1 ]
+        : array( 'q' => '', 'a' => '', 'open' => false );
+}
+
+function ea_react_faqs() {
+    $out = array();
+    for ( $i = 1; $i <= EA_FAQ_SLOTS; $i++ ) {
+        $d = ea_faq_default_for( $i );
+        $q = trim( (string) get_theme_mod( "ea_faq_q_$i", $d['q'] ) );
+        if ( '' === $q ) {
+            continue; // cleared question → row hidden
+        }
+        $out[] = array(
+            'q'    => $q,
+            'a'    => wp_kses_post( get_theme_mod( "ea_faq_a_$i", $d['a'] ) ),
+            'open' => (bool) get_theme_mod( "ea_faq_open_$i", ! empty( $d['open'] ) ),
+        );
+    }
+    return $out;
+}
+
+function ea_customize_faqs( $wp_customize ) {
+    $wp_customize->add_section( 'ea_faq', array(
+        'title'       => __( 'EA FAQ', 'ea-react-theme' ),
+        'description' => __( 'Questions & answers for the FAQ page (the WordPress Page with slug “faq”). Clear a question to hide that row. Answers may include basic HTML such as links.', 'ea-react-theme' ),
+        'priority'    => 33,
+    ) );
+
+    for ( $i = 1; $i <= EA_FAQ_SLOTS; $i++ ) {
+        $d = ea_faq_default_for( $i );
+
+        $wp_customize->add_setting( "ea_faq_q_$i", array(
+            'default'           => $d['q'],
+            'sanitize_callback' => 'sanitize_text_field',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( "ea_faq_q_$i", array(
+            'type'    => 'text',
+            /* translators: %d: FAQ row number */
+            'label'   => sprintf( __( 'Q%d — Question', 'ea-react-theme' ), $i ),
+            'section' => 'ea_faq',
+        ) );
+
+        $wp_customize->add_setting( "ea_faq_a_$i", array(
+            'default'           => $d['a'],
+            'sanitize_callback' => 'wp_kses_post',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( "ea_faq_a_$i", array(
+            'type'    => 'textarea',
+            /* translators: %d: FAQ row number */
+            'label'   => sprintf( __( 'Q%d — Answer (basic HTML allowed)', 'ea-react-theme' ), $i ),
+            'section' => 'ea_faq',
+        ) );
+
+        $wp_customize->add_setting( "ea_faq_open_$i", array(
+            'default'           => ! empty( $d['open'] ),
+            'sanitize_callback' => 'wp_validate_boolean',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( "ea_faq_open_$i", array(
+            'type'    => 'checkbox',
+            /* translators: %d: FAQ row number */
+            'label'   => sprintf( __( 'Q%d — Open by default', 'ea-react-theme' ), $i ),
+            'section' => 'ea_faq',
+        ) );
+    }
+}
+add_action( 'customize_register', 'ea_customize_faqs' );
 
 // ─── Free Trial form submissions (custom REST endpoint) ───────────────────────
 // The React Free Trial form POSTs here. We validate, then email the registration

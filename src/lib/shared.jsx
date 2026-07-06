@@ -68,6 +68,10 @@ export function getThemeData() {
     options: d.options || {},                // { useCarousel, ... } layout toggles from the Customizer
     social:  d.social  || {},                // { instagram, facebook } profile links from the Customizer
     links:   d.links   || {},                // { heroPrimary: {url, section}, ... } button destinations
+    // FAQ page Q&A rows from the Customizer (EA FAQ). Array of { q, a, open };
+    // `a` may contain basic HTML (links etc.). undefined only in dev (no WP data),
+    // where the FAQ page falls back to its built-in defaults.
+    faqs:    Array.isArray(d.faqs) ? d.faqs : undefined,
     menus:   d.menus   || {},
     asset:   (file) => `${themeUrl}/assets/images/${file}`,   // bundled fallback path
     logoBase: themeUrl ? `${themeUrl}/assets/images/` : '../assets/images/',

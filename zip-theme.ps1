@@ -23,9 +23,23 @@ $zipPath   = Join-Path $parent "$themeName.zip"
 # Names to exclude from the package (folders or files at the theme root).
 $exclude = @('node_modules', '.git', '.github', '.vscode', '.gitignore', 'zip-theme.ps1', "$themeName.zip")
 
-# 1) Remove the old zip.
+# 0) Preflight: WordPress rejects any theme whose root has no style.css
+#    ("The theme is missing the style.css stylesheet."). Fail here - with a clear
+#    message - rather than shipping a zip that WordPress will refuse to install.
+$stylePath = Join-Path $themeDir 'style.css'
+if (-not (Test-Path $stylePath)) {
+    throw "style.css not found at $stylePath - WordPress will report the theme is missing its stylesheet. Aborting."
+}
+
+# 1) Remove the old zip. If a stale zip is locked (e.g. still open in the WP
+#    uploader or Explorer), stop with a clear message instead of leaving the old,
+#    possibly-broken archive in place for someone to upload by mistake.
 if (Test-Path $zipPath) {
-    Remove-Item $zipPath -Force
+    try {
+        Remove-Item $zipPath -Force -ErrorAction Stop
+    } catch {
+        throw "Could not delete the old $themeName.zip (is it open in another program?): $($_.Exception.Message)"
+    }
     Write-Host "Removed old $themeName.zip"
 }
 
@@ -58,5 +72,31 @@ try {
 # 4) Clean up staging.
 Remove-Item $staging -Recurse -Force
 
+# 5) Verify the finished archive is shaped the way WordPress requires:
+#      - every entry uses forward slashes (backslashes read as a flat filename,
+#        which is exactly what triggers the phantom "missing style.css"),
+#      - a single top-level folder, and
+#      - <themeName>/style.css present inside it.
+#    If any check fails, delete the bad zip so it can't be uploaded by accident.
+$verifyZip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+try {
+    $names        = $verifyZip.Entries | ForEach-Object { $_.FullName }
+    $hasBackslash = $names | Where-Object { $_ -like '*\*' }
+    $topDirs      = $names | ForEach-Object { ($_ -split '/')[0] } | Sort-Object -Unique
+    $hasStyle     = $names -contains "$themeName/style.css"
+} finally {
+    $verifyZip.Dispose()
+}
+
+$problems = @()
+if ($hasBackslash)               { $problems += "entries use backslash separators (WordPress can't read them as folders)" }
+if ($topDirs.Count -ne 1)        { $problems += "expected a single top-level folder but found: $($topDirs -join ', ')" }
+if (-not $hasStyle)              { $problems += "$themeName/style.css is missing from the archive" }
+
+if ($problems.Count -gt 0) {
+    Remove-Item $zipPath -Force
+    throw "Built zip failed verification and was deleted:`n  - " + ($problems -join "`n  - ")
+}
+
 $sizeKB = [math]::Round((Get-Item $zipPath).Length / 1KB)
-Write-Host "Created $zipPath ($sizeKB KB)"
+Write-Host "Created $zipPath ($sizeKB KB) - verified $themeName/style.css is present."

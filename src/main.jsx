@@ -9,12 +9,12 @@
  * then create a WordPress Page whose slug matches the key.
  */
 import { createRoot } from 'react-dom/client';
-import HomePage  from './pages/HomePage.jsx';
-import AboutPage from './pages/AboutPage.jsx';
+import HomePage from './pages/HomePage.jsx';
+import FAQPage  from './pages/FAQ.jsx';
 
 const PAGES = {
-  home:  HomePage,
-  about: AboutPage,
+  home: HomePage,
+  faq:  FAQPage,
 };
 
 const el = document.getElementById('ea-react-root');
