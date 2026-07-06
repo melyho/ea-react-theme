@@ -14,4 +14,4 @@
             outline-offset: 4px;
             border-radius: 4px;
           }
-        `}),a?e.jsx(a,{level:t?"md":"lg",as:"h1",children:"Frequently Asked Questions"}):e.jsx("h1",{style:k.h(t?36:56),children:"Frequently Asked Questions"}),e.jsx("div",{style:{marginTop:t?24:32,display:"flex",flexDirection:"column",gap:"var(--space-4, 16px)"},children:i.map((r,o)=>e.jsx(Ge,{item:r,index:o,isMobile:t},o))})]})})}const Je={home:te,faq:Ve},U=document.getElementById("ea-react-root");if(U){const s=U.dataset.page||"home",t=Je[s]||te;ne.createRoot(U).render(e.jsx(t,{}))}})(React,ReactDOM);
+        `}),a?e.jsx(a,{level:t?"md":"lg",as:"h1",align:"center",children:"Frequently Asked Questions"}):e.jsx("h1",{style:{...k.h(t?36:56),textAlign:"center"},children:"Frequently Asked Questions"}),e.jsx("div",{style:{marginTop:t?24:32,display:"flex",flexDirection:"column",gap:"var(--space-4, 16px)"},children:i.map((r,o)=>e.jsx(Ge,{item:r,index:o,isMobile:t},o))})]})})}const Je={home:te,faq:Ve},U=document.getElementById("ea-react-root");if(U){const s=U.dataset.page||"home",t=Je[s]||te;ne.createRoot(U).render(e.jsx(t,{}))}})(React,ReactDOM);

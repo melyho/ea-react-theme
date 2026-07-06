@@ -186,11 +186,11 @@ export default function FAQPage() {
         `}</style>
 
         {SectionHeading ? (
-          <SectionHeading level={isMobile ? 'md' : 'lg'} as="h1">
+          <SectionHeading level={isMobile ? 'md' : 'lg'} as="h1" align="center">
             Frequently Asked Questions
           </SectionHeading>
         ) : (
-          <h1 style={FB.h(isMobile ? 36 : 56)}>Frequently Asked Questions</h1>
+          <h1 style={{ ...FB.h(isMobile ? 36 : 56), textAlign: 'center' }}>Frequently Asked Questions</h1>
         )}
 
         <div
