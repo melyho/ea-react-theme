@@ -11,10 +11,12 @@
 import { createRoot } from 'react-dom/client';
 import HomePage from './pages/HomePage.jsx';
 import FAQPage  from './pages/FAQ.jsx';
+import BlankContentPage from './pages/BlankContentPage.jsx';
 
 const PAGES = {
-  home: HomePage,
-  faq:  FAQPage,
+  home:  HomePage,
+  faq:   FAQPage,
+  blank: BlankContentPage,
 };
 
 const el = document.getElementById('ea-react-root');
