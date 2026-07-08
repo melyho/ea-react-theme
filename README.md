@@ -394,6 +394,12 @@ Server side (in [functions.php](functions.php)):
 The `ea_free_trial` post type is admin-only (`'create_posts' => 'do_not_allow'`),
 so entries only ever come from the form.
 
+Admins can download the saved registrations from **wp-admin → Free Trials** using
+the **Export Free Trials CSV** button above the list table. The CSV includes the
+submission ID, athlete name, email, city, sport, selected session, and submitted
+date. Free Trial rows currently export as city `Newmarket` and sport `Badminton`
+so they can map into the same Constant Contact fields as newsletter signups.
+
 ---
 
 ## The Newsletter signup (React ↔ WordPress REST)
@@ -413,8 +419,14 @@ Server side (in [functions.php](functions.php)):
    set (so one email can be subscribed to several locations).
 3. It emails the admin (best-effort → Mailpit locally).
 
-Subscribers are listed under **wp-admin → Newsletter**, with an **Email**,
-**Locations**, and **Subscribed** column.
+Subscribers are listed under **wp-admin → Newsletter**, with **Email**, **City**,
+**Sport**, and **Subscribed** columns.
+
+Admins can download the saved subscribers from **wp-admin → Newsletter** using
+the **Export Newsletter CSV** button above the list table. The CSV includes the
+subscriber ID, email, city, sport, and subscribed date. The `Sport` column exports
+as `Badminton`; location labels such as `General Badminton` export as city
+`General` so the CSV can map cleanly into Constant Contact segments.
 
 Two entry points on the home page:
 

@@ -938,12 +938,39 @@ function ea_register_free_trial_cpt() {
 }
 add_action( 'init', 'ea_register_free_trial_cpt' );
 
-// Columns for the Free Trials list table: Name | Email | Session | Submitted.
+function ea_default_sport_value() {
+    return 'Badminton';
+}
+
+function ea_free_trial_city_value() {
+    return 'Newmarket';
+}
+
+function ea_newsletter_city_value( $locations ) {
+    if ( ! is_array( $locations ) ) {
+        $locations = array();
+    }
+
+    $cities = array();
+    foreach ( $locations as $location ) {
+        $city = trim( preg_replace( '/\s+Badminton$/i', '', (string) $location ) );
+        if ( '' !== $city && ! in_array( $city, $cities, true ) ) {
+            $cities[] = $city;
+        }
+    }
+
+    return implode( '; ', $cities );
+}
+
+// Columns for the Free Trials list table:
+// Athlete | Email | City | Sport | Session | Submitted.
 function ea_free_trial_columns( $columns ) {
     return array(
         'cb'         => isset( $columns['cb'] ) ? $columns['cb'] : '',
         'title'      => __( 'Athlete', 'ea-react-theme' ),
         'ea_email'   => __( 'Email', 'ea-react-theme' ),
+        'ea_city'    => __( 'City', 'ea-react-theme' ),
+        'ea_sport'   => __( 'Sport', 'ea-react-theme' ),
         'ea_session' => __( 'Session', 'ea-react-theme' ),
         'date'       => __( 'Submitted', 'ea-react-theme' ),
     );
@@ -954,12 +981,127 @@ function ea_free_trial_column_content( $column, $post_id ) {
     if ( 'ea_email' === $column ) {
         $email = get_post_meta( $post_id, '_ea_email', true );
         echo $email ? '<a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a>' : '—';
+    } elseif ( 'ea_city' === $column ) {
+        echo esc_html( ea_free_trial_city_value() );
+    } elseif ( 'ea_sport' === $column ) {
+        echo esc_html( ea_default_sport_value() );
     } elseif ( 'ea_session' === $column ) {
         $session = get_post_meta( $post_id, '_ea_session', true );
         echo $session ? esc_html( $session ) : '—';
     }
 }
 add_action( 'manage_ea_free_trial_posts_custom_column', 'ea_free_trial_column_content', 10, 2 );
+
+// ─── CSV exports for admin-only form records ─────────────────────────────────
+// Adds an "Export CSV" button to the Free Trials and Newsletter admin list
+// screens. The export reads the saved entries directly from WordPress.
+function ea_admin_export_button( $which ) {
+    if ( 'top' !== $which ) {
+        return;
+    }
+
+    global $typenow;
+
+    $exports = array(
+        'ea_free_trial' => array(
+            'action' => 'ea_export_free_trials',
+            'label'  => __( 'Export Free Trials CSV', 'ea-react-theme' ),
+        ),
+        'ea_newsletter' => array(
+            'action' => 'ea_export_newsletter',
+            'label'  => __( 'Export Newsletter CSV', 'ea-react-theme' ),
+        ),
+    );
+
+    if ( empty( $exports[ $typenow ] ) ) {
+        return;
+    }
+
+    $export = $exports[ $typenow ];
+    $url    = wp_nonce_url(
+        admin_url( 'admin-post.php?action=' . $export['action'] ),
+        $export['action']
+    );
+
+    echo '<a class="button" href="' . esc_url( $url ) . '" style="margin-left:8px;">'
+        . esc_html( $export['label'] )
+        . '</a>';
+}
+add_action( 'manage_posts_extra_tablenav', 'ea_admin_export_button' );
+
+function ea_send_csv_headers( $filename ) {
+    nocache_headers();
+    header( 'Content-Type: text/csv; charset=utf-8' );
+    header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+    header( 'Pragma: no-cache' );
+    header( 'Expires: 0' );
+}
+
+function ea_get_export_posts( $post_type ) {
+    return get_posts( array(
+        'post_type'      => $post_type,
+        'post_status'    => 'publish',
+        'posts_per_page' => -1,
+        'orderby'        => 'date',
+        'order'          => 'DESC',
+    ) );
+}
+
+function ea_export_free_trials_csv() {
+    if ( ! current_user_can( 'edit_posts' ) ) {
+        wp_die( esc_html__( 'You do not have permission to export this data.', 'ea-react-theme' ) );
+    }
+    check_admin_referer( 'ea_export_free_trials' );
+
+    ea_send_csv_headers( 'ea-free-trials-' . gmdate( 'Y-m-d' ) . '.csv' );
+
+    $out = fopen( 'php://output', 'w' );
+    fputcsv( $out, array( 'Submission ID', 'Athlete', 'Email', 'City', 'Sport', 'Session', 'Submitted At' ) );
+
+    foreach ( ea_get_export_posts( 'ea_free_trial' ) as $entry ) {
+        fputcsv( $out, array(
+            $entry->ID,
+            get_the_title( $entry ),
+            get_post_meta( $entry->ID, '_ea_email', true ),
+            ea_free_trial_city_value(),
+            ea_default_sport_value(),
+            get_post_meta( $entry->ID, '_ea_session', true ),
+            get_date_from_gmt( $entry->post_date_gmt, 'Y-m-d H:i:s' ),
+        ) );
+    }
+
+    fclose( $out );
+    exit;
+}
+add_action( 'admin_post_ea_export_free_trials', 'ea_export_free_trials_csv' );
+
+function ea_export_newsletter_csv() {
+    if ( ! current_user_can( 'edit_posts' ) ) {
+        wp_die( esc_html__( 'You do not have permission to export this data.', 'ea-react-theme' ) );
+    }
+    check_admin_referer( 'ea_export_newsletter' );
+
+    ea_send_csv_headers( 'ea-newsletter-' . gmdate( 'Y-m-d' ) . '.csv' );
+
+    $out = fopen( 'php://output', 'w' );
+    fputcsv( $out, array( 'Subscriber ID', 'Email', 'City', 'Sport', 'Subscribed At' ) );
+
+    foreach ( ea_get_export_posts( 'ea_newsletter' ) as $entry ) {
+        $locations = get_post_meta( $entry->ID, '_ea_locations', true );
+
+        fputcsv( $out, array(
+            $entry->ID,
+            get_post_meta( $entry->ID, '_ea_email', true ),
+            ea_newsletter_city_value( $locations ),
+            ea_default_sport_value(),
+            get_date_from_gmt( $entry->post_date_gmt, 'Y-m-d H:i:s' ),
+        ) );
+    }
+
+    fclose( $out );
+    exit;
+}
+add_action( 'admin_post_ea_export_newsletter', 'ea_export_newsletter_csv' );
 
 // ─── Newsletter signups (custom REST endpoint) ────────────────────────────────
 // The React newsletter form POSTs here. We validate the email, store it as an
@@ -1079,23 +1221,27 @@ function ea_register_newsletter_cpt() {
 }
 add_action( 'init', 'ea_register_newsletter_cpt' );
 
-// Columns for the Newsletter list table: Email | Locations | Subscribed.
+// Columns for the Newsletter list table: Email | City | Sport | Subscribed.
 function ea_newsletter_columns( $columns ) {
     return array(
-        'cb'           => isset( $columns['cb'] ) ? $columns['cb'] : '',
-        'title'        => __( 'Email', 'ea-react-theme' ),
-        'ea_locations' => __( 'Locations', 'ea-react-theme' ),
-        'date'         => __( 'Subscribed', 'ea-react-theme' ),
+        'cb'       => isset( $columns['cb'] ) ? $columns['cb'] : '',
+        'title'    => __( 'Email', 'ea-react-theme' ),
+        'ea_city'  => __( 'City', 'ea-react-theme' ),
+        'ea_sport' => __( 'Sport', 'ea-react-theme' ),
+        'date'     => __( 'Subscribed', 'ea-react-theme' ),
     );
 }
 add_filter( 'manage_ea_newsletter_posts_columns', 'ea_newsletter_columns' );
 
 function ea_newsletter_column_content( $column, $post_id ) {
-    if ( 'ea_locations' === $column ) {
+    if ( 'ea_city' === $column ) {
         $locations = get_post_meta( $post_id, '_ea_locations', true );
-        echo ( is_array( $locations ) && $locations )
-            ? esc_html( implode( ', ', $locations ) )
+        $city      = ea_newsletter_city_value( $locations );
+        echo '' !== $city
+            ? esc_html( $city )
             : '<span aria-hidden="true">—</span>';
+    } elseif ( 'ea_sport' === $column ) {
+        echo esc_html( ea_default_sport_value() );
     }
 }
 add_action( 'manage_ea_newsletter_posts_custom_column', 'ea_newsletter_column_content', 10, 2 );

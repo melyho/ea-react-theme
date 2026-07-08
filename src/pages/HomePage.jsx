@@ -817,6 +817,11 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(startSubmitted);
+  const isGeneralNewsletter = location === 'General Badminton';
+  const subscriptionLabel = location ? `EA Badminton ${location}` : 'the EA Badminton Newsletter';
+  const confirmationText = isGeneralNewsletter
+    ? <>You're subscribed for the <strong>EA Badminton Newsletter</strong>. We'll keep you posted with any updates.</>
+    : <>You're subscribed for <strong>{subscriptionLabel}</strong>.</>;
 
   const handleSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -864,7 +869,7 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
           <>
             <h3 style={{ ...FB.h(28), fontWeight: 'var(--fw-regular, 400)', margin: '0 0 12px' }}>Thank you!</h3>
             <p style={{ fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: 16, color: 'var(--ea-ink, #1E526E)', lineHeight: 1.5, margin: 0 }}>
-              You're subscribed{location ? <> for <strong>{location}</strong></> : ''}. We'll keep you posted!
+              {confirmationText}
             </p>
             <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>
               {Button
@@ -877,7 +882,7 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
           <form onSubmit={handleSubmit}>
             <h3 style={{ ...FB.h(28), fontWeight: 'var(--fw-regular, 400)', margin: '0 0 8px' }}>{t.texts.newsletterHeading || 'Join Our Newsletter!'}</h3>
             <p style={{ fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: 16, color: 'var(--ea-ink, #1E526E)', lineHeight: 1.5, margin: '0 0 20px' }}>
-              {location ? <>Subscribing for <strong>{location}</strong></> : (t.texts.newsletterDesc || 'Stay updated on upcoming programs in your area.')}
+              {location ? <>Subscribing to <strong>{subscriptionLabel}</strong>.</> : (t.texts.newsletterDesc || 'Stay updated on upcoming programs in your area.')}
             </p>
             <input type="email" placeholder="Your Email" value={email} autoFocus onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
             {/* Honeypot — hidden from real users; bots that fill it are silently dropped. */}
