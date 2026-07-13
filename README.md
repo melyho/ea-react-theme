@@ -425,8 +425,25 @@ Subscribers are listed under **wp-admin → Newsletter**, with **Email**, **City
 Admins can download the saved subscribers from **wp-admin → Newsletter** using
 the **Export Newsletter CSV** button above the list table. The CSV includes the
 subscriber ID, email, city, sport, and subscribed date. The `Sport` column exports
-as `Badminton`; location labels such as `General Badminton` export as city
-`General` so the CSV can map cleanly into Constant Contact segments.
+as `Badminton`; general newsletter signups export/sync as city `Newmarket` so
+the CSV and Constant Contact sync map cleanly into the same segment fields.
+
+Newsletter signups can also sync to Constant Contact. Add these constants to the
+site's `wp-config.php` (do not commit secrets to the theme):
+
+```
+define( 'EA_CC_CLIENT_ID', '...' );
+define( 'EA_CC_CLIENT_SECRET', '...' );
+define( 'EA_CC_REDIRECT_URI', 'https://eabadminton.com/wp-admin/admin-post.php?action=ea_cc_oauth_callback' );
+define( 'EA_CC_NEWSLETTER_LIST_ID', '...' );
+define( 'EA_CC_FIELD_SPORT_ID', '...' );
+define( 'EA_CC_FIELD_CITY_ID', '...' );
+define( 'EA_CC_FIELD_REGION_ID', '...' );
+```
+
+Then go to **wp-admin → Newsletter → Constant Contact** and click
+**Connect Constant Contact**. The sync is best-effort: WordPress still stores the
+subscriber locally if Constant Contact is unavailable.
 
 Two entry points on the home page:
 

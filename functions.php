@@ -942,7 +942,32 @@ function ea_default_sport_value() {
     return 'Badminton';
 }
 
+function ea_default_region_value() {
+    return 'York Region';
+}
+
 function ea_free_trial_city_value() {
+    return 'Newmarket';
+}
+
+function ea_newsletter_city_from_location( $location ) {
+    $location = trim( (string) $location );
+
+    if ( '' === $location || 0 === strcasecmp( $location, 'General Badminton' ) ) {
+        return 'Newmarket';
+    }
+
+    $normalized = strtolower( $location );
+    if ( false !== strpos( $normalized, 'richmond' ) ) {
+        return 'Richmond Hill';
+    }
+    if ( false !== strpos( $normalized, 'georgina' ) || false !== strpos( $normalized, 'keswick' ) ) {
+        return 'Georgina';
+    }
+    if ( false !== strpos( $normalized, 'aurora' ) && false === strpos( $normalized, 'newmarket' ) ) {
+        return 'Aurora';
+    }
+
     return 'Newmarket';
 }
 
@@ -953,7 +978,7 @@ function ea_newsletter_city_value( $locations ) {
 
     $cities = array();
     foreach ( $locations as $location ) {
-        $city = trim( preg_replace( '/\s+Badminton$/i', '', (string) $location ) );
+        $city = ea_newsletter_city_from_location( $location );
         if ( '' !== $city && ! in_array( $city, $cities, true ) ) {
             $cities[] = $city;
         }
@@ -1103,6 +1128,307 @@ function ea_export_newsletter_csv() {
 }
 add_action( 'admin_post_ea_export_newsletter', 'ea_export_newsletter_csv' );
 
+// ─── Constant Contact newsletter sync ────────────────────────────────────────
+// Secrets and account-specific IDs are intentionally read from wp-config.php
+// constants so they are never committed to Git with the theme.
+function ea_cc_config_value( $constant_name ) {
+    return defined( $constant_name ) ? constant( $constant_name ) : '';
+}
+
+function ea_cc_config() {
+    return array(
+        'client_id'       => ea_cc_config_value( 'EA_CC_CLIENT_ID' ),
+        'client_secret'   => ea_cc_config_value( 'EA_CC_CLIENT_SECRET' ),
+        'list_id'         => ea_cc_config_value( 'EA_CC_NEWSLETTER_LIST_ID' ),
+        'field_sport_id'  => ea_cc_config_value( 'EA_CC_FIELD_SPORT_ID' ),
+        'field_city_id'   => ea_cc_config_value( 'EA_CC_FIELD_CITY_ID' ),
+        'field_region_id' => ea_cc_config_value( 'EA_CC_FIELD_REGION_ID' ),
+    );
+}
+
+function ea_cc_is_configured() {
+    $config = ea_cc_config();
+    foreach ( $config as $value ) {
+        if ( '' === $value ) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function ea_cc_redirect_uri() {
+    $configured = ea_cc_config_value( 'EA_CC_REDIRECT_URI' );
+    if ( '' !== $configured ) {
+        return $configured;
+    }
+
+    return admin_url( 'admin-post.php?action=ea_cc_oauth_callback' );
+}
+
+function ea_cc_token_option() {
+    return 'ea_cc_tokens';
+}
+
+function ea_cc_log( $message, $context = array() ) {
+    if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+        error_log( 'EA Constant Contact: ' . $message . ( $context ? ' ' . wp_json_encode( $context ) : '' ) );
+    }
+}
+
+function ea_cc_auth_url() {
+    if ( ! ea_cc_is_configured() ) {
+        return '';
+    }
+
+    $config = ea_cc_config();
+    $state  = wp_generate_password( 32, false, false );
+    set_transient( 'ea_cc_oauth_state_' . $state, get_current_user_id(), 15 * MINUTE_IN_SECONDS );
+
+    return add_query_arg(
+        array(
+            'client_id'     => $config['client_id'],
+            'redirect_uri'  => ea_cc_redirect_uri(),
+            'response_type' => 'code',
+            'scope'         => 'contact_data offline_access',
+            'state'         => $state,
+        ),
+        'https://authz.constantcontact.com/oauth2/default/v1/authorize'
+    );
+}
+
+function ea_cc_admin_menu() {
+    add_submenu_page(
+        'edit.php?post_type=ea_newsletter',
+        __( 'Constant Contact', 'ea-react-theme' ),
+        __( 'Constant Contact', 'ea-react-theme' ),
+        'manage_options',
+        'ea-constant-contact',
+        'ea_cc_admin_page'
+    );
+}
+add_action( 'admin_menu', 'ea_cc_admin_menu' );
+
+function ea_cc_admin_page() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'You do not have permission to manage this integration.', 'ea-react-theme' ) );
+    }
+
+    $tokens    = get_option( ea_cc_token_option(), array() );
+    $connected = ! empty( $tokens['refresh_token'] );
+    $auth_url  = ea_cc_auth_url();
+    ?>
+    <div class="wrap">
+        <h1><?php esc_html_e( 'Constant Contact', 'ea-react-theme' ); ?></h1>
+        <p><?php esc_html_e( 'Newsletter signups sync to Constant Contact after they are saved in WordPress.', 'ea-react-theme' ); ?></p>
+
+        <table class="widefat striped" style="max-width: 760px;">
+            <tbody>
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Configuration', 'ea-react-theme' ); ?></th>
+                    <td><?php echo ea_cc_is_configured() ? esc_html__( 'Configured', 'ea-react-theme' ) : esc_html__( 'Missing wp-config.php constants', 'ea-react-theme' ); ?></td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Connection', 'ea-react-theme' ); ?></th>
+                    <td><?php echo $connected ? esc_html__( 'Connected', 'ea-react-theme' ) : esc_html__( 'Not connected', 'ea-react-theme' ); ?></td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Redirect URI', 'ea-react-theme' ); ?></th>
+                    <td><code><?php echo esc_html( ea_cc_redirect_uri() ); ?></code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <?php if ( $auth_url ) : ?>
+            <p style="margin-top: 20px;">
+                <a class="button button-primary" href="<?php echo esc_url( $auth_url ); ?>">
+                    <?php echo $connected ? esc_html__( 'Reconnect Constant Contact', 'ea-react-theme' ) : esc_html__( 'Connect Constant Contact', 'ea-react-theme' ); ?>
+                </a>
+            </p>
+        <?php endif; ?>
+    </div>
+    <?php
+}
+
+function ea_cc_oauth_callback() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'You do not have permission to connect Constant Contact.', 'ea-react-theme' ) );
+    }
+
+    $state = isset( $_GET['state'] ) ? sanitize_text_field( wp_unslash( $_GET['state'] ) ) : '';
+    $code  = isset( $_GET['code'] ) ? sanitize_text_field( wp_unslash( $_GET['code'] ) ) : '';
+
+    if ( '' === $state || false === get_transient( 'ea_cc_oauth_state_' . $state ) ) {
+        wp_die( esc_html__( 'Constant Contact authorization state expired or did not match.', 'ea-react-theme' ) );
+    }
+    delete_transient( 'ea_cc_oauth_state_' . $state );
+
+    if ( '' === $code ) {
+        wp_die( esc_html__( 'Constant Contact did not return an authorization code.', 'ea-react-theme' ) );
+    }
+
+    $result = ea_cc_exchange_code_for_tokens( $code );
+    if ( is_wp_error( $result ) ) {
+        wp_die( esc_html( $result->get_error_message() ) );
+    }
+
+    wp_safe_redirect( admin_url( 'edit.php?post_type=ea_newsletter&page=ea-constant-contact&connected=1' ) );
+    exit;
+}
+add_action( 'admin_post_ea_cc_oauth_callback', 'ea_cc_oauth_callback' );
+
+function ea_cc_exchange_code_for_tokens( $code ) {
+    $config = ea_cc_config();
+
+    $response = wp_remote_post(
+        'https://authz.constantcontact.com/oauth2/default/v1/token',
+        array(
+            'headers' => array(
+                'Authorization' => 'Basic ' . base64_encode( $config['client_id'] . ':' . $config['client_secret'] ),
+                'Content-Type'  => 'application/x-www-form-urlencoded',
+            ),
+            'body'    => array(
+                'grant_type'   => 'authorization_code',
+                'code'         => $code,
+                'redirect_uri' => ea_cc_redirect_uri(),
+            ),
+            'timeout' => 20,
+        )
+    );
+
+    return ea_cc_store_token_response( $response );
+}
+
+function ea_cc_store_token_response( $response ) {
+    if ( is_wp_error( $response ) ) {
+        return $response;
+    }
+
+    $code = wp_remote_retrieve_response_code( $response );
+    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+    if ( $code < 200 || $code >= 300 || empty( $body['access_token'] ) ) {
+        ea_cc_log( 'Token request failed', array( 'status' => $code, 'body' => $body ) );
+        return new WP_Error( 'ea_cc_token_failed', __( 'Constant Contact token request failed.', 'ea-react-theme' ) );
+    }
+
+    $tokens = get_option( ea_cc_token_option(), array() );
+    $tokens['access_token'] = sanitize_text_field( $body['access_token'] );
+    if ( ! empty( $body['refresh_token'] ) ) {
+        $tokens['refresh_token'] = sanitize_text_field( $body['refresh_token'] );
+    }
+    $tokens['expires_at'] = time() + max( 60, (int) ( $body['expires_in'] ?? 7200 ) - 120 );
+    update_option( ea_cc_token_option(), $tokens, false );
+
+    return $tokens;
+}
+
+function ea_cc_access_token() {
+    $tokens = get_option( ea_cc_token_option(), array() );
+    if ( empty( $tokens['access_token'] ) || empty( $tokens['refresh_token'] ) ) {
+        return new WP_Error( 'ea_cc_not_connected', __( 'Constant Contact is not connected.', 'ea-react-theme' ) );
+    }
+
+    if ( ! empty( $tokens['expires_at'] ) && time() < (int) $tokens['expires_at'] ) {
+        return $tokens['access_token'];
+    }
+
+    $config   = ea_cc_config();
+    $response = wp_remote_post(
+        'https://authz.constantcontact.com/oauth2/default/v1/token',
+        array(
+            'headers' => array(
+                'Authorization' => 'Basic ' . base64_encode( $config['client_id'] . ':' . $config['client_secret'] ),
+                'Content-Type'  => 'application/x-www-form-urlencoded',
+            ),
+            'body'    => array(
+                'grant_type'    => 'refresh_token',
+                'refresh_token' => $tokens['refresh_token'],
+            ),
+            'timeout' => 20,
+        )
+    );
+
+    $tokens = ea_cc_store_token_response( $response );
+    if ( is_wp_error( $tokens ) ) {
+        return $tokens;
+    }
+
+    return $tokens['access_token'];
+}
+
+function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0 ) {
+    if ( ! ea_cc_is_configured() ) {
+        ea_cc_log( 'Skipped sync because configuration is incomplete.' );
+        return false;
+    }
+
+    $token = ea_cc_access_token();
+    if ( is_wp_error( $token ) ) {
+        ea_cc_log( 'Skipped sync because Constant Contact is not connected.', array( 'error' => $token->get_error_message() ) );
+        return false;
+    }
+
+    $config = ea_cc_config();
+    $city   = ea_newsletter_city_from_location( $location );
+
+    $payload = array(
+        'email_address'    => $email,
+        'list_memberships' => array( $config['list_id'] ),
+        'custom_fields'    => array(
+            array(
+                'custom_field_id' => $config['field_sport_id'],
+                'value'           => ea_default_sport_value(),
+            ),
+            array(
+                'custom_field_id' => $config['field_city_id'],
+                'value'           => $city,
+            ),
+            array(
+                'custom_field_id' => $config['field_region_id'],
+                'value'           => ea_default_region_value(),
+            ),
+        ),
+    );
+
+    $response = wp_remote_post(
+        'https://api.cc.email/v3/contacts/sign_up_form',
+        array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type'  => 'application/json',
+            ),
+            'body'    => wp_json_encode( $payload ),
+            'timeout' => 20,
+        )
+    );
+
+    if ( is_wp_error( $response ) ) {
+        ea_cc_log( 'Newsletter sync request failed', array( 'error' => $response->get_error_message() ) );
+        if ( $entry_id ) {
+            update_post_meta( $entry_id, '_ea_cc_sync_error', $response->get_error_message() );
+        }
+        return false;
+    }
+
+    $status = wp_remote_retrieve_response_code( $response );
+    $body   = json_decode( wp_remote_retrieve_body( $response ), true );
+    if ( $status < 200 || $status >= 300 ) {
+        ea_cc_log( 'Newsletter sync failed', array( 'status' => $status, 'body' => $body ) );
+        if ( $entry_id ) {
+            update_post_meta( $entry_id, '_ea_cc_sync_error', wp_json_encode( $body ) );
+        }
+        return false;
+    }
+
+    if ( $entry_id ) {
+        update_post_meta( $entry_id, '_ea_cc_synced_at', current_time( 'mysql' ) );
+        update_post_meta( $entry_id, '_ea_cc_city', $city );
+        delete_post_meta( $entry_id, '_ea_cc_sync_error' );
+    }
+
+    return true;
+}
+
 // ─── Newsletter signups (custom REST endpoint) ────────────────────────────────
 // The React newsletter form POSTs here. We validate the email, store it as an
 // ea_newsletter entry, then notify the admin. Mirrors the Free Trial flow above.
@@ -1181,9 +1507,13 @@ function ea_handle_newsletter( WP_REST_Request $request ) {
         }
     }
 
+    // Sync newsletter signups to Constant Contact after local storage succeeds.
+    // Best-effort: a Constant Contact outage must not break the front-end form.
+    ea_cc_sync_newsletter_contact( $email, $location, (int) $entry_id );
+
     // Notify the admin (best-effort — the entry is already saved). Locally this is
     // caught by Local's Mailpit (Site → Tools → Open Mailpit).
-    $to      = get_option( 'admin_email' );
+    $to      = 'mitchell@elevationathletics.ca';
     $subject = 'New newsletter signup';
     $body    = "A newsletter signup was submitted:\n\nEmail: {$email}\n"
              . 'Location: ' . ( '' !== $location ? $location : '(general)' ) . "\n";
