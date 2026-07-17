@@ -12,11 +12,13 @@ import { createRoot } from 'react-dom/client';
 import HomePage from './pages/HomePage.jsx';
 import FAQPage  from './pages/FAQ.jsx';
 import BlankContentPage from './pages/BlankContentPage.jsx';
+import LeagueHubPage from './pages/LeagueHubPage.jsx';
 
 const PAGES = {
-  home:  HomePage,
-  faq:   FAQPage,
-  blank: BlankContentPage,
+  home:      HomePage,
+  faq:       FAQPage,
+  blank:     BlankContentPage,
+  leagueHub: LeagueHubPage,
 };
 
 const el = document.getElementById('ea-react-root');

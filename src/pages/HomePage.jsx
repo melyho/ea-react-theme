@@ -14,13 +14,65 @@ const sectionGap  = (isMobile) => (isMobile ? 56 : 120);            // vertical 
 const sectionPadX = (isMobile) => (isMobile ? '0 16px' : '0 32px'); // horizontal padding
 
 // ─── Page data ────────────────────────────────────────────────────────────────
-// Fallback location cards (used before the live programs feed loads / if it fails)
-// and the default Free Trial session options. Mobile abbreviates long province
-// names (e.g. British Columbia → BC); desktop shows the full name.
-const LOCATIONS = (isMobile) => [
-  { city: 'Ontario',                            programs: 10, status: 'open',    lessons: 2, leagues: 8 },
-  { city: isMobile ? 'BC' : 'British Columbia', programs: 10, status: 'open',    lessons: 2, leagues: 8 },
-  { city: 'Alberta',                            programs:  6, status: 'limited', lessons: 1, leagues: 5 },
+// Fallback cards used before the live programs feed loads / if it fails.
+const PROGRAM_FALLBACKS = [
+  {
+    Title: 'Richmond Hill - Jr. Badminton (8 - 10 yrs)',
+    TotalPrice: 134,
+    StaticPriceText: '134',
+    Day: 'Mondays',
+    Time: '5:30 - 6:30 PM',
+    'Start Date': '2026-07-08',
+    'End Date': '2026-08-20',
+    SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
+    LocationName: 'Langstaff CC',
+    RegisterLink: 'https://eabadminton.com/signup/',
+    City: 'Richmond Hill',
+    Category: 'TS',
+    sport: 'bad',
+    is_full: false,
+    level: '1',
+    MinAge: '8',
+    MaxAge: '10',
+  },
+  {
+    Title: 'Richmond Hill - Jr. Badminton (11 - 13 yrs)',
+    TotalPrice: 134,
+    StaticPriceText: '134',
+    Day: 'Mondays',
+    Time: '5:30 - 6:30 PM',
+    'Start Date': '2026-07-08',
+    'End Date': '2026-08-20',
+    SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
+    LocationName: 'Langstaff CC',
+    RegisterLink: 'https://eabadminton.com/signup/',
+    City: 'Richmond Hill',
+    Category: 'TS',
+    sport: 'bad',
+    is_full: false,
+    level: '1',
+    MinAge: '11',
+    MaxAge: '13',
+  },
+  {
+    Title: 'Newmarket - Advanced Jr. Badminton (9 - 18 yrs)',
+    TotalPrice: 240,
+    StaticPriceText: '240',
+    Day: 'Mondays',
+    Time: '5:30 - 6:30 PM',
+    'Start Date': '2026-07-08',
+    'End Date': '2026-08-20',
+    SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
+    LocationName: 'Dr J.M. Dennison',
+    RegisterLink: 'https://eabadminton.com/signup/',
+    City: 'Newmarket',
+    Category: 'TS',
+    sport: 'bad',
+    is_full: false,
+    level: '3',
+    MinAge: '9',
+    MaxAge: '18',
+  },
 ];
 
 function HeroSection({ DS, isMobile, t }) {
@@ -577,13 +629,6 @@ function CardHover({ children }) {
   );
 }
 
-// Status → dot colour, badge tone, and label. Mirrors the DS LocationCard.
-const CARD_STATUS = {
-  open:    { dot: 'var(--ea-success)', tone: 'success', label: 'Enrolment Open' },
-  limited: { dot: 'var(--ea-warning)', tone: 'warning', label: 'Limited Spots Remaining' },
-  closed:  { dot: 'var(--ea-neutral)', tone: 'neutral', label: 'Enrolment Closed' },
-};
-
 function MailIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}>
@@ -593,93 +638,54 @@ function MailIcon() {
   );
 }
 
-// Local copy of the DS LocationCard so the Subscribe button can swap its label
-// to "Subscribe to <city>'s Newsletter" on hover (the DS card hardcodes the text).
-function ProgramCard({ Badge, city, programs = 0, status = 'open', lessons = 0, leagues = 0, isMobile = false, onSubscribe }) {
+function ProgramSubscribeButton({ city, isMobile = false, onSubscribe }) {
   const [hover, setHover] = useState(false);
-  const s = CARD_STATUS[status] || CARD_STATUS.open;
-  const dim = status === 'closed';
   return (
-    <div style={{
-      background: 'var(--ea-white)', border: '1px solid var(--border-card)',
-      borderRadius: 'var(--radius-location-card)', boxShadow: 'var(--shadow-card)',
-      padding: 24, display: 'flex', flexDirection: 'column', gap: 12,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-        <h3 style={{
-          fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-bold)', fontSize: 22,
-          color: dim ? 'var(--ea-muted)' : 'var(--ea-teal-800)', margin: 0,
-          textTransform: 'none', letterSpacing: 'var(--ls-body)',
-        }}>{city}</h3>
-        <span style={{ width: 12, height: 12, borderRadius: '50%', background: s.dot, flex: 'none', marginTop: 6 }} />
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        <Badge tone={dim ? 'neutral' : 'info'}>{programs} Active Programs</Badge>
-        <Badge tone={s.tone} dot={!dim}>{s.label}</Badge>
-      </div>
-      {(lessons || leagues) ? (
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--ea-slate)', margin: 0 }}>
-          {lessons} Lessons · {leagues} Leagues
-        </p>
-      ) : null}
-      <button
-        type="button"
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        onClick={(e) => {
-          // Card may be wrapped in a link; don't trigger it. Open the newsletter
-          // popup tagged with this location instead.
-          e.preventDefault();
-          e.stopPropagation();
-          if (onSubscribe) onSubscribe(city);
-        }}
-        style={{
-          alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 8,
-          width: 'fit-content', padding: '6px 12px', borderRadius: 'var(--radius-button)',
-          fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 'var(--fw-medium)',
-          border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-          background: '#F9F4FF', color: '#6F677B',
-        }}
-      >
+    <button
+      type="button"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (onSubscribe) onSubscribe(city);
+      }}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        width: 'fit-content', padding: '5px 10px', borderRadius: 6,
+        fontFamily: 'var(--font-body)', fontSize: isMobile ? 14 : 15, fontWeight: 'var(--fw-medium)',
+        textTransform: 'none',
+        border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+        background: '#F9F4FF', color: '#6F677B',
+      }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>
         <MailIcon />
-        <span style={{ display: 'inline-flex', whiteSpace: 'nowrap' }}>
-          Subscribe
-          {/* Expand-to-the-right: the extension animates its own max-width from 0,
-              so the button (fit-content) hugs "Subscribe" + icon when collapsed and
-              grows only as this text reveals + fades in. */}
-          <span style={{
+      </span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
+        Subscribe
+        <span
+          style={{
             display: 'inline-block', overflow: 'hidden', whiteSpace: 'nowrap',
-            maxWidth: hover ? 400 : 0, opacity: hover ? 1 : 0,
+            maxWidth: hover ? 420 : 0, opacity: hover ? 1 : 0,
             transition: 'max-width .3s ease, opacity .3s ease',
-          }}>&nbsp;to {city}{isMobile ? '' : '’s Newsletter'}</span>
+          }}
+        >
+          &nbsp;to {city}{isMobile ? '' : '’s Newsletter'}
         </span>
-      </button>
-    </div>
+      </span>
+    </button>
   );
 }
 
 // ─── Live programs feed (public JSON) ─────────────────────────────────────────
-// Ported from the eabadminton embed: fetch the program rows, keep only active
-// EA/TS badminton programs, and collapse them into one card per city with a count.
+// Fetch the program rows, keep active EA/TS rows, and render direct registration
+// cards instead of collapsing them into city pages.
 const PROGRAMS_DATA_URL = 'https://sleep-status.github.io/ea-programs-json/data/programs.json';
-const CITY_FALLBACK_URLS = {
-  'newmarket / aurora': 'https://eabadminton.com/signup/',
-  'newmarket/aurora':   'https://eabadminton.com/signup/',
-  'newmarket':          'https://eabadminton.com/signup/',
-  'aurora':             'https://eabadminton.com/signup/',
-  'richmond hill':      'https://eabadminton.com/richmond-hill-badminton/',
-  'georgina / keswick': 'https://eabadminton.com/georgina-badminton/',
-  'georgina/keswick':   'https://eabadminton.com/georgina-badminton/',
-  'georgina':           'https://eabadminton.com/georgina-badminton/',
-  'keswick':            'https://eabadminton.com/georgina-badminton/',
-  'caledon':            'https://eabadminton.com/caledon/',
-  'king city':          'https://eabadminton.com/king-city-badminton/',
-  'king':               'https://eabadminton.com/king-city-badminton/',
-};
 
 // Approximate coordinates for the cities that appear in the feed, keyed by the
 // normalized city name. Used to sort cards by distance from the visitor when they
-// tap "Locations near me". A city missing here just sorts last (never breaks).
+// tap "Programs near me". A city missing here just sorts last (never breaks).
 const CITY_COORDS = {
   'aurora':           [44.0065, -79.4504],
   'newmarket':        [44.0592, -79.4613],
@@ -762,31 +768,97 @@ function isActiveProgram(p) {
   return end >= today0;
 }
 
-// Collapse program rows → [{ city, programs, status, url, coords }], one per city,
-// keeping only rows whose sport is in `sports` (a list of SPORTS keys). When
-// `userCoords` is provided, sort nearest-first; otherwise alphabetically.
-function buildCityList(programs, sports, userCoords) {
-  const allow = new Set(sports && sports.length ? sports : ['bad']);
-  const map = new Map();
-  programs.forEach((p) => {
-    const sportKey = rowSportKey(p);
-    if (p && sportKey && allow.has(sportKey) && isEAorTS(p) && p.City && isActiveProgram(p)) {
-      const cityName = String(p.City).trim();
-      const key = norm(cityName);
-      const url = (p.URL && String(p.URL).trim()) || CITY_FALLBACK_URLS[key] || 'https://eabadminton.com/signup/';
-      if (!map.has(key)) map.set(key, { city: cityName, programs: 1, status: 'open', url, coords: CITY_COORDS[key] || null });
-      else map.get(key).programs += 1;
-    }
-  });
-  return [...map.values()].sort((a, b) => {
+function todayStart() {
+  const today = new Date();
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+}
+
+function getStartDate(p) {
+  return parseLocalDate(p['Start Date'] || p.StartDate || p.startDate);
+}
+
+function getEndDate(p) {
+  return parseLocalDate(p['End Date'] || p.EndDate || p.endDate);
+}
+
+function isFullProgram(p) {
+  return p.is_full === true || String(p.is_full).toLowerCase() === 'true';
+}
+
+function isEnrollmentOpen(p) {
+  const raw = p.enrollment_open ?? p.enrollmentOpen ?? p.EnrollmentOpen ?? p.enrollment_status ?? p.EnrollmentStatus ?? p.status;
+  if (raw === undefined || raw === null || raw === '') return true;
+  const value = norm(raw);
+  if (value === 'false' || value === 'closed' || value === 'enrollment closed' || value === 'registration closed') return false;
+  return true;
+}
+
+function isStartingSoon(p, today0 = todayStart()) {
+  const start = getStartDate(p);
+  return start ? start > today0 : false;
+}
+
+function isInProgress(p, today0 = todayStart()) {
+  const start = getStartDate(p);
+  const end = getEndDate(p);
+  if (!start) return true;
+  if (start > today0) return false;
+  return !end || end >= today0;
+}
+
+function programSortGroup(p, allInProgress, today0) {
+  const open = isEnrollmentOpen(p);
+  const full = isFullProgram(p);
+  if (allInProgress) {
+    if (open && !full) return 0;
+    if (open && full) return 1;
+    if (!open && !full) return 2;
+    return 3;
+  }
+  if (isStartingSoon(p, today0) && open && !full) return 0;
+  if (isInProgress(p, today0) && open && !full) return 1;
+  if (isInProgress(p, today0) && open && full) return 2;
+  if (isInProgress(p, today0) && !open && !full) return 3;
+  if (isInProgress(p, today0) && !open && full) return 4;
+  return 5;
+}
+
+function sortPrograms(programs, userCoords) {
+  const today0 = todayStart();
+  const activePrograms = programs.filter((p) => isActiveProgram(p));
+  const allInProgress = activePrograms.length > 0 && activePrograms.every((p) => isInProgress(p, today0));
+  return [...activePrograms].sort((a, b) => {
     if (userCoords) {
-      // Cities with known coords sort by distance; unknown coords fall to the end.
       const da = a.coords ? haversineKm(userCoords, a.coords) : Infinity;
       const db = b.coords ? haversineKm(userCoords, b.coords) : Infinity;
       if (da !== db) return da - db;
     }
-    return a.city.localeCompare(b.city);
+    const ga = programSortGroup(a, allInProgress, today0);
+    const gb = programSortGroup(b, allInProgress, today0);
+    if (ga !== gb) return ga - gb;
+    const aEnd = getEndDate(a)?.getTime() || 0;
+    const bEnd = getEndDate(b)?.getTime() || 0;
+    if (allInProgress && aEnd !== bEnd) return bEnd - aEnd;
+    const aStart = getStartDate(a)?.getTime() || Infinity;
+    const bStart = getStartDate(b)?.getTime() || Infinity;
+    if (aStart !== bStart) return aStart - bStart;
+    return String(a.Title || '').localeCompare(String(b.Title || ''));
   });
+}
+
+// Keep individual program rows whose sport is selected. When `userCoords` is
+// provided, nearest city sorts first; otherwise use the registration priority.
+function buildProgramList(programs, sports, userCoords) {
+  const allow = new Set(sports && sports.length ? sports : ['bad']);
+  return sortPrograms(
+    programs
+      .filter((p) => {
+        const sportKey = rowSportKey(p);
+        return p && sportKey && allow.has(sportKey) && isEAorTS(p) && p.City && !p.is_cancelled;
+      })
+      .map((p) => ({ ...p, coords: CITY_COORDS[norm(p.City)] || null })),
+    userCoords
+  );
 }
 
 // Fetch the raw rows once on mount; returns null while loading or on error.
@@ -803,7 +875,198 @@ function useProgramsFeed() {
   return rows;
 }
 
-const PROGRAMS_LIMIT = 6;   // max city cards shown in the Active Programs section
+const PROGRAMS_LIMIT = 3;
+
+function formatProgramDate(dateStr, opts = {}) {
+  const d = parseLocalDate(dateStr);
+  if (!d) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...opts });
+}
+
+function formatDateRange(p) {
+  const start = formatProgramDate(p['Start Date'] || p.StartDate || p.startDate);
+  const end = formatProgramDate(p['End Date'] || p.EndDate || p.endDate);
+  if (start && end) return `${start} - ${end}`;
+  return start || end || '';
+}
+
+function sessionCount(p) {
+  return String(p.SessionDates || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean).length;
+}
+
+function displayPrice(p) {
+  const raw = p.updated_price || p.StaticPriceText || p.TotalPrice;
+  if (raw === undefined || raw === null || raw === '') return '';
+  const num = Number(raw);
+  if (!Number.isNaN(num)) return `$${num % 1 === 0 ? num.toFixed(0) : num.toFixed(2)}`;
+  return `$${String(raw).replace(/^\$/, '')}`;
+}
+
+function inferLevelLabel(p) {
+  const text = `${p.Title || ''} ${p.level || ''}`.toLowerCase();
+  if (text.includes('advanced') || text.includes('level 3') || text.match(/\b3\b/)) return 'Advanced';
+  if (text.includes('intermediate') || text.includes('level 2') || text.match(/\b2\b/)) return 'Intermediate';
+  if (text.includes('beginner') || text.includes('level 1') || text.match(/\b1\b/)) return 'Beginner';
+  return null;
+}
+
+function inferProgramTypeLabel(p) {
+  const title = String(p.Title || '').toLowerCase();
+  if (title.includes('camp')) return 'Summer Camp';
+  if (title.includes('league')) return 'League';
+  return 'Lessons';
+}
+
+function statusLabels(p) {
+  const labels = [];
+  labels.push(isEnrollmentOpen(p) ? 'Enrollment Open' : 'Enrollment Closed');
+  labels.push(isStartingSoon(p) ? 'Starting Soon' : 'In Progress');
+  const level = inferLevelLabel(p);
+  const type = inferProgramTypeLabel(p);
+  if (level) labels.push(level);
+  if (type) labels.push(type);
+  if (isFullProgram(p)) labels.push('Full');
+  return labels;
+}
+
+function chipStyle(label) {
+  const key = norm(label);
+  if (key.includes('open')) return { bg: '#CFF6D9', color: '#287545' };
+  if (key.includes('closed') || key === 'full') return { bg: '#ECEFF1', color: '#66757B' };
+  if (key.includes('starting')) return { bg: '#FFE9AF', color: '#8A640F' };
+  if (key.includes('progress')) return { bg: '#D7F1FF', color: '#206A87' };
+  if (key.includes('advanced')) return { bg: '#0B5B73', color: '#FFFFFF' };
+  if (key.includes('summer')) return { bg: '#FFBB91', color: '#0077A3' };
+  return { bg: '#BDEEFF', color: '#0B5B73' };
+}
+
+function ProgramChip({ label }) {
+  const styles = chipStyle(label);
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', width: 'fit-content',
+      padding: '4px 7px', borderRadius: 6,
+      background: styles.bg, color: styles.color,
+      fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 'var(--fw-medium)',
+      textTransform: 'none',
+      lineHeight: 1.1,
+    }}>
+      {label}
+    </span>
+  );
+}
+
+function cleanProgramTitle(p) {
+  const title = String(p.Title || 'Badminton Program').trim();
+  return title
+    .replace(/\s*-\s*/g, ' – ')
+    .replace(/\((\d+\s*[-–]\s*\d+)\)/g, '($1 yrs)')
+    .replace(/\byrs yrs\b/i, 'yrs');
+}
+
+function programMetaLine(p) {
+  const count = sessionCount(p);
+  const sessions = count ? `${count} Session${count === 1 ? '' : 's'}` : '';
+  return [sessions, p.Day, formatDateRange(p), p.Time, p.LocationName].filter(Boolean).join(' · ');
+}
+
+function ActiveProgramCard({ program, isMobile = false, onSubscribe }) {
+  const city = String(program.City || '').trim() || 'General Badminton';
+  const full = isFullProgram(program);
+  const enrollmentOpen = isEnrollmentOpen(program);
+  const registerHref = enrollmentOpen
+    ? (program.RegisterLink || program.URL || 'https://eabadminton.com/signup/')
+    : 'mailto:info@elevationathletics.ca?subject=Badminton%20program%20enrollment';
+  const cta = !enrollmentOpen ? 'Email Us' : full ? 'Join Waitlist' : 'Register';
+  const meta = programMetaLine(program);
+  const price = displayPrice(program);
+  return (
+    <article style={{
+      position: 'relative',
+      display: 'grid',
+      gridTemplateColumns: isMobile ? '1fr' : '1fr 150px',
+      gap: isMobile ? 14 : 20,
+      alignItems: 'center',
+      background: 'var(--ea-white, #fff)',
+      border: '1px solid var(--border-card, #E5E5E5)',
+      borderRadius: 8,
+      boxShadow: 'var(--shadow-card, 0 1px 4px rgba(16,65,79,.04))',
+      padding: isMobile ? '18px 20px' : '18px 24px',
+      fontFamily: 'var(--font-body)',
+    }}>
+      <div style={{ minWidth: 0 }}>
+        <h3 style={{
+          fontFamily: 'var(--font-body)',
+          fontWeight: 'var(--fw-bold)',
+          fontSize: isMobile ? 19 : 22,
+          lineHeight: 1.18,
+          color: 'var(--ea-teal-800, #0B5364)',
+          margin: 0,
+          textTransform: 'none',
+          letterSpacing: 'var(--ls-body)',
+        }}>
+          {cleanProgramTitle(program)}
+        </h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+          {statusLabels(program).map((label) => <ProgramChip key={label} label={label} />)}
+        </div>
+        {meta && (
+          <p style={{
+            margin: '12px 0 0',
+            fontFamily: 'var(--font-body)',
+            fontSize: isMobile ? 14 : 15,
+            color: 'var(--ea-slate, #47636B)',
+            lineHeight: 1.45,
+          }}>
+            {meta}
+          </p>
+        )}
+        {!enrollmentOpen && (
+          <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--ea-slate, #47636B)', lineHeight: 1.4 }}>
+            Enrollment is closed. Please contact info@elevationathletics.ca for details on how to enroll.
+          </p>
+        )}
+        <div style={{ marginTop: 10 }}>
+          <ProgramSubscribeButton city={city} isMobile={isMobile} onSubscribe={onSubscribe} />
+        </div>
+      </div>
+      <div style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'row' : 'column',
+        alignItems: isMobile ? 'center' : 'flex-end',
+        justifyContent: isMobile ? 'space-between' : 'center',
+        gap: 14,
+      }}>
+        {price && (
+          <div style={{ textAlign: isMobile ? 'left' : 'right', color: 'var(--ea-teal-800, #0B5364)', lineHeight: 1 }}>
+            <div style={{ fontFamily: 'var(--font-body)', fontSize: isMobile ? 28 : 30, fontWeight: 'var(--fw-bold)' }}>{price}</div>
+            <div style={{ marginTop: 2, fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ea-slate, #47636B)' }}>incl. taxes</div>
+          </div>
+        )}
+        <a
+          href={registerHref}
+          target={registerHref.startsWith('mailto:') ? undefined : '_blank'}
+          rel={registerHref.startsWith('mailto:') ? undefined : 'noopener noreferrer'}
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            minWidth: isMobile ? 108 : 144,
+            padding: '12px 18px',
+            borderRadius: 7,
+            background: full || !enrollmentOpen ? '#F9F4FF' : '#0A98D6',
+            color: full || !enrollmentOpen ? '#6F677B' : '#fff',
+            textDecoration: 'none',
+            fontFamily: 'var(--font-body)', fontSize: 16, fontWeight: 'var(--fw-bold)',
+          }}
+        >
+          {cta}
+        </a>
+      </div>
+    </article>
+  );
+}
 
 // Popup newsletter signup, opened from a location card's Subscribe button. Mirrors
 // the Free Trial confirmation modal: enter email → submit → confirmation, all in place.
@@ -907,8 +1170,12 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
 }
 
 function ProgramsSection({ DS, isMobile, t }) {
-  const { SectionHeading, LocationCard, Badge, Button } = DS;
-  const locationsHref = `${t.siteUrl || ''}/locations/`;
+  const { SectionHeading, Button } = DS;
+  const programsHref = `${t.siteUrl || ''}/programs/`;
+  const configuredViewAllLink = t.links && t.links.programsViewAll;
+  const viewAllLink = configuredViewAllLink && (configuredViewAllLink.section || configuredViewAllLink.url)
+    ? configuredViewAllLink
+    : { url: programsHref };
   // Sports to include come from the Customizer (EA Options → Active Programs sports).
   const selectedSports = (t.options && Array.isArray(t.options.sports) && t.options.sports.length)
     ? t.options.sports : ['bad'];
@@ -926,15 +1193,15 @@ function ProgramsSection({ DS, isMobile, t }) {
     setGeoError('');
     navigator.geolocation.getCurrentPosition(
       (pos) => { setUserCoords([pos.coords.latitude, pos.coords.longitude]); setLocating(false); },
-      () => { setGeoError('Couldn’t get your location — showing some programs. Click on ’View All Locations’ to see all available programs.'); setLocating(false); },
+      () => { setGeoError('Couldn’t get your location — showing the soonest available programs.'); setLocating(false); },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
     );
   };
 
-  // Live feed when available, otherwise the bundled LOCATIONS. Capped at 6.
+  // Live feed when available, otherwise bundled fallback programs.
   const rows = useProgramsFeed();
-  const feed = rows ? buildCityList(rows, selectedSports, userCoords) : null;
-  const cards = ((feed && feed.length ? feed : LOCATIONS(isMobile)) || []).slice(0, PROGRAMS_LIMIT);
+  const feed = rows ? buildProgramList(rows, selectedSports, userCoords) : null;
+  const cards = ((feed && feed.length ? feed : buildProgramList(PROGRAM_FALLBACKS, selectedSports, userCoords)) || []).slice(0, PROGRAMS_LIMIT);
   // Which location's newsletter popup is open (null = closed).
   const [subscribeLoc, setSubscribeLoc] = useState(null);
   return (
@@ -943,50 +1210,28 @@ function ProgramsSection({ DS, isMobile, t }) {
         ? <SectionHeading level={ isMobile ? 'lg' : 'md' }>{t.texts.programsHeading || 'Our Active Programs'}</SectionHeading>
         : <h2 style={FB.h(32)}>{t.texts.programsHeading || 'Our Active Programs'}</h2>
       }
-      <p style={{ fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: 16, color: 'var(--ea-ink, #1E526E)', lineHeight: 1.6, marginTop: 16, maxWidth: 640 }}>
-        {t.texts.programsDesc || 'We run pickleball programs across the country. Click on any location card below to visit its program page and see all the lessons and leagues available in that area.'}
-      </p>
       {/* Action buttons — each can be hidden via Customizer (EA Options). */}
       {!(t.options.hideNearMe && t.options.hideViewAll) && (
-        <div style={{ marginTop: 28, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Left of "View All Locations": sort the cards nearest-first. */}
+        <div style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Left of "View All Programs": sort the cards nearest-first. */}
           {!t.options.hideNearMe && (Button
-            ? <Button variant="secondary" onClick={findNearMe} disabled={locating}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Locations Near Me')}</Button>
-            : <button onClick={findNearMe} disabled={locating} style={{ ...FB.btn('secondary'), opacity: locating ? 0.7 : 1 }}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Locations Near Me')}</button>
+            ? <Button variant="secondary" onClick={findNearMe} disabled={locating}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Programs Near Me')}</Button>
+            : <button onClick={findNearMe} disabled={locating} style={{ ...FB.btn('secondary'), opacity: locating ? 0.7 : 1 }}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Programs Near Me')}</button>
           )}
           {!t.options.hideViewAll && (
-            <a href={locationsHref} style={{ textDecoration: 'none', display: 'inline-flex' }}>
-              {Button
-                ? <Button variant="primary">{t.texts.programsViewAll || 'View All Locations'}</Button>
-                : <span style={FB.btn('primary')}>{t.texts.programsViewAll || 'View All Locations'}</span>
-              }
-            </a>
+            <ActionButton DS={DS} link={viewAllLink} variant="primary">{t.texts.programsViewAll || 'View All Programs'}</ActionButton>
           )}
         </div>
       )}
       {geoError && (
         <p role="alert" style={{ marginTop: 10, marginBottom: 0, fontFamily: 'var(--font-body, sans-serif)', fontSize: 14, color: 'var(--ea-error, #C0392B)' }}>{geoError}</p>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 16, marginTop: 32 }}>
-        {cards.map((loc) => {
-          const inner = Badge
-            ? <ProgramCard Badge={Badge} city={loc.city} programs={loc.programs} status={loc.status} lessons={loc.lessons} leagues={loc.leagues} isMobile={isMobile} onSubscribe={setSubscribeLoc} />
-            : LocationCard
-            ? <LocationCard city={loc.city} programs={loc.programs} status={loc.status} lessons={loc.lessons} leagues={loc.leagues} />
-            : (
-              <div style={FB.card}>
-                <strong>{loc.city}</strong>
-                <p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--ea-slate, #47636B)' }}>
-                  {loc.programs} programs{loc.lessons != null ? ` · ${loc.lessons} lessons · ${loc.leagues} leagues` : ''}
-                </p>
-              </div>
-            );
-          // Live feed rows carry a program URL; make the whole card link out to it.
-          const body = loc.url
-            ? <a href={loc.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>{inner}</a>
-            : inner;
-          return <CardHover key={loc.city}>{body}</CardHover>;
-        })}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: isMobile ? 10 : 12, marginTop: isMobile ? 18 : 16 }}>
+        {cards.map((program, index) => (
+          <CardHover key={`${program.Title || 'program'}-${program.City || 'city'}-${program['Start Date'] || index}`}>
+            <ActiveProgramCard program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} />
+          </CardHover>
+        ))}
       </div>
       {subscribeLoc !== null && (
         <NewsletterModal DS={DS} t={t} location={subscribeLoc} onClose={() => setSubscribeLoc(null)} />

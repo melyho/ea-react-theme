@@ -169,6 +169,7 @@ function ea_react_image_fields() {
         'ea_img_community_top' => array( 'key' => 'communityTop', 'label' => 'Community top image' ),
         'ea_img_community_left' => array( 'key' => 'communityLeft', 'label' => 'Community left image' ),
         'ea_img_community_right' => array( 'key' => 'communityRight', 'label' => 'Community right image' ),
+        'ea_img_league_hub_backdrop' => array( 'key' => 'leagueHubBackdrop', 'label' => 'League Hub — subtle background' ),
     );
 }
 
@@ -319,15 +320,29 @@ function ea_react_text_fields() {
         ),
         'ea_txt_programs_desc' => array(
             'key' => 'programsDesc', 'label' => 'Active Programs — Description', 'type' => 'textarea',
-            'default' => 'We run pickleball programs across the country. Click on any location card below to visit its program page and see all the lessons and leagues available in that area.',
+            'default' => '',
         ),
         'ea_txt_programs_view_all' => array(
             'key' => 'programsViewAll', 'label' => 'Active Programs — "View all" button', 'type' => 'text',
-            'default' => 'View All Locations',
+            'default' => 'View All Programs',
         ),
         'ea_txt_programs_near_me' => array(
             'key' => 'programsNearMe', 'label' => 'Active Programs — "Near me" button', 'type' => 'text',
-            'default' => 'Locations Near Me',
+            'default' => 'Programs Near Me',
+        ),
+
+        // ── League Hub ───────────────────────────────────────────────────────
+        'ea_txt_league_hub_heading' => array(
+            'key' => 'leagueHubHeading', 'label' => 'League Hub — Heading', 'type' => 'text',
+            'default' => 'Our Programs',
+        ),
+        'ea_txt_league_hub_subheading' => array(
+            'key' => 'leagueHubSubheading', 'label' => 'League Hub — Subheading', 'type' => 'textarea',
+            'default' => 'Find badminton lessons, leagues, and camps that are currently open for registration.',
+        ),
+        'ea_txt_league_hub_location_button' => array(
+            'key' => 'leagueHubLocationButton', 'label' => 'League Hub — Location button', 'type' => 'text',
+            'default' => 'Use My Location',
         ),
 
         // ── Small Group Coaching ──────────────────────────────────────────────
@@ -460,6 +475,15 @@ function ea_react_options() {
         // Hide the Active Programs action buttons (both shown by default).
         'hideNearMe'  => (bool) get_theme_mod( 'ea_hide_near_me', false ),
         'hideViewAll' => (bool) get_theme_mod( 'ea_hide_view_all', false ),
+        // League Hub template controls.
+        'leagueHubShowSubheading' => (bool) get_theme_mod( 'ea_league_hub_show_subheading', false ),
+        'leagueHubFilterSearch'   => (bool) get_theme_mod( 'ea_league_hub_filter_search', true ),
+        'leagueHubFilterLevel'    => (bool) get_theme_mod( 'ea_league_hub_filter_level', true ),
+        'leagueHubFilterType'     => (bool) get_theme_mod( 'ea_league_hub_filter_type', true ),
+        'leagueHubFilterAge'      => (bool) get_theme_mod( 'ea_league_hub_filter_age', true ),
+        'leagueHubFilterTime'     => (bool) get_theme_mod( 'ea_league_hub_filter_time', true ),
+        'leagueHubFilterDays'     => (bool) get_theme_mod( 'ea_league_hub_filter_days', true ),
+        'leagueHubFilterLocation' => (bool) get_theme_mod( 'ea_league_hub_filter_location', true ),
         // Free Trial form session dropdown choices (one per line).
         'freeTrialSessions' => (string) get_theme_mod( 'ea_free_trial_sessions', EA_FREE_TRIAL_SESSIONS_DEFAULT ),
     );
@@ -535,6 +559,7 @@ function ea_button_link_fields() {
         'ea_link_hero_primary'   => array( 'key' => 'heroPrimary',    'label' => 'Hero — Primary button' ),
         'ea_link_hero_secondary' => array( 'key' => 'heroSecondary',  'label' => 'Hero — Secondary button' ),
         'ea_link_nav_cta'        => array( 'key' => 'navCta',         'label' => 'Navigation — CTA button',          'hideable' => true ),
+        'ea_link_programs_view_all' => array( 'key' => 'programsViewAll', 'label' => 'Active Programs — View All button' ),
         'ea_link_coaching'       => array( 'key' => 'coachingCta',    'label' => 'Coaching — button',                'hideable' => true ),
         'ea_link_partnerships'   => array( 'key' => 'partnershipsCta', 'label' => 'Community — Partnerships button',  'hideable' => true ),
         'ea_link_leaders'        => array( 'key' => 'leadersCta',     'label' => 'Community — Leaders button',        'hideable' => true ),
@@ -663,7 +688,7 @@ function ea_customize_options( $wp_customize ) {
     ) );
     $wp_customize->add_control( 'ea_hide_near_me', array(
         'type'    => 'checkbox',
-        'label'   => __( 'Hide "Locations Near Me" button', 'ea-react-theme' ),
+        'label'   => __( 'Hide "Programs Near Me" button', 'ea-react-theme' ),
         'section' => 'ea_options',
     ) );
 
@@ -674,9 +699,32 @@ function ea_customize_options( $wp_customize ) {
     ) );
     $wp_customize->add_control( 'ea_hide_view_all', array(
         'type'    => 'checkbox',
-        'label'   => __( 'Hide "View All Locations" button', 'ea-react-theme' ),
+        'label'   => __( 'Hide "View All Programs" button', 'ea-react-theme' ),
         'section' => 'ea_options',
     ) );
+
+    $league_hub_toggles = array(
+        'ea_league_hub_show_subheading' => array( 'default' => false, 'label' => __( 'League Hub — show subheading', 'ea-react-theme' ) ),
+        'ea_league_hub_filter_search'   => array( 'default' => true, 'label' => __( 'League Hub — show search filter', 'ea-react-theme' ) ),
+        'ea_league_hub_filter_level'    => array( 'default' => true, 'label' => __( 'League Hub — show skill level filter', 'ea-react-theme' ) ),
+        'ea_league_hub_filter_type'     => array( 'default' => true, 'label' => __( 'League Hub — show program type filter', 'ea-react-theme' ) ),
+        'ea_league_hub_filter_age'      => array( 'default' => true, 'label' => __( 'League Hub — show age filter', 'ea-react-theme' ) ),
+        'ea_league_hub_filter_time'     => array( 'default' => true, 'label' => __( 'League Hub — show time filter', 'ea-react-theme' ) ),
+        'ea_league_hub_filter_days'     => array( 'default' => true, 'label' => __( 'League Hub — show days filter', 'ea-react-theme' ) ),
+        'ea_league_hub_filter_location' => array( 'default' => true, 'label' => __( 'League Hub — show location filter', 'ea-react-theme' ) ),
+    );
+    foreach ( $league_hub_toggles as $setting => $meta ) {
+        $wp_customize->add_setting( $setting, array(
+            'default'           => $meta['default'],
+            'sanitize_callback' => 'wp_validate_boolean',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( $setting, array(
+            'type'    => 'checkbox',
+            'label'   => $meta['label'],
+            'section' => 'ea_options',
+        ) );
+    }
 
     $wp_customize->add_setting( 'ea_free_trial_sessions', array(
         'default'           => EA_FREE_TRIAL_SESSIONS_DEFAULT,

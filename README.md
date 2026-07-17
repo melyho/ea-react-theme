@@ -133,6 +133,8 @@ src/                       ← React source (what you edit)
                            Placeholder, MediaSlot, FB fallbacks
   pages/
     HomePage.jsx           the badminton home page (incl. the Free Trial form)
+    LeagueHubPage.jsx      searchable all-programs League Hub template
+    BlankContentPage.jsx   WordPress-authored blank/internal content template
     AboutPage.jsx          example second page — copy this to make more
   App.jsx                  legacy re-export of HomePage (kept for back-compat)
 
@@ -150,6 +152,8 @@ ea_ds/                     ← EA Design System (do not edit by hand)
 front-page.php             home page      → <main data-page="home">
 page.php                   any WP Page    → <main data-page="{slug}">
 index.php                  fallback template (also slug-aware)
+template-blank-content.php selectable blank content page template
+template-league-hub.php    selectable League Hub page template
 header.php / footer.php    minimal HTML shell + wp_head()/wp_footer()
 functions.php              enqueues assets, Customizer images, Free Trial REST + admin
 vite.config.js             IIFE build config (entry = src/main.jsx)
@@ -356,17 +360,22 @@ The Active Programs section is data-driven from a public JSON feed
 (`PROGRAMS_DATA_URL` in [src/pages/HomePage.jsx](src/pages/HomePage.jsx)):
 
 1. `useProgramsFeed()` fetches the rows once on mount (client-side, cache-busted).
-2. `buildCityList(rows, sports, userCoords)` keeps only active EA/TS rows whose
-   sport is selected (EA Options), then **collapses them into one card per city**
-   with a program count (deduped by normalized city name).
-3. Cards are capped at `PROGRAMS_LIMIT` (6) and each links out to its program URL.
-4. **"Locations Near Me"** button (left of "View All Locations") asks for the
-   visitor's location via the browser Geolocation API and re-sorts the cards
-   nearest-first, using a hardcoded `CITY_COORDS` table + Haversine distance.
-   Requires **HTTPS**; on failure it falls back to the alphabetical order.
+2. `buildProgramList(rows, sports, userCoords)` keeps only active EA/TS rows whose
+   sport is selected (EA Options), then renders **individual program registration
+   cards** instead of collapsing rows into one card per city.
+3. Cards are capped at `PROGRAMS_LIMIT` (3) and each Register/Join Waitlist button
+   links directly to the row's `RegisterLink`.
+4. Programs sort by registration priority: starting soon + enrollment open + not
+   full, then in-progress open programs, then waitlist/full and enrollment-closed
+   variants. If every program is already in progress, the open non-full programs
+   with the furthest end date sort first so late joiners see the best options.
+5. **"Programs Near Me"** asks for the visitor's location via the browser
+   Geolocation API and re-sorts the cards nearest-first using a hardcoded
+   `CITY_COORDS` table + Haversine distance. Requires **HTTPS**; on failure it
+   falls back to the default priority order.
 
 If the fetch fails or returns nothing, the section falls back to the bundled
-`LOCATIONS` cards, so it never renders empty. New cities in the feed need a
+program cards, so it never renders empty. New cities in the feed need a
 `CITY_COORDS` entry to participate in the nearest-first sort.
 
 ---
