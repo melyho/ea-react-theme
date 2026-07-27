@@ -1,5 +1,5 @@
 /**
- * src/pages/LeagueHubPage.jsx — searchable badminton program hub.
+ * src/pages/LeagueHubPage.jsx — searchable program hub.
  * Used by template-league-hub.php and intended as the destination for the
  * homepage "View All Programs" button.
  */
@@ -79,6 +79,13 @@ const FALLBACK_PROGRAMS = [
 
 const norm = (v) => String(v || '').trim().toLowerCase();
 
+const SPORTS = {
+  pb: { label: 'Pickleball', aliases: ['pb', 'pickleball', 'pickle'] },
+  bad: { label: 'Badminton', aliases: ['bad', 'badm', 'badmin', 'badminton'] },
+  bask: { label: 'Basketball', aliases: ['bask', 'basketball', 'bball'] },
+  s_camp: { label: 'Sports Camp', aliases: ['s_camp', 'camp', 'camps', 's_camps'] },
+};
+
 function parseLocalDate(dateStr) {
   if (!dateStr) return null;
   const parts = String(dateStr).split('-');
@@ -111,7 +118,10 @@ function isEAorTS(p) {
 
 function rowSportKey(p) {
   const s = norm(p.sport || p.Sport || p.SPORT);
-  return ['bad', 'badm', 'badmin', 'badminton'].includes(s) ? 'bad' : null;
+  for (const key in SPORTS) {
+    if (SPORTS[key].aliases.includes(s)) return key;
+  }
+  return null;
 }
 
 function isActiveProgram(p) {
@@ -199,10 +209,14 @@ function sortPrograms(programs, userCoords) {
   });
 }
 
-function normalizePrograms(rows, userCoords) {
+function normalizePrograms(rows, sports, userCoords) {
+  const allow = new Set(sports && sports.length ? sports : ['bad']);
   return sortPrograms(
     rows
-      .filter((p) => rowSportKey(p) === 'bad' && isEAorTS(p) && p.City && !p.is_cancelled)
+      .filter((p) => {
+        const sportKey = rowSportKey(p);
+        return p && sportKey && allow.has(sportKey) && isEAorTS(p) && p.City && !p.is_cancelled;
+      })
       .map((p) => ({ ...p, coords: CITY_COORDS[norm(p.City)] || null })),
     userCoords
   );
@@ -324,7 +338,7 @@ function MailIcon() {
   );
 }
 
-function ProgramSubscribeButton({ city, isMobile = false, onSubscribe }) {
+function ProgramSubscribeButton({ city, sessionStart = '', programSummary = '', isMobile = false, onSubscribe }) {
   const [hover, setHover] = useState(false);
   return (
     <button
@@ -334,7 +348,7 @@ function ProgramSubscribeButton({ city, isMobile = false, onSubscribe }) {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (onSubscribe) onSubscribe(city);
+        if (onSubscribe) onSubscribe({ city, sessionStart, programSummary });
       }}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -357,13 +371,36 @@ function ProgramSubscribeButton({ city, isMobile = false, onSubscribe }) {
   );
 }
 
-function ProgramCard({ program, isMobile, onSubscribe }) {
-  const city = String(program.City || '').trim() || 'General Badminton';
+function siteSport(t) {
+  return (t.defaults && t.defaults.sport) || 'Badminton';
+}
+
+function sportBrand(t) {
+  return `EA ${siteSport(t)}`;
+}
+
+function firstSessionDate(p) {
+  return String(p.SessionDates || '').split(',')[0]?.trim()
+    || String(p['Start Date'] || p.StartDate || p.startDate || '').trim()
+    || '';
+}
+
+function programSummaryLine(p) {
+  return [p.Title, p.LocationName, [p.Day, p.Time].filter(Boolean).join(' '), formatDateRange(p)]
+    .filter(Boolean)
+    .join(' - ');
+}
+
+function ProgramCard({ program, isMobile, onSubscribe, t }) {
+  const sport = siteSport(t);
+  const city = String(program.City || '').trim() || `General ${sport}`;
+  const sessionStart = firstSessionDate(program);
+  const programSummary = programSummaryLine(program);
   const full = isFullProgram(program);
   const enrollmentOpen = isEnrollmentOpen(program);
   const registerHref = enrollmentOpen
-    ? (program.RegisterLink || program.URL || 'https://eabadminton.com/signup/')
-    : 'mailto:info@elevationathletics.ca?subject=Badminton%20program%20enrollment';
+    ? (program.RegisterLink || program.URL || `${t.siteUrl || ''}/signup/`)
+    : `mailto:info@elevationathletics.ca?subject=${encodeURIComponent(`${sport} program enrollment`)}`;
   const cta = !enrollmentOpen ? 'Email Us' : full ? 'Join Waitlist' : 'Register';
   const price = displayPrice(program);
   const meta = programMetaLine(program);
@@ -403,7 +440,7 @@ function ProgramCard({ program, isMobile, onSubscribe }) {
           </p>
         )}
         <div style={{ marginTop: 10 }}>
-          <ProgramSubscribeButton city={city} isMobile={isMobile} onSubscribe={onSubscribe} />
+          <ProgramSubscribeButton city={city} sessionStart={sessionStart} programSummary={programSummary} isMobile={isMobile} onSubscribe={onSubscribe} />
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: isMobile ? 'space-between' : 'center', gap: 14 }}>
@@ -437,7 +474,11 @@ function NewsletterModal({ DS, t, location, onClose }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const subscriptionLabel = location ? `EA Badminton ${location}` : 'the EA Badminton Newsletter';
+  const city = location && typeof location === 'object' ? location.city : location;
+  const sessionStart = location && typeof location === 'object' ? location.sessionStart : '';
+  const programSummary = location && typeof location === 'object' ? location.programSummary : '';
+  const brand = sportBrand(t);
+  const subscriptionLabel = city ? `${brand} ${city}` : `the ${brand} Newsletter`;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -451,7 +492,7 @@ function NewsletterModal({ DS, t, location, onClose }) {
       const res = await fetch(`${t.apiUrl}ea/v1/newsletter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': t.nonce },
-        body: JSON.stringify({ email, location, website }),
+        body: JSON.stringify({ email, location: city, sessionStart, programSummary, website }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data && data.message ? data.message : 'Something went wrong. Please try again.');
@@ -676,7 +717,12 @@ export default function LeagueHubPage() {
   const [subscribeLoc, setSubscribeLoc] = useState(null);
   const [filters, setFilters] = useState({ search: '', level: '', type: '', age: '', time: '', days: '', location: '' });
 
-  const programs = useMemo(() => normalizePrograms(rows || FALLBACK_PROGRAMS, userCoords), [rows, userCoords]);
+  const selectedSports = (t.options && Array.isArray(t.options.leagueHubSports) && t.options.leagueHubSports.length)
+    ? t.options.leagueHubSports
+    : (t.options && Array.isArray(t.options.sports) && t.options.sports.length)
+      ? t.options.sports
+      : ['bad'];
+  const programs = useMemo(() => normalizePrograms(rows || FALLBACK_PROGRAMS, selectedSports, userCoords), [rows, selectedSports, userCoords]);
   const filteredPrograms = useMemo(() => filterPrograms(programs, filters), [programs, filters]);
   const cities = useMemo(() => [...new Set(programs.map((p) => String(p.City || '').trim()).filter(Boolean))].sort(), [programs]);
 
@@ -720,7 +766,7 @@ export default function LeagueHubPage() {
             </h1>
             {showSubheading && (
               <p style={{ margin: '6px auto 0', maxWidth: 560, fontFamily: 'var(--font-body)', color: 'var(--ea-ink, #1E526E)', fontSize: isMobile ? 15 : 16, lineHeight: 1.35 }}>
-                {t.texts.leagueHubSubheading || 'Find badminton lessons, leagues, and camps that are currently open for registration.'}
+                {t.texts.leagueHubSubheading || `Find ${siteSport(t).toLowerCase()} lessons, leagues, and camps that are currently open for registration.`}
               </p>
             )}
             <button type="button" onClick={findNearMe} disabled={locating} style={{
@@ -751,7 +797,7 @@ export default function LeagueHubPage() {
 
           <div style={{ display: 'grid', gap: isMobile ? 10 : 12, marginTop: 12 }}>
             {filteredPrograms.length ? filteredPrograms.map((program, index) => (
-              <ProgramCard key={`${program.Title || 'program'}-${program.City || 'city'}-${program['Start Date'] || index}`} program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} />
+              <ProgramCard key={`${program.Title || 'program'}-${program.City || 'city'}-${program['Start Date'] || index}`} program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
             )) : (
               <div style={{ ...FB.card, textAlign: 'center' }}>
                 <strong>No programs match those filters.</strong>

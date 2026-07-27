@@ -638,7 +638,7 @@ function MailIcon() {
   );
 }
 
-function ProgramSubscribeButton({ city, isMobile = false, onSubscribe }) {
+function ProgramSubscribeButton({ city, sessionStart = '', programSummary = '', isMobile = false, onSubscribe }) {
   const [hover, setHover] = useState(false);
   return (
     <button
@@ -648,7 +648,7 @@ function ProgramSubscribeButton({ city, isMobile = false, onSubscribe }) {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (onSubscribe) onSubscribe(city);
+        if (onSubscribe) onSubscribe({ city, sessionStart, programSummary });
       }}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -676,6 +676,18 @@ function ProgramSubscribeButton({ city, isMobile = false, onSubscribe }) {
       </span>
     </button>
   );
+}
+
+function siteSport(t) {
+  return (t.defaults && t.defaults.sport) || 'Badminton';
+}
+
+function generalNewsletterLocation(t) {
+  return `General ${siteSport(t)}`;
+}
+
+function sportBrand(t) {
+  return `EA ${siteSport(t)}`;
 }
 
 // ─── Live programs feed (public JSON) ─────────────────────────────────────────
@@ -730,7 +742,7 @@ function parseLocalDate(dateStr) {
 }
 
 // Sports present in the feed (code → label + the raw values that map to it).
-// Keys match the Customizer multi-select (EA Options → Active Programs sports).
+// Keys match the Customizer multi-select (EA Options -> Active Programs sports).
 const SPORTS = {
   pb:     { label: 'Pickleball',  aliases: ['pb', 'pickleball', 'pickle'] },
   bad:    { label: 'Badminton',   aliases: ['bad', 'badm', 'badmin', 'badminton'] },
@@ -973,13 +985,28 @@ function programMetaLine(p) {
   return [sessions, p.Day, formatDateRange(p), p.Time, p.LocationName].filter(Boolean).join(' · ');
 }
 
-function ActiveProgramCard({ program, isMobile = false, onSubscribe }) {
-  const city = String(program.City || '').trim() || 'General Badminton';
+function firstSessionDate(p) {
+  return String(p.SessionDates || '').split(',')[0]?.trim()
+    || String(p['Start Date'] || p.StartDate || p.startDate || '').trim()
+    || '';
+}
+
+function programSummaryLine(p) {
+  return [p.Title, p.LocationName, [p.Day, p.Time].filter(Boolean).join(' '), formatDateRange(p)]
+    .filter(Boolean)
+    .join(' - ');
+}
+
+function ActiveProgramCard({ program, isMobile = false, onSubscribe, t }) {
+  const sport = siteSport(t);
+  const city = String(program.City || '').trim() || `General ${sport}`;
+  const sessionStart = firstSessionDate(program);
+  const programSummary = programSummaryLine(program);
   const full = isFullProgram(program);
   const enrollmentOpen = isEnrollmentOpen(program);
   const registerHref = enrollmentOpen
-    ? (program.RegisterLink || program.URL || 'https://eabadminton.com/signup/')
-    : 'mailto:info@elevationathletics.ca?subject=Badminton%20program%20enrollment';
+    ? (program.RegisterLink || program.URL || `${t.siteUrl || ''}/signup/`)
+    : `mailto:info@elevationathletics.ca?subject=${encodeURIComponent(`${sport} program enrollment`)}`;
   const cta = !enrollmentOpen ? 'Email Us' : full ? 'Join Waitlist' : 'Register';
   const meta = programMetaLine(program);
   const price = displayPrice(program);
@@ -1030,7 +1057,7 @@ function ActiveProgramCard({ program, isMobile = false, onSubscribe }) {
           </p>
         )}
         <div style={{ marginTop: 10 }}>
-          <ProgramSubscribeButton city={city} isMobile={isMobile} onSubscribe={onSubscribe} />
+          <ProgramSubscribeButton city={city} sessionStart={sessionStart} programSummary={programSummary} isMobile={isMobile} onSubscribe={onSubscribe} />
         </div>
       </div>
       <div style={{
@@ -1080,10 +1107,15 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(startSubmitted);
-  const isGeneralNewsletter = location === 'General Badminton';
-  const subscriptionLabel = location ? `EA Badminton ${location}` : 'the EA Badminton Newsletter';
+  const city = location && typeof location === 'object' ? location.city : location;
+  const sessionStart = location && typeof location === 'object' ? location.sessionStart : '';
+  const programSummary = location && typeof location === 'object' ? location.programSummary : '';
+  const brand = sportBrand(t);
+  const newsletterName = `${brand} Newsletter`;
+  const isGeneralNewsletter = city === generalNewsletterLocation(t);
+  const subscriptionLabel = city ? `${brand} ${city}` : `the ${newsletterName}`;
   const confirmationText = isGeneralNewsletter
-    ? <>You're subscribed for the <strong>EA Badminton Newsletter</strong>. We'll keep you posted with any updates.</>
+    ? <>You're subscribed for the <strong>{newsletterName}</strong>. We'll keep you posted with any updates.</>
     : <>You're subscribed for <strong>{subscriptionLabel}</strong>.</>;
 
   const handleSubmit = async (e) => {
@@ -1098,7 +1130,7 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
       const res = await fetch(`${t.apiUrl}ea/v1/newsletter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': t.nonce },
-        body: JSON.stringify({ email, location, website }),
+        body: JSON.stringify({ email, location: city, sessionStart, programSummary, website }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data && data.message ? data.message : 'Something went wrong. Please try again.');
@@ -1176,7 +1208,7 @@ function ProgramsSection({ DS, isMobile, t }) {
   const viewAllLink = configuredViewAllLink && (configuredViewAllLink.section || configuredViewAllLink.url)
     ? configuredViewAllLink
     : { url: programsHref };
-  // Sports to include come from the Customizer (EA Options → Active Programs sports).
+  // Sports to include come from the Customizer (EA Options -> Active Programs sports).
   const selectedSports = (t.options && Array.isArray(t.options.sports) && t.options.sports.length)
     ? t.options.sports : ['bad'];
   // Visitor location for nearest-first sorting (null until they opt in).
@@ -1229,7 +1261,7 @@ function ProgramsSection({ DS, isMobile, t }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: isMobile ? 10 : 12, marginTop: isMobile ? 18 : 16 }}>
         {cards.map((program, index) => (
           <CardHover key={`${program.Title || 'program'}-${program.City || 'city'}-${program['Start Date'] || index}`}>
-            <ActiveProgramCard program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} />
+            <ActiveProgramCard program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
           </CardHover>
         ))}
       </div>
@@ -1374,8 +1406,8 @@ function NewsletterSection({ DS, isMobile, t }) {
       const res = await fetch(`${t.apiUrl}ea/v1/newsletter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': t.nonce },
-        // Bottom-of-page signup is tagged "General Badminton" in the admin.
-        body: JSON.stringify({ email, location: 'General Badminton', website }),
+        // Bottom-of-page signup is tagged as a general sport newsletter in the admin.
+        body: JSON.stringify({ email, location: generalNewsletterLocation(t), website }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -1445,7 +1477,7 @@ function NewsletterSection({ DS, isMobile, t }) {
         </div>
       </div>
       {confirmOpen && (
-        <NewsletterModal DS={DS} t={t} location="General Badminton" startSubmitted onClose={() => setConfirmOpen(false)} />
+        <NewsletterModal DS={DS} t={t} location={generalNewsletterLocation(t)} startSubmitted onClose={() => setConfirmOpen(false)} />
       )}
     </section>
   );

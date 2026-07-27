@@ -342,8 +342,11 @@ line — those lines become the "Choose Session" dropdown options.
   Trial** registration form (`FreeTrialSection`). Same slot, swapped by the toggle.
 - **Active Programs sports** (`sports`) — a multi-select of the sports present in
   the live feed (Pickleball / Badminton / Basketball / Sports Camp). Filters which
-  programs appear in the Active Programs section. Implemented with a small custom
+  programs appear in the homepage Active Programs section. Implemented with a small custom
   `EA_Multi_Select_Control`.
+- **League Hub sports** (`leagueHubSports`) — a separate multi-select for the
+  League Hub / View All Programs template. If it has not been saved yet, the
+  frontend falls back to the Active Programs sport selection.
 
 ## Social links (EA Social Links)
 
@@ -435,7 +438,9 @@ Admins can download the saved subscribers from **wp-admin → Newsletter** using
 the **Export Newsletter CSV** button above the list table. The CSV includes the
 subscriber ID, email, city, sport, and subscribed date. The `Sport` column exports
 as `Badminton`; general newsletter signups export/sync as city `Newmarket` so
-the CSV and Constant Contact sync map cleanly into the same segment fields.
+the CSV and Constant Contact sync map cleanly into the same segment fields. These
+defaults can be changed per site with `EA_CC_DEFAULT_SPORT`,
+`EA_CC_DEFAULT_REGION`, and `EA_CC_DEFAULT_CITY`.
 
 Newsletter signups can also sync to Constant Contact. Add these constants to the
 site's `wp-config.php` (do not commit secrets to the theme):
@@ -448,11 +453,24 @@ define( 'EA_CC_NEWSLETTER_LIST_ID', '...' );
 define( 'EA_CC_FIELD_SPORT_ID', '...' );
 define( 'EA_CC_FIELD_CITY_ID', '...' );
 define( 'EA_CC_FIELD_REGION_ID', '...' );
+
+// Optional richer program mapping. If these are omitted, CC sync still works and
+// tags are still created/applied.
+define( 'EA_CC_FIELD_SEASON_ID', '...' );
+define( 'EA_CC_FIELD_PROGRAM_ID', '...' );
+define( 'EA_CC_FIELD_PROGRAM_START_ID', '...' );
+define( 'EA_CC_FIELD_REGISTRATION_DATE_ID', '...' );
+
+define( 'EA_CC_DEFAULT_SPORT', 'Badminton' );
+define( 'EA_CC_DEFAULT_REGION', 'York Region' );
+define( 'EA_CC_DEFAULT_CITY', 'Newmarket' );
 ```
 
 Then go to **wp-admin → Newsletter → Constant Contact** and click
 **Connect Constant Contact**. The sync is best-effort: WordPress still stores the
-subscriber locally if Constant Contact is unavailable.
+subscriber locally if Constant Contact is unavailable. During sync, the theme also
+finds or creates Constant Contact tags for sport, city, Youth, season, and year,
+then applies those tags to the contact after the list signup succeeds.
 
 Two entry points on the home page:
 
@@ -509,5 +527,6 @@ that loads after React and the DS bundle.
 | Components look unstyled briefly | DS bundle loads just after React; `useDSComponents()` polls and re-renders. Falls back to `FB.*` styles until then. |
 | Edited copy not changing | Confirm you edited the right field in **Customize → EA Text** and clicked **Publish** (transport is `refresh`, so the preview reloads). |
 | "Locations Near Me" does nothing | Geolocation needs **HTTPS** and permission; on plain `http://` it silently falls back to the default order. |
-| Active Programs cards empty / wrong sport | Check **Customize → EA Options → Active Programs sports**, and that the JSON feed is reachable (else it falls back to the bundled `LOCATIONS`). |
+| Homepage program cards empty / wrong sport | Check **Customize → EA Options → Active Programs sports**, and that the JSON feed is reachable. |
+| League Hub cards empty / wrong sport | Check **Customize → EA Options → League Hub sports**, and that the JSON feed is reachable. |
 | Nav squished on tablet | It collapses to the hamburger below 1024px (`NAV_COLLAPSE_WIDTH` in `shared.jsx`) — raise it if needed. |

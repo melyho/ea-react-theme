@@ -66,6 +66,7 @@ export function getThemeData() {
     carouselLinks: d.carouselLinks || {},     // { carousel1, carousel2, carousel3 } optional slide links
     texts:   d.texts   || {},                // { heroDesc, programsDesc, ... } editable copy from the Customizer
     options: d.options || {},                // { useCarousel, ... } layout toggles from the Customizer
+    defaults: d.defaults || {},              // { sport, region, city } site-level defaults from wp-config.php
     social:  d.social  || {},                // { instagram, facebook } profile links from the Customizer
     links:   d.links   || {},                // { heroPrimary: {url, section}, ... } button destinations
     // FAQ page Q&A rows from the Customizer (EA FAQ). Array of { q, a, open };

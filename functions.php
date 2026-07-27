@@ -118,6 +118,11 @@ function ea_react_enqueue_assets() {
             // Nonce so logged-in requests to our REST routes are authenticated
             // (sent as the X-WP-Nonce header from the React app).
             'nonce'    => wp_create_nonce( 'wp_rest' ),
+            'defaults' => array(
+                'sport'  => ea_default_sport_value(),
+                'region' => ea_default_region_value(),
+                'city'   => ea_default_city_value(),
+            ),
             'menus'    => array(
                 'primary'          => ea_react_get_menu_items( 'primary' ),
                 'footerQuickLinks' => ea_react_get_menu_items( 'footer_quick_links' ),
@@ -338,7 +343,7 @@ function ea_react_text_fields() {
         ),
         'ea_txt_league_hub_subheading' => array(
             'key' => 'leagueHubSubheading', 'label' => 'League Hub — Subheading', 'type' => 'textarea',
-            'default' => 'Find badminton lessons, leagues, and camps that are currently open for registration.',
+            'default' => sprintf( 'Find %s lessons, leagues, and camps that are currently open for registration.', strtolower( ea_default_sport_value() ) ),
         ),
         'ea_txt_league_hub_location_button' => array(
             'key' => 'leagueHubLocationButton', 'label' => 'League Hub — Location button', 'type' => 'text',
@@ -466,16 +471,41 @@ function ea_sanitize_sports( $value ) {
     return array_values( array_intersect( array_map( 'strval', $value ), $allowed ) );
 }
 
+function ea_default_sport_key() {
+    $sport = strtolower( ea_default_sport_value() );
+
+    if ( false !== strpos( $sport, 'pickle' ) ) {
+        return 'pb';
+    }
+
+    if ( false !== strpos( $sport, 'basket' ) ) {
+        return 'bask';
+    }
+
+    if ( false !== strpos( $sport, 'camp' ) ) {
+        return 's_camp';
+    }
+
+    return 'bad';
+}
+
+function ea_default_sports_selection() {
+    return array( ea_default_sport_key() );
+}
+
 function ea_react_options() {
+    $active_program_sports = ea_sanitize_sports( get_theme_mod( 'ea_sports', ea_default_sports_selection() ) );
+
     return array(
         // true = photo carousel, false = the Free Trial registration form.
         'useCarousel' => (bool) get_theme_mod( 'ea_use_carousel', true ),
-        // Sports shown in the Active Programs section (defaults to Badminton).
-        'sports'      => ea_sanitize_sports( get_theme_mod( 'ea_sports', array( 'bad' ) ) ),
+        // Sports shown in the homepage Active Programs section.
+        'sports'      => $active_program_sports,
         // Hide the Active Programs action buttons (both shown by default).
         'hideNearMe'  => (bool) get_theme_mod( 'ea_hide_near_me', false ),
         'hideViewAll' => (bool) get_theme_mod( 'ea_hide_view_all', false ),
         // League Hub template controls.
+        'leagueHubSports'        => ea_sanitize_sports( get_theme_mod( 'ea_league_hub_sports', $active_program_sports ) ),
         'leagueHubShowSubheading' => (bool) get_theme_mod( 'ea_league_hub_show_subheading', false ),
         'leagueHubFilterSearch'   => (bool) get_theme_mod( 'ea_league_hub_filter_search', true ),
         'leagueHubFilterLevel'    => (bool) get_theme_mod( 'ea_league_hub_filter_level', true ),
@@ -739,13 +769,25 @@ function ea_customize_options( $wp_customize ) {
     ) );
 
     $wp_customize->add_setting( 'ea_sports', array(
-        'default'           => array( 'bad' ),
+        'default'           => ea_default_sports_selection(),
         'sanitize_callback' => 'ea_sanitize_sports',
         'transport'         => 'refresh',
     ) );
     $wp_customize->add_control( new EA_Multi_Select_Control( $wp_customize, 'ea_sports', array(
         'label'       => __( 'Active Programs sports', 'ea-react-theme' ),
-        'description' => __( 'Select which sports appear in the Active Programs section. Hold Ctrl (Windows) or Cmd (Mac) to pick more than one.', 'ea-react-theme' ),
+        'description' => __( 'Select which sports appear in the homepage Active Programs section. Hold Ctrl (Windows) or Cmd (Mac) to pick more than one.', 'ea-react-theme' ),
+        'section'     => 'ea_options',
+        'choices'     => ea_sport_choices(),
+    ) ) );
+
+    $wp_customize->add_setting( 'ea_league_hub_sports', array(
+        'default'           => ea_default_sports_selection(),
+        'sanitize_callback' => 'ea_sanitize_sports',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( new EA_Multi_Select_Control( $wp_customize, 'ea_league_hub_sports', array(
+        'label'       => __( 'League Hub sports', 'ea-react-theme' ),
+        'description' => __( 'Select which sports appear on the League Hub / View All Programs page. Hold Ctrl (Windows) or Cmd (Mac) to pick more than one.', 'ea-react-theme' ),
         'section'     => 'ea_options',
         'choices'     => ea_sport_choices(),
     ) ) );
@@ -987,22 +1029,32 @@ function ea_register_free_trial_cpt() {
 add_action( 'init', 'ea_register_free_trial_cpt' );
 
 function ea_default_sport_value() {
-    return 'Badminton';
+    return defined( 'EA_CC_DEFAULT_SPORT' ) && '' !== trim( (string) EA_CC_DEFAULT_SPORT )
+        ? sanitize_text_field( EA_CC_DEFAULT_SPORT )
+        : 'Badminton';
 }
 
 function ea_default_region_value() {
-    return 'York Region';
+    return defined( 'EA_CC_DEFAULT_REGION' ) && '' !== trim( (string) EA_CC_DEFAULT_REGION )
+        ? sanitize_text_field( EA_CC_DEFAULT_REGION )
+        : 'York Region';
+}
+
+function ea_default_city_value() {
+    return defined( 'EA_CC_DEFAULT_CITY' ) && '' !== trim( (string) EA_CC_DEFAULT_CITY )
+        ? sanitize_text_field( EA_CC_DEFAULT_CITY )
+        : 'Newmarket';
 }
 
 function ea_free_trial_city_value() {
-    return 'Newmarket';
+    return ea_default_city_value();
 }
 
 function ea_newsletter_city_from_location( $location ) {
     $location = trim( (string) $location );
 
-    if ( '' === $location || 0 === strcasecmp( $location, 'General Badminton' ) ) {
-        return 'Newmarket';
+    if ( '' === $location || 0 === stripos( $location, 'General ' ) ) {
+        return ea_default_city_value();
     }
 
     $normalized = strtolower( $location );
@@ -1016,7 +1068,7 @@ function ea_newsletter_city_from_location( $location ) {
         return 'Aurora';
     }
 
-    return 'Newmarket';
+    return ea_default_city_value();
 }
 
 function ea_newsletter_city_value( $locations ) {
@@ -1191,12 +1243,17 @@ function ea_cc_config() {
         'field_sport_id'  => ea_cc_config_value( 'EA_CC_FIELD_SPORT_ID' ),
         'field_city_id'   => ea_cc_config_value( 'EA_CC_FIELD_CITY_ID' ),
         'field_region_id' => ea_cc_config_value( 'EA_CC_FIELD_REGION_ID' ),
+        'field_season_id'            => ea_cc_config_value( 'EA_CC_FIELD_SEASON_ID' ),
+        'field_program_id'           => ea_cc_config_value( 'EA_CC_FIELD_PROGRAM_ID' ),
+        'field_program_start_id'     => ea_cc_config_value( 'EA_CC_FIELD_PROGRAM_START_ID' ),
+        'field_registration_date_id' => ea_cc_config_value( 'EA_CC_FIELD_REGISTRATION_DATE_ID' ),
     );
 }
 
 function ea_cc_is_configured() {
     $config = ea_cc_config();
-    foreach ( $config as $value ) {
+    foreach ( array( 'client_id', 'client_secret', 'list_id', 'field_sport_id', 'field_city_id', 'field_region_id' ) as $key ) {
+        $value = $config[ $key ] ?? '';
         if ( '' === $value ) {
             return false;
         }
@@ -1404,7 +1461,176 @@ function ea_cc_access_token() {
     return $tokens['access_token'];
 }
 
-function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0 ) {
+// Simple month-range rule of thumb: Jan-Mar Spring, Apr-Jun Summer, Jul-Sep Fall, Oct-Dec Winter.
+function ea_cc_season_from_date( $date_string ) {
+    $timestamp = '' !== $date_string ? strtotime( $date_string ) : false;
+    if ( false === $timestamp ) {
+        $timestamp = current_time( 'timestamp' );
+    }
+
+    $month = (int) gmdate( 'n', $timestamp );
+    $year  = gmdate( 'Y', $timestamp );
+
+    if ( $month >= 1 && $month <= 3 ) {
+        $season = 'Spring';
+    } elseif ( $month >= 4 && $month <= 6 ) {
+        $season = 'Summer';
+    } elseif ( $month >= 7 && $month <= 9 ) {
+        $season = 'Fall';
+    } else {
+        $season = 'Winter';
+    }
+
+    return array( $season, $year );
+}
+
+function ea_cc_find_tag_by_name( &$tags_cache, $token, $tag_name ) {
+    if ( null === $tags_cache ) {
+        $response = wp_remote_get(
+            'https://api.cc.email/v3/contact_tags?limit=500',
+            array(
+                'headers' => array( 'Authorization' => 'Bearer ' . $token ),
+                'timeout' => 15,
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            return false;
+        }
+
+        $body       = json_decode( wp_remote_retrieve_body( $response ), true );
+        $tags_cache = $body['tags'] ?? array();
+    }
+
+    foreach ( $tags_cache as $tag ) {
+        if ( isset( $tag['name'] ) && 0 === strcasecmp( $tag['name'], $tag_name ) ) {
+            return $tag['tag_id'];
+        }
+    }
+
+    return false;
+}
+
+function ea_cc_find_or_create_tag( &$tags_cache, $token, $tag_name ) {
+    $tag_name = sanitize_text_field( $tag_name );
+
+    $existing = ea_cc_find_tag_by_name( $tags_cache, $token, $tag_name );
+    if ( $existing ) {
+        return $existing;
+    }
+
+    $response = wp_remote_post(
+        'https://api.cc.email/v3/contact_tags',
+        array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type'  => 'application/json',
+            ),
+            'body'    => wp_json_encode( array( 'name' => $tag_name ) ),
+            'timeout' => 15,
+        )
+    );
+
+    if ( is_wp_error( $response ) ) {
+        ea_cc_log( 'Tag create failed', array( 'error' => $response->get_error_message() ) );
+        return false;
+    }
+
+    $code = wp_remote_retrieve_response_code( $response );
+    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+    if ( 201 === $code && ! empty( $body['tag_id'] ) ) {
+        $tags_cache[] = $body;
+        return $body['tag_id'];
+    }
+
+    if ( 409 === $code ) {
+        $tags_cache = null;
+        return ea_cc_find_tag_by_name( $tags_cache, $token, $tag_name );
+    }
+
+    ea_cc_log( 'Unexpected tag create response', array( 'status' => $code, 'body' => $body ) );
+    return false;
+}
+
+function ea_cc_optional_field( $field_id, $value ) {
+    if ( '' === $field_id || '' === (string) $value ) {
+        return null;
+    }
+
+    return array(
+        'custom_field_id' => $field_id,
+        'value'           => sanitize_text_field( (string) $value ),
+    );
+}
+
+function ea_cc_apply_tags( $token, $email, $tag_ids ) {
+    $tag_ids = array_values( array_filter( (array) $tag_ids ) );
+    if ( empty( $tag_ids ) ) {
+        return false;
+    }
+
+    $lookup = wp_remote_get(
+        'https://api.cc.email/v3/contacts?email=' . rawurlencode( $email ),
+        array(
+            'headers' => array( 'Authorization' => 'Bearer ' . $token ),
+            'timeout' => 15,
+        )
+    );
+
+    if ( is_wp_error( $lookup ) ) {
+        ea_cc_log( 'Tag apply: contact lookup failed', array( 'error' => $lookup->get_error_message() ) );
+        return false;
+    }
+
+    $lookup_body = json_decode( wp_remote_retrieve_body( $lookup ), true );
+    $contact     = $lookup_body['contacts'][0] ?? null;
+
+    if ( empty( $contact['contact_id'] ) ) {
+        ea_cc_log( 'Tag apply: contact not found after sign_up_form create', array( 'email' => $email ) );
+        return false;
+    }
+
+    $permission_to_send = $contact['email_address']['permission_to_send'] ?? 'implicit';
+
+    $response = wp_remote_request(
+        'https://api.cc.email/v3/contacts/' . $contact['contact_id'],
+        array(
+            'method'  => 'PUT',
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type'  => 'application/json',
+            ),
+            'body'    => wp_json_encode(
+                array(
+                    'email_address'  => array(
+                        'address'            => $email,
+                        'permission_to_send' => $permission_to_send,
+                    ),
+                    'create_source'  => 'Contact',
+                    'update_source'  => 'Contact',
+                    'taggings'       => $tag_ids,
+                )
+            ),
+            'timeout' => 15,
+        )
+    );
+
+    if ( is_wp_error( $response ) ) {
+        ea_cc_log( 'Tag apply: update failed', array( 'error' => $response->get_error_message() ) );
+        return false;
+    }
+
+    $status = wp_remote_retrieve_response_code( $response );
+    if ( $status < 200 || $status >= 300 ) {
+        ea_cc_log( 'Tag apply: unexpected update response', array( 'status' => $status, 'body' => wp_remote_retrieve_body( $response ) ) );
+        return false;
+    }
+
+    return true;
+}
+
+function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0, $session_start = '', $program_summary = '' ) {
     if ( ! ea_cc_is_configured() ) {
         ea_cc_log( 'Skipped sync because configuration is incomplete.' );
         return false;
@@ -1418,25 +1644,44 @@ function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0 ) {
 
     $config = ea_cc_config();
     $city   = ea_newsletter_city_from_location( $location );
+    list( $season, $year ) = ea_cc_season_from_date( $session_start );
+    $season_year = $season . ' ' . $year;
+    list( $reg_season, $reg_year ) = ea_cc_season_from_date( '' );
+    $registration_season_year = $reg_season . ' ' . $reg_year;
+
+    $tag_names = array_unique( array_filter( array(
+        ea_default_sport_value(),
+        $city,
+        'Youth',
+        $season,
+        $year,
+    ) ) );
+    $tag_ids    = array();
+    $tags_cache = null;
+    foreach ( $tag_names as $tag_name ) {
+        $tag_id = ea_cc_find_or_create_tag( $tags_cache, $token, $tag_name );
+        if ( $tag_id ) {
+            $tag_ids[] = $tag_id;
+        }
+    }
+
+    $custom_fields = array_filter( array(
+        ea_cc_optional_field( $config['field_sport_id'], ea_default_sport_value() ),
+        ea_cc_optional_field( $config['field_city_id'], $city ),
+        ea_cc_optional_field( $config['field_region_id'], ea_default_region_value() ),
+        ea_cc_optional_field( $config['field_season_id'], $season_year ),
+        ea_cc_optional_field( $config['field_program_id'], '' !== $program_summary ? $program_summary : 'General signup - Player' ),
+        ea_cc_optional_field( $config['field_program_start_id'], $session_start ),
+        ea_cc_optional_field( $config['field_registration_date_id'], $registration_season_year ),
+    ) );
 
     $payload = array(
         'email_address'    => $email,
         'list_memberships' => array( $config['list_id'] ),
-        'custom_fields'    => array(
-            array(
-                'custom_field_id' => $config['field_sport_id'],
-                'value'           => ea_default_sport_value(),
-            ),
-            array(
-                'custom_field_id' => $config['field_city_id'],
-                'value'           => $city,
-            ),
-            array(
-                'custom_field_id' => $config['field_region_id'],
-                'value'           => ea_default_region_value(),
-            ),
-        ),
     );
+    if ( ! empty( $custom_fields ) ) {
+        $payload['custom_fields'] = array_values( $custom_fields );
+    }
 
     $response = wp_remote_post(
         'https://api.cc.email/v3/contacts/sign_up_form',
@@ -1468,6 +1713,8 @@ function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0 ) {
         return false;
     }
 
+    ea_cc_apply_tags( $token, $email, $tag_ids );
+
     if ( $entry_id ) {
         update_post_meta( $entry_id, '_ea_cc_synced_at', current_time( 'mysql' ) );
         update_post_meta( $entry_id, '_ea_cc_city', $city );
@@ -1486,11 +1733,15 @@ function ea_register_newsletter_route() {
         'permission_callback' => '__return_true', // public form; anyone can submit
         'callback'            => 'ea_handle_newsletter',
         'args'                => array(
-            'email'    => array( 'required' => true,  'type' => 'string' ),
+            'email'    => array( 'required' => true, 'type' => 'string' ),
             // Which location card the signup came from (optional; blank = general signup).
-            'location' => array( 'required' => false, 'type' => 'string' ),
+            'location'       => array( 'required' => false, 'type' => 'string' ),
+            // First session date of the source program; used for season/year tagging.
+            'sessionStart'   => array( 'required' => false, 'type' => 'string' ),
+            // Human-readable source program details for optional CC mapping.
+            'programSummary' => array( 'required' => false, 'type' => 'string' ),
             // Honeypot: real users leave this empty; bots tend to fill every field.
-            'website'  => array( 'required' => false, 'type' => 'string' ),
+            'website'        => array( 'required' => false, 'type' => 'string' ),
         ),
     ) );
 }
@@ -1502,8 +1753,10 @@ function ea_handle_newsletter( WP_REST_Request $request ) {
         return new WP_REST_Response( array( 'ok' => true ), 200 );
     }
 
-    $email    = sanitize_email( wp_unslash( $request['email'] ) );
-    $location = isset( $request['location'] ) ? sanitize_text_field( wp_unslash( $request['location'] ) ) : '';
+    $email           = sanitize_email( wp_unslash( $request['email'] ) );
+    $location        = isset( $request['location'] ) ? sanitize_text_field( wp_unslash( $request['location'] ) ) : '';
+    $session_start   = isset( $request['sessionStart'] ) ? sanitize_text_field( wp_unslash( $request['sessionStart'] ) ) : '';
+    $program_summary = isset( $request['programSummary'] ) ? sanitize_text_field( wp_unslash( $request['programSummary'] ) ) : '';
 
     if ( '' === $email || ! is_email( $email ) ) {
         return new WP_Error(
@@ -1557,7 +1810,7 @@ function ea_handle_newsletter( WP_REST_Request $request ) {
 
     // Sync newsletter signups to Constant Contact after local storage succeeds.
     // Best-effort: a Constant Contact outage must not break the front-end form.
-    ea_cc_sync_newsletter_contact( $email, $location, (int) $entry_id );
+    ea_cc_sync_newsletter_contact( $email, $location, (int) $entry_id, $session_start, $program_summary );
 
     // Notify the admin (best-effort — the entry is already saved). Locally this is
     // caught by Local's Mailpit (Site → Tools → Open Mailpit).
