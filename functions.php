@@ -1252,7 +1252,7 @@ function ea_cc_config() {
 
 function ea_cc_is_configured() {
     $config = ea_cc_config();
-    foreach ( array( 'client_id', 'client_secret', 'list_id', 'field_sport_id', 'field_city_id', 'field_region_id' ) as $key ) {
+    foreach ( array( 'client_id', 'client_secret', 'list_id' ) as $key ) {
         $value = $config[ $key ] ?? '';
         if ( '' === $value ) {
             return false;
@@ -1564,52 +1564,64 @@ function ea_cc_optional_field( $field_id, $value ) {
     );
 }
 
-function ea_cc_apply_tags( $token, $email, $tag_ids ) {
+function ea_cc_contact_id_for_email( $token, $email, $attempts = 3 ) {
+    for ( $attempt = 1; $attempt <= $attempts; $attempt++ ) {
+        $lookup = wp_remote_get(
+            'https://api.cc.email/v3/contacts?email=' . rawurlencode( $email ),
+            array(
+                'headers' => array( 'Authorization' => 'Bearer ' . $token ),
+                'timeout' => 15,
+            )
+        );
+
+        if ( is_wp_error( $lookup ) ) {
+            ea_cc_log( 'Contact lookup failed', array( 'error' => $lookup->get_error_message(), 'attempt' => $attempt ) );
+            return '';
+        }
+
+        $lookup_body = json_decode( wp_remote_retrieve_body( $lookup ), true );
+        $contact     = $lookup_body['contacts'][0] ?? null;
+        if ( ! empty( $contact['contact_id'] ) ) {
+            return $contact['contact_id'];
+        }
+
+        if ( $attempt < $attempts ) {
+            sleep( 1 );
+        }
+    }
+
+    ea_cc_log( 'Contact lookup did not find contact after signup', array( 'email' => $email ) );
+    return '';
+}
+
+function ea_cc_apply_tags( $token, $contact_id, $tag_ids, $email = '' ) {
     $tag_ids = array_values( array_filter( (array) $tag_ids ) );
     if ( empty( $tag_ids ) ) {
         return false;
     }
 
-    $lookup = wp_remote_get(
-        'https://api.cc.email/v3/contacts?email=' . rawurlencode( $email ),
-        array(
-            'headers' => array( 'Authorization' => 'Bearer ' . $token ),
-            'timeout' => 15,
-        )
-    );
+    if ( '' === $contact_id && '' !== $email ) {
+        $contact_id = ea_cc_contact_id_for_email( $token, $email );
+    }
 
-    if ( is_wp_error( $lookup ) ) {
-        ea_cc_log( 'Tag apply: contact lookup failed', array( 'error' => $lookup->get_error_message() ) );
+    if ( '' === $contact_id ) {
+        ea_cc_log( 'Tag apply skipped because no Constant Contact contact_id was available.', array( 'email' => $email ) );
         return false;
     }
 
-    $lookup_body = json_decode( wp_remote_retrieve_body( $lookup ), true );
-    $contact     = $lookup_body['contacts'][0] ?? null;
-
-    if ( empty( $contact['contact_id'] ) ) {
-        ea_cc_log( 'Tag apply: contact not found after sign_up_form create', array( 'email' => $email ) );
-        return false;
-    }
-
-    $permission_to_send = $contact['email_address']['permission_to_send'] ?? 'implicit';
-
-    $response = wp_remote_request(
-        'https://api.cc.email/v3/contacts/' . $contact['contact_id'],
+    $response = wp_remote_post(
+        'https://api.cc.email/v3/activities/contacts_taggings_add',
         array(
-            'method'  => 'PUT',
             'headers' => array(
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type'  => 'application/json',
             ),
             'body'    => wp_json_encode(
                 array(
-                    'email_address'  => array(
-                        'address'            => $email,
-                        'permission_to_send' => $permission_to_send,
+                    'source'  => array(
+                        'contact_ids' => array( $contact_id ),
                     ),
-                    'create_source'  => 'Contact',
-                    'update_source'  => 'Contact',
-                    'taggings'       => $tag_ids,
+                    'tag_ids' => $tag_ids,
                 )
             ),
             'timeout' => 15,
@@ -1617,17 +1629,18 @@ function ea_cc_apply_tags( $token, $email, $tag_ids ) {
     );
 
     if ( is_wp_error( $response ) ) {
-        ea_cc_log( 'Tag apply: update failed', array( 'error' => $response->get_error_message() ) );
+        ea_cc_log( 'Tag apply activity failed', array( 'error' => $response->get_error_message() ) );
         return false;
     }
 
     $status = wp_remote_retrieve_response_code( $response );
     if ( $status < 200 || $status >= 300 ) {
-        ea_cc_log( 'Tag apply: unexpected update response', array( 'status' => $status, 'body' => wp_remote_retrieve_body( $response ) ) );
+        ea_cc_log( 'Tag apply activity returned unexpected response', array( 'status' => $status, 'body' => wp_remote_retrieve_body( $response ) ) );
         return false;
     }
 
-    return true;
+    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+    return $body['activity_id'] ?? true;
 }
 
 function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0, $session_start = '', $program_summary = '' ) {
@@ -1713,11 +1726,21 @@ function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0, $sessi
         return false;
     }
 
-    ea_cc_apply_tags( $token, $email, $tag_ids );
+    $contact_id = ! empty( $body['contact_id'] ) ? sanitize_text_field( $body['contact_id'] ) : '';
+    $tag_result = ea_cc_apply_tags( $token, $contact_id, $tag_ids, $email );
 
     if ( $entry_id ) {
         update_post_meta( $entry_id, '_ea_cc_synced_at', current_time( 'mysql' ) );
         update_post_meta( $entry_id, '_ea_cc_city', $city );
+        if ( $tag_result ) {
+            update_post_meta( $entry_id, '_ea_cc_tags_applied_at', current_time( 'mysql' ) );
+            if ( is_string( $tag_result ) ) {
+                update_post_meta( $entry_id, '_ea_cc_tagging_activity_id', $tag_result );
+            }
+            delete_post_meta( $entry_id, '_ea_cc_tag_sync_error' );
+        } else {
+            update_post_meta( $entry_id, '_ea_cc_tag_sync_error', 'Contact synced, but tag activity did not complete.' );
+        }
         delete_post_meta( $entry_id, '_ea_cc_sync_error' );
     }
 

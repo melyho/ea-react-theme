@@ -442,28 +442,34 @@ the CSV and Constant Contact sync map cleanly into the same segment fields. Thes
 defaults can be changed per site with `EA_CC_DEFAULT_SPORT`,
 `EA_CC_DEFAULT_REGION`, and `EA_CC_DEFAULT_CITY`.
 
-Newsletter signups can also sync to Constant Contact. Add these constants to the
-site's `wp-config.php` (do not commit secrets to the theme):
+Newsletter signups can also sync to Constant Contact. Add these required
+constants to the site's `wp-config.php` (do not commit secrets to the theme):
 
 ```
 define( 'EA_CC_CLIENT_ID', '...' );
 define( 'EA_CC_CLIENT_SECRET', '...' );
 define( 'EA_CC_REDIRECT_URI', 'https://eabadminton.com/wp-admin/admin-post.php?action=ea_cc_oauth_callback' );
 define( 'EA_CC_NEWSLETTER_LIST_ID', '...' );
-define( 'EA_CC_FIELD_SPORT_ID', '...' );
-define( 'EA_CC_FIELD_CITY_ID', '...' );
-define( 'EA_CC_FIELD_REGION_ID', '...' );
-
-// Optional richer program mapping. If these are omitted, CC sync still works and
-// tags are still created/applied.
-define( 'EA_CC_FIELD_SEASON_ID', '...' );
-define( 'EA_CC_FIELD_PROGRAM_ID', '...' );
-define( 'EA_CC_FIELD_PROGRAM_START_ID', '...' );
-define( 'EA_CC_FIELD_REGISTRATION_DATE_ID', '...' );
 
 define( 'EA_CC_DEFAULT_SPORT', 'Badminton' );
 define( 'EA_CC_DEFAULT_REGION', 'York Region' );
 define( 'EA_CC_DEFAULT_CITY', 'Newmarket' );
+```
+
+By default, the sync adds the contact to the configured list and applies
+Constant Contact tags for sport, city, age group, season, and year.
+
+These custom field constants are optional legacy/richer mapping support. If they
+are omitted, Constant Contact sync still works and tags are still created/applied.
+
+```
+define( 'EA_CC_FIELD_SPORT_ID', '...' );
+define( 'EA_CC_FIELD_CITY_ID', '...' );
+define( 'EA_CC_FIELD_REGION_ID', '...' );
+define( 'EA_CC_FIELD_SEASON_ID', '...' );
+define( 'EA_CC_FIELD_PROGRAM_ID', '...' );
+define( 'EA_CC_FIELD_PROGRAM_START_ID', '...' );
+define( 'EA_CC_FIELD_REGISTRATION_DATE_ID', '...' );
 ```
 
 Then go to **wp-admin → Newsletter → Constant Contact** and click
