@@ -25,23 +25,25 @@ function faqItems(t) {
   }
 
   // Dev-only fallback (no window.eaReactData, e.g. `npm run dev` outside WP).
-  const leagueHub = `${t.siteUrl || ''}/locations/`;
   return [
     {
-      q: 'How do i join a weekly league?',
+      q: 'What badminton programs does Elevation Athletics offer?',
       defaultOpen: true,
-      a: `We have leagues across Canada! To find one near you, go to our <a href="${leagueHub}">league hub</a> and find your town or a nearby area. From there, check if any programs are currently open and register directly through the link on your town’s page.`,
+      a: 'We offer badminton lessons, leagues, camps, and seasonal programs for youth players. Available programs vary by city and season, so check the active programs section for the most up-to-date options.',
     },
     {
-      q: 'What are EA weekly pickleball leagues?',
+      q: 'Do players need their own badminton racquet?',
       defaultOpen: true,
-      a: 'The EA Weekly Pickleball Leagues are development doubles leagues. You don’t need a registered partner—each week, you’ll be assigned to play with three other league members, earning individual points. EA Coaches tally points and rank players in the league standings, and you’ll play against a different set of players each week.',
+      a: 'Players are encouraged to bring their own racquet if they have one. If your child is new and does not have equipment yet, contact us before the program starts and we can let you know what is available.',
     },
-    { q: 'Do I need a partner to sign up?', a: 'No. Register on your own and we’ll pair you with other players each week, so you always have a game.' },
-    { q: 'What skill level are the leagues for?', a: 'Our development leagues welcome all levels, from first-time players to experienced ones. Coaches help balance matchups so everyone gets competitive, fun games.' },
-    { q: 'What equipment do I need?', a: 'Just bring court shoes and comfortable clothing. Paddles and balls are provided at most locations — check your town’s page for specifics.' },
+    { q: 'What should players bring to each session?', a: 'Players should bring indoor court shoes, athletic clothing, a water bottle, and a badminton racquet if they have one.' },
+    { q: 'How long is each program?', a: 'Most programs run for multiple weekly sessions, and the exact number of sessions, dates, and times are listed on the registration card.' },
+    { q: 'Where do the programs take place?', a: 'Program locations vary by city. Each registration card lists the school, community centre, or facility where that program runs.' },
     { q: 'How long does a league season run?', a: 'Season length varies by location. Each town’s registration page lists the exact number of weeks, dates, and times.' },
-    { q: 'Can I get a refund if I can’t attend?', a: 'Refund windows are listed on each program’s registration page. Reach out to your local EA Coach if you have questions about a specific league.' },
+    { q: 'Can my child join after the program has already started?', a: 'Sometimes, yes. If registration is still open and spots are available, late registration may be possible. If enrollment is closed, contact info@elevationathletics.ca to ask about options.' },
+    { q: 'What happens if a session is cancelled?', a: 'If a session is cancelled due to facility closures, weather, or another issue, we will communicate updates by email and provide details about the next steps.' },
+    { q: 'Are there make-up classes if my child misses a session?', a: 'We generally cannot guarantee make-up classes for missed sessions, but you can contact us if there are special circumstances.' },
+    { q: 'What age groups are available?', a: 'Age groups vary by program. Each registration card lists the eligible age range, such as junior programs, youth programs, or advanced junior programs.' },
   ];
 }
 
@@ -194,8 +196,30 @@ export default function FAQPage() {
         )}
 
         <div
+          aria-hidden="true"
           style={{
-            marginTop: isMobile ? 24 : 32,
+            display: 'flex',
+            justifyContent: 'center',
+            marginTop: isMobile ? 18 : 20,
+            marginBottom: isMobile ? 4 : 2,
+            pointerEvents: 'none',
+          }}
+        >
+          <img
+            src={t.images.faqQuestionSquid || t.asset('faq-question-squid.svg')}
+            alt=""
+            style={{
+              display: 'block',
+              width: isMobile ? 150 : 210,
+              maxWidth: '46vw',
+              height: 'auto',
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            marginTop: isMobile ? 14 : 18,
             display: 'flex',
             flexDirection: 'column',
             gap: 'var(--space-4, 16px)',

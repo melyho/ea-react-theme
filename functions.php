@@ -504,6 +504,7 @@ function ea_react_options() {
         // Hide the Active Programs action buttons (both shown by default).
         'hideNearMe'  => (bool) get_theme_mod( 'ea_hide_near_me', false ),
         'hideViewAll' => (bool) get_theme_mod( 'ea_hide_view_all', false ),
+        'programsShowDescription' => (bool) get_theme_mod( 'ea_programs_show_description', false ),
         // League Hub template controls.
         'leagueHubSports'        => ea_sanitize_sports( get_theme_mod( 'ea_league_hub_sports', $active_program_sports ) ),
         'leagueHubShowSubheading' => (bool) get_theme_mod( 'ea_league_hub_show_subheading', false ),
@@ -733,6 +734,18 @@ function ea_customize_options( $wp_customize ) {
         'section' => 'ea_options',
     ) );
 
+    $wp_customize->add_setting( 'ea_programs_show_description', array(
+        'default'           => false,
+        'sanitize_callback' => 'wp_validate_boolean',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'ea_programs_show_description', array(
+        'type'        => 'checkbox',
+        'label'       => __( 'Active Programs — show description', 'ea-react-theme' ),
+        'description' => __( 'Shows the Active Programs description text under the section heading.', 'ea-react-theme' ),
+        'section'     => 'ea_options',
+    ) );
+
     $league_hub_toggles = array(
         'ea_league_hub_show_subheading' => array( 'default' => false, 'label' => __( 'League Hub — show subheading', 'ea-react-theme' ) ),
         'ea_league_hub_filter_search'   => array( 'default' => true, 'label' => __( 'League Hub — show search filter', 'ea-react-theme' ) ),
@@ -831,23 +844,25 @@ const EA_FAQ_SLOTS = 12;
 // Seed content for the first slots (mirrors the FAQ page's built-in defaults).
 // A cleared question hides its row; unedited slots keep the copy below.
 function ea_faq_defaults() {
-    $hub = esc_url( home_url( '/locations/' ) );
     return array(
         array(
-            'q'    => 'How do i join a weekly league?',
-            'a'    => 'We have leagues across Canada! To find one near you, go to our <a href="' . $hub . '">league hub</a> and find your town or a nearby area. From there, check if any programs are currently open and register directly through the link on your town’s page.',
+            'q'    => 'What badminton programs does Elevation Athletics offer?',
+            'a'    => 'We offer badminton lessons, leagues, camps, and seasonal programs for youth players. Available programs vary by city and season, so check the active programs section for the most up-to-date options.',
             'open' => true,
         ),
         array(
-            'q'    => 'What are EA weekly pickleball leagues?',
-            'a'    => 'The EA Weekly Pickleball Leagues are development doubles leagues. You don’t need a registered partner—each week, you’ll be assigned to play with three other league members, earning individual points. EA Coaches tally points and rank players in the league standings, and you’ll play against a different set of players each week.',
+            'q'    => 'Do players need their own badminton racquet?',
+            'a'    => 'Players are encouraged to bring their own racquet if they have one. If your child is new and does not have equipment yet, contact us before the program starts and we can let you know what is available.',
             'open' => true,
         ),
-        array( 'q' => 'Do I need a partner to sign up?',        'a' => 'No. Register on your own and we’ll pair you with other players each week, so you always have a game.' ),
-        array( 'q' => 'What skill level are the leagues for?',  'a' => 'Our development leagues welcome all levels, from first-time players to experienced ones. Coaches help balance matchups so everyone gets competitive, fun games.' ),
-        array( 'q' => 'What equipment do I need?',              'a' => 'Just bring court shoes and comfortable clothing. Paddles and balls are provided at most locations — check your town’s page for specifics.' ),
-        array( 'q' => 'How long does a league season run?',     'a' => 'Season length varies by location. Each town’s registration page lists the exact number of weeks, dates, and times.' ),
-        array( 'q' => 'Can I get a refund if I can’t attend?',  'a' => 'Refund windows are listed on each program’s registration page. Reach out to your local EA Coach if you have questions about a specific league.' ),
+        array( 'q' => 'What should players bring to each session?', 'a' => 'Players should bring indoor court shoes, athletic clothing, a water bottle, and a badminton racquet if they have one.' ),
+        array( 'q' => 'How long is each program?', 'a' => 'Most programs run for multiple weekly sessions, and the exact number of sessions, dates, and times are listed on the registration card.' ),
+        array( 'q' => 'Where do the programs take place?', 'a' => 'Program locations vary by city. Each registration card lists the school, community centre, or facility where that program runs.' ),
+        array( 'q' => 'How long does a league season run?', 'a' => 'Season length varies by location. Each town’s registration page lists the exact number of weeks, dates, and times.' ),
+        array( 'q' => 'Can my child join after the program has already started?', 'a' => 'Sometimes, yes. If registration is still open and spots are available, late registration may be possible. If enrollment is closed, contact info@elevationathletics.ca to ask about options.' ),
+        array( 'q' => 'What happens if a session is cancelled?', 'a' => 'If a session is cancelled due to facility closures, weather, or another issue, we will communicate updates by email and provide details about the next steps.' ),
+        array( 'q' => 'Are there make-up classes if my child misses a session?', 'a' => 'We generally cannot guarantee make-up classes for missed sessions, but you can contact us if there are special circumstances.' ),
+        array( 'q' => 'What age groups are available?', 'a' => 'Age groups vary by program. Each registration card lists the eligible age range, such as junior programs, youth programs, or advanced junior programs.' ),
     );
 }
 

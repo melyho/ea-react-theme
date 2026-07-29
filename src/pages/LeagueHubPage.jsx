@@ -292,6 +292,7 @@ function chipStyle(label) {
   if (key.includes('progress')) return { bg: '#D7F1FF', color: '#206A87' };
   if (key.includes('advanced')) return { bg: '#0B5B73', color: '#FFFFFF' };
   if (key.includes('camp')) return { bg: '#FFBB91', color: '#0077A3' };
+  if (key.includes('lesson')) return { bg: '#FFFFFF', color: '#0B5B73', border: '1px solid #0B5B73' };
   return { bg: '#BDEEFF', color: '#0B5B73' };
 }
 
@@ -302,6 +303,7 @@ function ProgramChip({ label }) {
       display: 'inline-flex', alignItems: 'center', width: 'fit-content',
       padding: '4px 7px', borderRadius: 6,
       background: styles.bg, color: styles.color,
+      border: styles.border || '1px solid transparent',
       fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 'var(--fw-medium)',
       textTransform: 'none', lineHeight: 1.1,
     }}>
@@ -585,7 +587,7 @@ function SelectChip({ label, value, onChange, options }) {
         backgroundSize: '5px 5px, 5px 5px',
         backgroundRepeat: 'no-repeat',
       }}>
-        <option value="">{label}</option>
+        <option value="">{label}: All</option>
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>

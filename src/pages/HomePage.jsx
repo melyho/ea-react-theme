@@ -638,6 +638,33 @@ function MailIcon() {
   );
 }
 
+function bodyButtonStyle(variant = 'primary', isMobile = false, extra = {}) {
+  const isDark = variant === 'dark';
+  const isPrimary = variant === 'primary' || isDark;
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: isMobile ? 48 : 52,
+    minWidth: isMobile ? 160 : 220,
+    padding: isMobile ? '11px 22px' : '13px 28px',
+    borderRadius: 8,
+    border: isPrimary ? '1px solid transparent' : '1px solid var(--border-card, #E5E5E5)',
+    background: isDark ? 'var(--ea-teal-900, #004356)' : isPrimary ? '#0092DB' : '#fff',
+    color: isPrimary ? '#fff' : 'var(--ea-navy, #10414F)',
+    fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+    fontSize: isMobile ? 15 : 16,
+    fontWeight: 'var(--fw-bold, 700)',
+    lineHeight: 1,
+    letterSpacing: 'var(--ls-body, 0)',
+    textTransform: 'none',
+    textDecoration: 'none',
+    cursor: 'pointer',
+    boxSizing: 'border-box',
+    ...extra,
+  };
+}
+
 function ProgramSubscribeButton({ city, sessionStart = '', programSummary = '', isMobile = false, onSubscribe }) {
   const [hover, setHover] = useState(false);
   return (
@@ -927,7 +954,7 @@ function inferLevelLabel(p) {
 
 function inferProgramTypeLabel(p) {
   const title = String(p.Title || '').toLowerCase();
-  if (title.includes('camp')) return 'Summer Camp';
+  if (title.includes('camp')) return 'Camps';
   if (title.includes('league')) return 'League';
   return 'Lessons';
 }
@@ -951,7 +978,8 @@ function chipStyle(label) {
   if (key.includes('starting')) return { bg: '#FFE9AF', color: '#8A640F' };
   if (key.includes('progress')) return { bg: '#D7F1FF', color: '#206A87' };
   if (key.includes('advanced')) return { bg: '#0B5B73', color: '#FFFFFF' };
-  if (key.includes('summer')) return { bg: '#FFBB91', color: '#0077A3' };
+  if (key.includes('camp')) return { bg: '#FFBB91', color: '#0077A3' };
+  if (key.includes('lesson')) return { bg: '#FFFFFF', color: '#0B5B73', border: '1px solid #0B5B73' };
   return { bg: '#BDEEFF', color: '#0B5B73' };
 }
 
@@ -962,6 +990,7 @@ function ProgramChip({ label }) {
       display: 'inline-flex', alignItems: 'center', width: 'fit-content',
       padding: '4px 7px', borderRadius: 6,
       background: styles.bg, color: styles.color,
+      border: styles.border || '1px solid transparent',
       fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 'var(--fw-medium)',
       textTransform: 'none',
       lineHeight: 1.1,
@@ -1167,10 +1196,7 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
               {confirmationText}
             </p>
             <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>
-              {Button
-                ? <Button variant="dark" onClick={onClose}>Close</Button>
-                : <button onClick={onClose} style={{ ...FB.btn('primary'), background: 'var(--ea-teal-900, #004356)' }}>Close</button>
-              }
+              <button onClick={onClose} style={bodyButtonStyle('dark')}>Close</button>
             </div>
           </>
         ) : (
@@ -1189,10 +1215,7 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
               <p role="alert" style={{ marginTop: 12, marginBottom: 0, fontFamily: 'var(--font-body, sans-serif)', fontSize: 14, color: 'var(--ea-error, #C0392B)' }}>{error}</p>
             )}
             <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
-              {Button
-                ? <Button variant="dark" type="submit" disabled={sending}>{sending ? 'Subscribing…' : (t.texts.newsletterSubscribe || 'Subscribe')}</Button>
-                : <button type="submit" disabled={sending} style={{ ...FB.btn('primary'), background: 'var(--ea-teal-900, #004356)', opacity: sending ? 0.7 : 1 }}>{sending ? 'Subscribing…' : (t.texts.newsletterSubscribe || 'Subscribe')}</button>
-              }
+              <button type="submit" disabled={sending} style={{ ...bodyButtonStyle('dark'), opacity: sending ? 0.7 : 1, cursor: sending ? 'default' : 'pointer' }}>{sending ? 'Subscribing…' : (t.texts.newsletterSubscribe || 'Subscribe')}</button>
             </div>
           </form>
         )}
@@ -1208,6 +1231,18 @@ function ProgramsSection({ DS, isMobile, t }) {
   const viewAllLink = configuredViewAllLink && (configuredViewAllLink.section || configuredViewAllLink.url)
     ? configuredViewAllLink
     : { url: programsHref };
+  const viewAllHref = viewAllLink.section ? `#${viewAllLink.section}` : (viewAllLink.url || programsHref);
+  const viewAllIsExternal = /^https?:\/\//i.test(viewAllHref)
+    && typeof window !== 'undefined'
+    && !viewAllHref.includes(window.location.hostname);
+  const handleViewAllClick = (e) => {
+    if (!viewAllLink.section) return;
+    const target = typeof document !== 'undefined' && document.getElementById(viewAllLink.section);
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
   // Sports to include come from the Customizer (EA Options -> Active Programs sports).
   const selectedSports = (t.options && Array.isArray(t.options.sports) && t.options.sports.length)
     ? t.options.sports : ['bad'];
@@ -1242,16 +1277,35 @@ function ProgramsSection({ DS, isMobile, t }) {
         ? <SectionHeading level={ isMobile ? 'lg' : 'md' }>{t.texts.programsHeading || 'Our Active Programs'}</SectionHeading>
         : <h2 style={FB.h(32)}>{t.texts.programsHeading || 'Our Active Programs'}</h2>
       }
+      {t.options.programsShowDescription && t.texts.programsDesc && (
+        <p style={{
+          margin: isMobile ? '8px 0 0' : '8px 0 0',
+          maxWidth: 560,
+          fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+          fontSize: isMobile ? 15 : 16,
+          lineHeight: 1.35,
+          color: 'var(--ea-ink, #1E526E)',
+        }}>
+          {t.texts.programsDesc}
+        </p>
+      )}
       {/* Action buttons — each can be hidden via Customizer (EA Options). */}
       {!(t.options.hideNearMe && t.options.hideViewAll) && (
         <div style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Left of "View All Programs": sort the cards nearest-first. */}
-          {!t.options.hideNearMe && (Button
-            ? <Button variant="secondary" onClick={findNearMe} disabled={locating}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Programs Near Me')}</Button>
-            : <button onClick={findNearMe} disabled={locating} style={{ ...FB.btn('secondary'), opacity: locating ? 0.7 : 1 }}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Programs Near Me')}</button>
+          {!t.options.hideNearMe && (
+            <button onClick={findNearMe} disabled={locating} style={{ ...bodyButtonStyle('secondary', isMobile), opacity: locating ? 0.7 : 1, cursor: locating ? 'default' : 'pointer' }}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Programs Near Me')}</button>
           )}
           {!t.options.hideViewAll && (
-            <ActionButton DS={DS} link={viewAllLink} variant="primary">{t.texts.programsViewAll || 'View All Programs'}</ActionButton>
+            <a
+              href={viewAllHref}
+              onClick={handleViewAllClick}
+              target={viewAllIsExternal ? '_blank' : undefined}
+              rel={viewAllIsExternal ? 'noopener noreferrer' : undefined}
+              style={bodyButtonStyle('primary', isMobile)}
+            >
+              {t.texts.programsViewAll || 'View All Programs'}
+            </a>
           )}
         </div>
       )}
@@ -1458,10 +1512,20 @@ function NewsletterSection({ DS, isMobile, t }) {
                 onChange={(e) => setEmail(e.target.value)}
                 style={{ flex: 1, minWidth: 0, padding: '12px 16px', border: 'none', outline: 'none', fontFamily: 'var(--font-body, sans-serif)', fontSize: isMobile ? 14 : 16, background: 'transparent' }}
               />
-              {Button
-                ? <Button variant="primary" type="submit" disabled={sending} style={{ borderRadius: 0 }}>{sending ? 'Subscribing…' : (t.texts.newsletterSubscribe || 'Subscribe')}</Button>
-                : <button type="submit" disabled={sending} style={{ ...FB.btn('primary'), borderRadius: 0, opacity: sending ? 0.7 : 1 }}>{sending ? 'Subscribing…' : (t.texts.newsletterSubscribe || 'Subscribe')}</button>
-              }
+              <button
+                type="submit"
+                disabled={sending}
+                style={bodyButtonStyle('primary', isMobile, {
+                  alignSelf: 'stretch',
+                  minHeight: 'auto',
+                  minWidth: isMobile ? 120 : 180,
+                  borderRadius: 0,
+                  opacity: sending ? 0.7 : 1,
+                  cursor: sending ? 'default' : 'pointer',
+                })}
+              >
+                {sending ? 'Subscribing…' : (t.texts.newsletterSubscribe || 'Subscribe')}
+              </button>
             </div>
             {/* Honeypot — hidden from real users; bots that fill it are silently dropped. */}
             <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
