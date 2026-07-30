@@ -515,6 +515,8 @@ function ea_react_options() {
         'leagueHubFilterTime'     => (bool) get_theme_mod( 'ea_league_hub_filter_time', true ),
         'leagueHubFilterDays'     => (bool) get_theme_mod( 'ea_league_hub_filter_days', true ),
         'leagueHubFilterLocation' => (bool) get_theme_mod( 'ea_league_hub_filter_location', true ),
+        'leagueHubShowMapView'      => (bool) get_theme_mod( 'ea_league_hub_show_map_view', true ),
+        'leagueHubShowCalendarView' => (bool) get_theme_mod( 'ea_league_hub_show_calendar_view', true ),
         // Free Trial form session dropdown choices (one per line).
         'freeTrialSessions' => (string) get_theme_mod( 'ea_free_trial_sessions', EA_FREE_TRIAL_SESSIONS_DEFAULT ),
     );
@@ -755,6 +757,8 @@ function ea_customize_options( $wp_customize ) {
         'ea_league_hub_filter_time'     => array( 'default' => true, 'label' => __( 'League Hub — show time filter', 'ea-react-theme' ) ),
         'ea_league_hub_filter_days'     => array( 'default' => true, 'label' => __( 'League Hub — show days filter', 'ea-react-theme' ) ),
         'ea_league_hub_filter_location' => array( 'default' => true, 'label' => __( 'League Hub — show location filter', 'ea-react-theme' ) ),
+        'ea_league_hub_show_map_view'    => array( 'default' => true, 'label' => __( 'League Hub — show map view', 'ea-react-theme' ) ),
+        'ea_league_hub_show_calendar_view' => array( 'default' => true, 'label' => __( 'League Hub — show calendar view', 'ea-react-theme' ) ),
     );
     foreach ( $league_hub_toggles as $setting => $meta ) {
         $wp_customize->add_setting( $setting, array(

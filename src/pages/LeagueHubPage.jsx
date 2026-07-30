@@ -5,6 +5,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Layout, useDSComponents, useViewport, getThemeData, FB } from '../lib/shared.jsx';
+import { ViewToggle, LeagueHubMapView, LeagueHubCalendarView } from './LeagueHubMapCalendar.jsx';
 
 const SCROLL_OFFSET = 100;
 const PROGRAMS_DATA_URL = 'https://sleep-status.github.io/ea-programs-json/data/programs.json';
@@ -273,7 +274,7 @@ function typeLabel(p) {
   return 'Lessons';
 }
 
-function statusLabels(p) {
+export function statusLabels(p) {
   const labels = [
     isEnrollmentOpen(p) ? 'Enrollment Open' : 'Enrollment Closed',
     isStartingSoon(p) ? 'Starting Soon' : 'In Progress',
@@ -284,7 +285,7 @@ function statusLabels(p) {
   return labels;
 }
 
-function chipStyle(label) {
+export function chipStyle(label) {
   const key = norm(label);
   if (key.includes('open')) return { bg: '#CFF6D9', color: '#287545' };
   if (key.includes('closed') || key === 'full') return { bg: '#ECEFF1', color: '#66757B' };
@@ -340,7 +341,7 @@ function MailIcon() {
   );
 }
 
-function ProgramSubscribeButton({ city, sessionStart = '', programSummary = '', isMobile = false, onSubscribe }) {
+export function ProgramSubscribeButton({ city, sessionStart = '', programSummary = '', isMobile = false, onSubscribe }) {
   const [hover, setHover] = useState(false);
   return (
     <button
@@ -393,7 +394,7 @@ function programSummaryLine(p) {
     .join(' - ');
 }
 
-function ProgramCard({ program, isMobile, onSubscribe, t }) {
+export function ProgramCard({ program, isMobile, onSubscribe, stacked = false, t }) {
   const sport = siteSport(t);
   const city = String(program.City || '').trim() || `General ${sport}`;
   const sessionStart = firstSessionDate(program);
@@ -407,12 +408,33 @@ function ProgramCard({ program, isMobile, onSubscribe, t }) {
   const price = displayPrice(program);
   const meta = programMetaLine(program);
 
+  const priceStacked = price && (
+    <div style={{ textAlign: stacked ? 'left' : (isMobile ? 'left' : 'right'), color: 'var(--ea-teal-800, #0B5364)', lineHeight: 1 }}>
+      <div style={{ fontFamily: 'var(--font-body)', fontSize: isMobile ? 28 : 30, fontWeight: 'var(--fw-bold)' }}>{price}</div>
+      <div style={{ marginTop: 2, fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ea-slate, #47636B)' }}>incl. taxes</div>
+    </div>
+  );
+  const registerLink = (
+    <a href={registerHref} target={registerHref.startsWith('mailto:') ? undefined : '_blank'} rel={registerHref.startsWith('mailto:') ? undefined : 'noopener noreferrer'} style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      minWidth: isMobile ? 108 : 126,
+      padding: '12px 18px',
+      borderRadius: 7,
+      background: full || !enrollmentOpen ? '#F9F4FF' : '#0A98D6',
+      color: full || !enrollmentOpen ? '#6F677B' : '#fff',
+      textDecoration: 'none',
+      fontFamily: 'var(--font-body)', fontSize: 16, fontWeight: 'var(--fw-bold)',
+    }}>
+      {cta}
+    </a>
+  );
+
   return (
     <article style={{
       display: 'grid',
-      gridTemplateColumns: isMobile ? '1fr' : '1fr 138px',
-      gap: isMobile ? 14 : 20,
-      alignItems: 'center',
+      gridTemplateColumns: (isMobile || stacked) ? '1fr' : '1fr 138px',
+      gap: (isMobile || stacked) ? 14 : 20,
+      alignItems: stacked ? 'start' : 'center',
       padding: isMobile ? '18px 20px' : '18px 24px',
       border: '1px solid var(--border-card, #E5E5E5)',
       borderRadius: 8,
@@ -445,26 +467,17 @@ function ProgramCard({ program, isMobile, onSubscribe, t }) {
           <ProgramSubscribeButton city={city} sessionStart={sessionStart} programSummary={programSummary} isMobile={isMobile} onSubscribe={onSubscribe} />
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: isMobile ? 'space-between' : 'center', gap: 14 }}>
-        {price && (
-          <div style={{ textAlign: isMobile ? 'left' : 'right', color: 'var(--ea-teal-800, #0B5364)', lineHeight: 1 }}>
-            <div style={{ fontFamily: 'var(--font-body)', fontSize: isMobile ? 28 : 30, fontWeight: 'var(--fw-bold)' }}>{price}</div>
-            <div style={{ marginTop: 2, fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ea-slate, #47636B)' }}>incl. taxes</div>
-          </div>
-        )}
-        <a href={registerHref} target={registerHref.startsWith('mailto:') ? undefined : '_blank'} rel={registerHref.startsWith('mailto:') ? undefined : 'noopener noreferrer'} style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          minWidth: isMobile ? 108 : 126,
-          padding: '12px 18px',
-          borderRadius: 7,
-          background: full || !enrollmentOpen ? '#F9F4FF' : '#0A98D6',
-          color: full || !enrollmentOpen ? '#6F677B' : '#fff',
-          textDecoration: 'none',
-          fontFamily: 'var(--font-body)', fontSize: 16, fontWeight: 'var(--fw-bold)',
-        }}>
-          {cta}
-        </a>
-      </div>
+      {stacked ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+          {priceStacked}
+          {registerLink}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: isMobile ? 'space-between' : 'center', gap: 14 }}>
+          {priceStacked}
+          {registerLink}
+        </div>
+      )}
     </article>
   );
 }
@@ -718,6 +731,9 @@ export default function LeagueHubPage() {
   const [geoError, setGeoError] = useState('');
   const [subscribeLoc, setSubscribeLoc] = useState(null);
   const [filters, setFilters] = useState({ search: '', level: '', type: '', age: '', time: '', days: '', location: '' });
+  const [view, setView] = useState('list');
+  const showMapView = !(t.options && t.options.leagueHubShowMapView === false);
+  const showCalendarView = !(t.options && t.options.leagueHubShowCalendarView === false);
 
   const selectedSports = (t.options && Array.isArray(t.options.leagueHubSports) && t.options.leagueHubSports.length)
     ? t.options.leagueHubSports
@@ -797,16 +813,30 @@ export default function LeagueHubPage() {
 
           <LeagueHubFilters filters={filters} setFilters={setFilters} cities={cities} options={t.options} isMobile={isMobile} />
 
-          <div style={{ display: 'grid', gap: isMobile ? 10 : 12, marginTop: 12 }}>
-            {filteredPrograms.length ? filteredPrograms.map((program, index) => (
-              <ProgramCard key={`${program.Title || 'program'}-${program.City || 'city'}-${program['Start Date'] || index}`} program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
-            )) : (
-              <div style={{ ...FB.card, textAlign: 'center' }}>
-                <strong>No programs match those filters.</strong>
-                <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)' }}>Try clearing one filter or searching a nearby city.</p>
-              </div>
-            )}
-          </div>
+          {(showMapView || showCalendarView) && (
+            <ViewToggle view={view} setView={setView} isMobile={isMobile} showMap={showMapView} showCalendar={showCalendarView} />
+          )}
+
+          {view === 'list' && (
+            <div style={{ display: 'grid', gap: isMobile ? 10 : 12, marginTop: 12 }}>
+              {filteredPrograms.length ? filteredPrograms.map((program, index) => (
+                <ProgramCard key={`${program.Title || 'program'}-${program.City || 'city'}-${program['Start Date'] || index}`} program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
+              )) : (
+                <div style={{ ...FB.card, textAlign: 'center' }}>
+                  <strong>No programs match those filters.</strong>
+                  <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)' }}>Try clearing one filter or searching a nearby city.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {view === 'map' && showMapView && (
+            <LeagueHubMapView programs={filteredPrograms} statusLabels={statusLabels} chipStyle={chipStyle} SubscribeButton={ProgramSubscribeButton} onSubscribe={setSubscribeLoc} isMobile={isMobile} ProgramCard={ProgramCard} t={t} />
+          )}
+
+          {view === 'calendar' && showCalendarView && (
+            <LeagueHubCalendarView programs={filteredPrograms} statusLabels={statusLabels} chipStyle={chipStyle} SubscribeButton={ProgramSubscribeButton} onSubscribe={setSubscribeLoc} isMobile={isMobile} ProgramCard={ProgramCard} t={t} />
+          )}
         </section>
         {subscribeLoc !== null && <NewsletterModal DS={DS} t={t} location={subscribeLoc} onClose={() => setSubscribeLoc(null)} />}
       </main>
