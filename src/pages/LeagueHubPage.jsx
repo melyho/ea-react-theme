@@ -6,17 +6,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Layout, useDSComponents, useViewport, getThemeData, FB } from '../lib/shared.jsx';
 import { ViewToggle, LeagueHubMapView, LeagueHubCalendarView } from './LeagueHubMapCalendar.jsx';
+import { resolveVenueCoords } from '../data/venueCoords.js';
 
 const SCROLL_OFFSET = 100;
 const PROGRAMS_DATA_URL = 'https://sleep-status.github.io/ea-programs-json/data/programs.json';
-
-const CITY_COORDS = {
-  aurora: [44.0065, -79.4504],
-  newmarket: [44.0592, -79.4613],
-  'richmond hill': [43.8828, -79.4403],
-  georgina: [44.2496, -79.4665],
-  keswick: [44.2501, -79.4665],
-};
 
 const FALLBACK_PROGRAMS = [
   {
@@ -218,7 +211,14 @@ function normalizePrograms(rows, sports, userCoords) {
         const sportKey = rowSportKey(p);
         return p && sportKey && allow.has(sportKey) && isEAorTS(p) && p.City && !p.is_cancelled;
       })
-      .map((p) => ({ ...p, coords: CITY_COORDS[norm(p.City)] || null })),
+      .map((p) => {
+        // Real venue coordinates, so "nearest to you" sorts by the actual
+        // school/gym. The old city-only table missed most cities entirely -
+        // including "Newmarket/Aurora", which sorted every one of its programs
+        // last because it had no coordinate to measure.
+        const c = resolveVenueCoords(p);
+        return { ...p, coords: c ? [c.lat, c.lng] : null };
+      }),
     userCoords
   );
 }
@@ -355,18 +355,20 @@ export function ProgramSubscribeButton({ city, sessionStart = '', programSummary
       }}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
-        width: 'fit-content', padding: '5px 10px', borderRadius: 6,
+        // Capped at the card width so the expanded text can't spill out of the
+        // narrower map/calendar panels; the label ellipsizes instead.
+        width: 'fit-content', maxWidth: '100%', padding: '5px 10px', borderRadius: 6,
         fontFamily: 'var(--font-body)', fontSize: isMobile ? 13 : 14, fontWeight: 'var(--fw-medium)',
         textTransform: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
         background: '#F9F4FF', color: '#6F677B',
       }}
     >
-      <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1, flex: 'none' }}>
         <MailIcon />
       </span>
-      <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
-        Subscribe
-        <span style={{ display: 'inline-block', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: hover ? 420 : 0, opacity: hover ? 1 : 0, transition: 'max-width .3s ease, opacity .3s ease' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1.1, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}>
+        <span style={{ flex: 'none' }}>Subscribe</span>
+        <span style={{ display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, maxWidth: hover ? 420 : 0, opacity: hover ? 1 : 0, transition: 'max-width .3s ease, opacity .3s ease' }}>
           &nbsp;to {city}{isMobile ? '' : '’s Newsletter'}
         </span>
       </span>
