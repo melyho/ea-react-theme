@@ -179,6 +179,7 @@ function ea_react_image_fields() {
         'ea_img_featured_article_3' => array( 'key' => 'featuredArticle3', 'label' => 'Featured Articles — Article 3 image' ),
         'ea_img_featured_article_4' => array( 'key' => 'featuredArticle4', 'label' => 'Featured Articles — Article 4 image' ),
         'ea_img_league_hub_backdrop' => array( 'key' => 'leagueHubBackdrop', 'label' => 'League Hub — subtle background' ),
+        'ea_img_faq_question_squid' => array( 'key' => 'faqQuestionSquid', 'label' => 'FAQ — question mascot image' ),
     );
 }
 

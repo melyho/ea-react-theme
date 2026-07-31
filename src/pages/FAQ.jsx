@@ -206,7 +206,7 @@ export default function FAQPage() {
           }}
         >
           <img
-            src={t.images.faqQuestionSquid || t.asset('faq-question-squid.svg')}
+            src={t.images.faqQuestionSquid || t.asset('faq-pickleball-question-squid.svg')}
             alt=""
             style={{
               display: 'block',

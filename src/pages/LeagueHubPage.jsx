@@ -72,6 +72,31 @@ const FALLBACK_PROGRAMS = [
 ];
 
 const norm = (v) => String(v || '').trim().toLowerCase();
+const DEFAULT_FILTERS = { search: '', level: '', type: '', age: '', time: '', days: '', location: '' };
+
+function cityKey(p) {
+  return norm(p.City || p.city || p.Location || p.location);
+}
+
+function programCardKey(program, index) {
+  return [
+    program.id,
+    program.ID,
+    program.ProgramID,
+    program.ProgramId,
+    program.program_id,
+    program.slug,
+    program.RegisterLink,
+    program.Title,
+    program.City,
+    program.LocationName,
+    program.Day,
+    program.Time,
+    program['Start Date'],
+    program['End Date'],
+    index,
+  ].filter((part) => part !== undefined && part !== null && part !== '').join('|');
+}
 
 const SPORTS = {
   pb: { label: 'Pickleball', aliases: ['pb', 'pickleball', 'pickle'] },
@@ -637,11 +662,17 @@ function FilterIcon() {
   );
 }
 
-function SelectChip({ label, value, onChange, options }) {
+function SelectChip({ label, value, onChange, options, filterKey }) {
   return (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
       <span style={{ position: 'absolute', left: '-9999px' }}>{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} style={{
+      <select
+        value={value}
+        data-league-filter={filterKey}
+        autoComplete="off"
+        onInput={(e) => onChange(e.currentTarget.value)}
+        onChange={(e) => onChange(e.currentTarget.value)}
+        style={{
         appearance: 'none',
         border: 'none',
         borderRadius: 7,
@@ -706,6 +737,7 @@ function programMatchesAge(p, age) {
 
 function filterPrograms(programs, filters) {
   const q = norm(filters.search);
+  const selectedLocation = norm(filters.location);
   return programs.filter((p) => {
     if (q) {
       const haystack = norm([p.Title, p.City, p.LocationName, p.Day, p.Time].filter(Boolean).join(' '));
@@ -716,15 +748,30 @@ function filterPrograms(programs, filters) {
     if (!programMatchesAge(p, filters.age)) return false;
     if (filters.time && timeBucket(p) !== filters.time) return false;
     if (filters.days && dayBucket(p) !== filters.days) return false;
-    if (filters.location && norm(p.City) !== filters.location) return false;
+    if (selectedLocation && cityKey(p) !== selectedLocation) return false;
     return true;
   });
 }
 
-function LeagueHubFilters({ filters, setFilters, cities, options, isMobile }) {
+function LeagueHubFilters({ filters, setFilters, locationFilter, onLocationChange, onFilterChange, onClearFilters, cities, options, isMobile }) {
   const show = (key) => options[key] !== false;
-  const update = (key) => (value) => setFilters((current) => ({ ...current, [key]: value }));
-  const clear = () => setFilters({ search: '', level: '', type: '', age: '', time: '', days: '', location: '' });
+  const update = (key) => (value) => {
+    if (key === 'location') {
+      onLocationChange(value);
+      if (onFilterChange) onFilterChange(key, value);
+      return;
+    }
+
+    setFilters((current) => (
+      { ...current, [key]: value }
+    ));
+    if (onFilterChange) onFilterChange(key, value);
+  };
+  const clear = () => {
+    setFilters({ ...DEFAULT_FILTERS });
+    onLocationChange('');
+    if (onClearFilters) onClearFilters();
+  };
   const ageOptions = Array.from({ length: 14 }, (_, index) => {
     const age = index + 5;
     return { value: String(age), label: age === 18 ? '18+' : `${age}` };
@@ -762,12 +809,12 @@ function LeagueHubFilters({ filters, setFilters, cities, options, isMobile }) {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)', fontSize: 15 }}>
             <FilterIcon /> Filter By:
           </span>
-          {show('leagueHubFilterLevel') && <SelectChip label="Skill Level" value={filters.level} onChange={update('level')} options={[{ value: 'beginner', label: 'Beginner' }, { value: 'experienced beginner', label: 'Experienced Beginner' }, { value: 'intermediate', label: 'Intermediate' }, { value: 'advanced', label: 'Advanced' }]} />}
-          {show('leagueHubFilterType') && <SelectChip label="Program Type" value={filters.type} onChange={update('type')} options={[{ value: 'lessons', label: 'Lessons' }, { value: 'leagues', label: 'Leagues' }, { value: 'camps', label: 'Camps' }]} />}
-          {show('leagueHubFilterAge') && <SelectChip label="Age" value={filters.age} onChange={update('age')} options={ageOptions} />}
-          {show('leagueHubFilterTime') && <SelectChip label="Time" value={filters.time} onChange={update('time')} options={[{ value: 'morning', label: 'Mornings' }, { value: 'afternoon', label: 'Afternoons' }, { value: 'evening', label: 'Evenings' }]} />}
-          {show('leagueHubFilterDays') && <SelectChip label="Days" value={filters.days} onChange={update('days')} options={[{ value: 'weekdays', label: 'Weekdays' }, { value: 'weekends', label: 'Weekends' }]} />}
-          {show('leagueHubFilterLocation') && <SelectChip label="Location" value={filters.location} onChange={update('location')} options={cities.map((city) => ({ value: norm(city), label: city }))} />}
+          {show('leagueHubFilterLevel') && <SelectChip filterKey="level" label="Skill Level" value={filters.level} onChange={update('level')} options={[{ value: 'beginner', label: 'Beginner' }, { value: 'experienced beginner', label: 'Experienced Beginner' }, { value: 'intermediate', label: 'Intermediate' }, { value: 'advanced', label: 'Advanced' }]} />}
+          {show('leagueHubFilterType') && <SelectChip filterKey="type" label="Program Type" value={filters.type} onChange={update('type')} options={[{ value: 'lessons', label: 'Lessons' }, { value: 'leagues', label: 'Leagues' }, { value: 'camps', label: 'Camps' }]} />}
+          {show('leagueHubFilterAge') && <SelectChip filterKey="age" label="Age" value={filters.age} onChange={update('age')} options={ageOptions} />}
+          {show('leagueHubFilterTime') && <SelectChip filterKey="time" label="Time" value={filters.time} onChange={update('time')} options={[{ value: 'morning', label: 'Mornings' }, { value: 'afternoon', label: 'Afternoons' }, { value: 'evening', label: 'Evenings' }]} />}
+          {show('leagueHubFilterDays') && <SelectChip filterKey="days" label="Days" value={filters.days} onChange={update('days')} options={[{ value: 'weekdays', label: 'Weekdays' }, { value: 'weekends', label: 'Weekends' }]} />}
+          {show('leagueHubFilterLocation') && <SelectChip filterKey="location" label="Location" value={locationFilter} onChange={update('location')} options={cities.map((city) => ({ value: norm(city), label: city }))} />}
         </div>
         <button type="button" onClick={clear} style={{ flex: '0 0 auto', alignSelf: isMobile ? 'flex-end' : 'center', border: 'none', background: 'transparent', color: '#2E91C8', fontFamily: 'var(--font-body)', fontSize: 14, cursor: 'pointer', padding: isMobile ? '6px 0 0' : 0 }}>
           Clear Filters
@@ -786,7 +833,8 @@ export default function LeagueHubPage() {
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState('');
   const [subscribeLoc, setSubscribeLoc] = useState(null);
-  const [filters, setFilters] = useState({ search: '', level: '', type: '', age: '', time: '', days: '', location: '' });
+  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS });
+  const [locationFilter, setLocationFilter] = useState('');
   const [view, setView] = useState('list');
   const showMapView = !(t.options && t.options.leagueHubShowMapView === false);
   const showCalendarView = !(t.options && t.options.leagueHubShowCalendarView === false);
@@ -796,9 +844,104 @@ export default function LeagueHubPage() {
     : (t.options && Array.isArray(t.options.sports) && t.options.sports.length)
       ? t.options.sports
       : ['bad'];
+
+  useEffect(() => {
+    const optionKeyByFilter = {
+      search: 'leagueHubFilterSearch',
+      level: 'leagueHubFilterLevel',
+      type: 'leagueHubFilterType',
+      age: 'leagueHubFilterAge',
+      time: 'leagueHubFilterTime',
+      days: 'leagueHubFilterDays',
+      location: 'leagueHubFilterLocation',
+    };
+
+    setFilters((current) => {
+      let changed = false;
+      const next = { ...current };
+      Object.entries(optionKeyByFilter).forEach(([filterKey, optionKey]) => {
+        if (t.options && t.options[optionKey] === false && next[filterKey]) {
+          next[filterKey] = '';
+          changed = true;
+        }
+      });
+      return changed ? next : current;
+    });
+
+    if (t.options && t.options.leagueHubFilterLocation === false && locationFilter) {
+      setLocationFilter('');
+    }
+  }, [t.options]);
+
   const programs = useMemo(() => normalizePrograms(rows || FALLBACK_PROGRAMS, selectedSports, userCoords), [rows, selectedSports, userCoords]);
-  const filteredPrograms = useMemo(() => filterPrograms(programs, filters), [programs, filters]);
-  const cities = useMemo(() => [...new Set(programs.map((p) => String(p.City || '').trim()).filter(Boolean))].sort(), [programs]);
+  const filteredPrograms = useMemo(() => (
+    locationFilter
+      ? programs.filter((program) => cityKey(program) === locationFilter)
+      : filterPrograms(programs, filters)
+  ), [programs, filters, locationFilter]);
+  const listRenderKey = [
+    locationFilter || 'all-locations',
+    filters.search,
+    filters.level,
+    filters.type,
+    filters.age,
+    filters.time,
+    filters.days,
+    userCoords ? 'near-me' : 'default-sort',
+  ].join('|');
+  const cities = useMemo(() => {
+    const byKey = new Map();
+    programs.forEach((p) => {
+      const label = String(p.City || '').trim();
+      const key = cityKey(p);
+      if (label && key && !byKey.has(key)) byKey.set(key, label);
+    });
+    return [...byKey.values()].sort((a, b) => a.localeCompare(b));
+  }, [programs]);
+
+  const resetFiltersAndSort = () => {
+    setUserCoords(null);
+    setGeoError('');
+    setLocating(false);
+  };
+
+  const handleFilterChange = (_key, value) => {
+    setUserCoords(null);
+    setGeoError('');
+    setLocating(false);
+    if (!value) return;
+  };
+
+  const handleLocationChange = (value) => {
+    setLocationFilter(norm(value));
+    setFilters({ ...DEFAULT_FILTERS });
+    setUserCoords(null);
+    setGeoError('');
+    setLocating(false);
+  };
+
+  useEffect(() => {
+    const handleNativeFilterChange = (event) => {
+      const target = event.target;
+      if (!target || target.tagName !== 'SELECT' || !target.dataset.leagueFilter) return;
+
+      const key = target.dataset.leagueFilter;
+      const value = target.value;
+      if (key === 'location') {
+        handleLocationChange(value);
+      } else {
+        setFilters((current) => ({ ...current, [key]: value }));
+        handleFilterChange(key, value);
+      }
+    };
+
+    document.addEventListener('change', handleNativeFilterChange, true);
+    document.addEventListener('input', handleNativeFilterChange, true);
+    return () => {
+      document.removeEventListener('change', handleNativeFilterChange, true);
+      document.removeEventListener('input', handleNativeFilterChange, true);
+    };
+  }, []);
 
   const findNearMe = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -867,16 +1010,16 @@ export default function LeagueHubPage() {
             {geoError && <p role="alert" style={{ margin: '10px 0 0', color: 'var(--ea-error, #C0392B)', fontFamily: 'var(--font-body)', fontSize: 14 }}>{geoError}</p>}
           </div>
 
-          <LeagueHubFilters filters={filters} setFilters={setFilters} cities={cities} options={t.options} isMobile={isMobile} />
+          <LeagueHubFilters filters={filters} setFilters={setFilters} locationFilter={locationFilter} onLocationChange={handleLocationChange} onFilterChange={handleFilterChange} onClearFilters={resetFiltersAndSort} cities={cities} options={t.options} isMobile={isMobile} />
 
           {(showMapView || showCalendarView) && (
             <ViewToggle view={view} setView={setView} isMobile={isMobile} showMap={showMapView} showCalendar={showCalendarView} />
           )}
 
           {view === 'list' && (
-            <div style={{ display: 'grid', gap: isMobile ? 10 : 12, marginTop: 12 }}>
+            <div key={listRenderKey} style={{ display: 'grid', gap: isMobile ? 10 : 12, marginTop: 12 }}>
               {filteredPrograms.length ? filteredPrograms.map((program, index) => (
-                <ProgramCard key={`${program.Title || 'program'}-${program.City || 'city'}-${program['Start Date'] || index}`} program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
+                <ProgramCard key={programCardKey(program, index)} program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
               )) : (
                 <div style={{ ...FB.card, textAlign: 'center' }}>
                   <strong>No programs match those filters.</strong>
