@@ -140,6 +140,14 @@ function isEnrollmentOpen(p) {
   return !(value === 'false' || value === 'closed' || value === 'enrollment closed' || value === 'registration closed');
 }
 
+function hasRegisterLink(p) {
+  return Boolean(String(p.RegisterLink || '').trim());
+}
+
+function isPickleballComingSoonProgram(p) {
+  return rowSportKey(p) === 'pb' && !hasRegisterLink(p);
+}
+
 function isStartingSoon(p, today0 = todayStart()) {
   const start = getStartDate(p);
   return start ? start > today0 : false;
@@ -185,6 +193,10 @@ function sortPrograms(programs, userCoords) {
   const activePrograms = programs.filter((p) => isActiveProgram(p));
   const allInProgress = activePrograms.length > 0 && activePrograms.every((p) => isInProgress(p, today0));
   return [...activePrograms].sort((a, b) => {
+    const aComingSoon = isPickleballComingSoonProgram(a);
+    const bComingSoon = isPickleballComingSoonProgram(b);
+    if (aComingSoon !== bComingSoon) return aComingSoon ? 1 : -1;
+
     if (userCoords) {
       const da = a.coords ? haversineKm(userCoords, a.coords) : Infinity;
       const db = b.coords ? haversineKm(userCoords, b.coords) : Infinity;
@@ -261,7 +273,29 @@ function displayPrice(p) {
   return `$${String(raw).replace(/^\$/, '')}`;
 }
 
+function numericLevel(p) {
+  const raw = p.level ?? p.Level ?? p.LEVEL;
+  if (raw === undefined || raw === null || raw === '') return null;
+  const match = String(raw).match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+function pickleballLevelLabel(p) {
+  const level = numericLevel(p);
+  if (level === null) return null;
+  if (level <= 1) return 'Beginner';
+  if (level === 2) return 'Experienced Beginner';
+  if (level === 3) return 'Intermediate';
+  if (level >= 4) return 'Advanced';
+  return null;
+}
+
 function levelLabel(p) {
+  if (rowSportKey(p) === 'pb') {
+    const levelFromJson = pickleballLevelLabel(p);
+    if (levelFromJson) return levelFromJson;
+  }
+
   const text = `${p.Title || ''} ${p.level || ''}`.toLowerCase();
   if (text.includes('advanced') || text.includes('level 2') || text.match(/\b2\b/)) return 'Advanced';
   return 'Beginner';
@@ -275,6 +309,15 @@ function typeLabel(p) {
 }
 
 export function statusLabels(p) {
+  if (isPickleballComingSoonProgram(p)) {
+    const labels = ['Coming Soon'];
+    const level = levelLabel(p);
+    const type = typeLabel(p);
+    if (level) labels.push(level);
+    if (type) labels.push(type);
+    return labels;
+  }
+
   const labels = [
     isEnrollmentOpen(p) ? 'Enrollment Open' : 'Enrollment Closed',
     isStartingSoon(p) ? 'Starting Soon' : 'In Progress',
@@ -289,10 +332,15 @@ export function chipStyle(label) {
   const key = norm(label);
   if (key.includes('open')) return { bg: '#CFF6D9', color: '#287545' };
   if (key.includes('closed') || key === 'full') return { bg: '#ECEFF1', color: '#66757B' };
+  if (key.includes('coming soon')) return { bg: '#FFF1E7', color: '#A85B1F', border: '1px solid #FFD7BF' };
   if (key.includes('starting')) return { bg: '#FFE9AF', color: '#8A640F' };
   if (key.includes('progress')) return { bg: '#D7F1FF', color: '#206A87' };
+  if (key.includes('experienced beginner')) return { bg: '#A0E4F2', color: '#0B5364' };
+  if (key.includes('beginner')) return { bg: '#BDEEFF', color: '#0B5B73' };
+  if (key.includes('intermediate')) return { bg: '#73D3E8', color: '#0B4F63' };
   if (key.includes('advanced')) return { bg: '#0B5B73', color: '#FFFFFF' };
   if (key.includes('camp')) return { bg: '#FFBB91', color: '#0077A3' };
+  if (key.includes('league')) return { bg: '#F1ECFF', color: '#55438F', border: '1px solid #D8CCFF' };
   if (key.includes('lesson')) return { bg: '#FFFFFF', color: '#0B5B73', border: '1px solid #0B5B73' };
   return { bg: '#BDEEFF', color: '#0B5B73' };
 }
@@ -403,10 +451,11 @@ export function ProgramCard({ program, isMobile, onSubscribe, stacked = false, t
   const programSummary = programSummaryLine(program);
   const full = isFullProgram(program);
   const enrollmentOpen = isEnrollmentOpen(program);
-  const registerHref = enrollmentOpen
+  const comingSoon = isPickleballComingSoonProgram(program);
+  const registerHref = enrollmentOpen && !comingSoon
     ? (program.RegisterLink || program.URL || `${t.siteUrl || ''}/signup/`)
     : `mailto:info@elevationathletics.ca?subject=${encodeURIComponent(`${sport} program enrollment`)}`;
-  const cta = !enrollmentOpen ? 'Email Us' : full ? 'Join Waitlist' : 'Register';
+  const cta = comingSoon ? 'Coming Soon' : !enrollmentOpen ? 'Email Us' : full ? 'Join Waitlist' : 'Register';
   const price = displayPrice(program);
   const meta = programMetaLine(program);
 
@@ -416,17 +465,22 @@ export function ProgramCard({ program, isMobile, onSubscribe, stacked = false, t
       <div style={{ marginTop: 2, fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ea-slate, #47636B)' }}>incl. taxes</div>
     </div>
   );
-  const registerLink = (
-    <a href={registerHref} target={registerHref.startsWith('mailto:') ? undefined : '_blank'} rel={registerHref.startsWith('mailto:') ? undefined : 'noopener noreferrer'} style={{
+  const registerStyle = {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       minWidth: isMobile ? 108 : 126,
       padding: '12px 18px',
       borderRadius: 7,
-      background: full || !enrollmentOpen ? '#F9F4FF' : '#0A98D6',
-      color: full || !enrollmentOpen ? '#6F677B' : '#fff',
+      background: comingSoon || full || !enrollmentOpen ? '#F9F4FF' : '#0A98D6',
+      color: comingSoon || full || !enrollmentOpen ? '#6F677B' : '#fff',
       textDecoration: 'none',
       fontFamily: 'var(--font-body)', fontSize: 16, fontWeight: 'var(--fw-bold)',
-    }}>
+  };
+  const registerLink = comingSoon ? (
+    <span aria-disabled="true" style={{ ...registerStyle, cursor: 'not-allowed' }}>
+      {cta}
+    </span>
+  ) : (
+    <a href={registerHref} target={registerHref.startsWith('mailto:') ? undefined : '_blank'} rel={registerHref.startsWith('mailto:') ? undefined : 'noopener noreferrer'} style={registerStyle}>
       {cta}
     </a>
   );
@@ -708,7 +762,7 @@ function LeagueHubFilters({ filters, setFilters, cities, options, isMobile }) {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)', fontSize: 15 }}>
             <FilterIcon /> Filter By:
           </span>
-          {show('leagueHubFilterLevel') && <SelectChip label="Skill Level" value={filters.level} onChange={update('level')} options={[{ value: 'beginner', label: 'Beginner' }, { value: 'advanced', label: 'Advanced' }]} />}
+          {show('leagueHubFilterLevel') && <SelectChip label="Skill Level" value={filters.level} onChange={update('level')} options={[{ value: 'beginner', label: 'Beginner' }, { value: 'experienced beginner', label: 'Experienced Beginner' }, { value: 'intermediate', label: 'Intermediate' }, { value: 'advanced', label: 'Advanced' }]} />}
           {show('leagueHubFilterType') && <SelectChip label="Program Type" value={filters.type} onChange={update('type')} options={[{ value: 'lessons', label: 'Lessons' }, { value: 'leagues', label: 'Leagues' }, { value: 'camps', label: 'Camps' }]} />}
           {show('leagueHubFilterAge') && <SelectChip label="Age" value={filters.age} onChange={update('age')} options={ageOptions} />}
           {show('leagueHubFilterTime') && <SelectChip label="Time" value={filters.time} onChange={update('time')} options={[{ value: 'morning', label: 'Mornings' }, { value: 'afternoon', label: 'Afternoons' }, { value: 'evening', label: 'Evenings' }]} />}

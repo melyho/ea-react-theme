@@ -174,6 +174,10 @@ function ea_react_image_fields() {
         'ea_img_community_top' => array( 'key' => 'communityTop', 'label' => 'Community top image' ),
         'ea_img_community_left' => array( 'key' => 'communityLeft', 'label' => 'Community left image' ),
         'ea_img_community_right' => array( 'key' => 'communityRight', 'label' => 'Community right image' ),
+        'ea_img_featured_article_1' => array( 'key' => 'featuredArticle1', 'label' => 'Featured Articles — Article 1 image' ),
+        'ea_img_featured_article_2' => array( 'key' => 'featuredArticle2', 'label' => 'Featured Articles — Article 2 image' ),
+        'ea_img_featured_article_3' => array( 'key' => 'featuredArticle3', 'label' => 'Featured Articles — Article 3 image' ),
+        'ea_img_featured_article_4' => array( 'key' => 'featuredArticle4', 'label' => 'Featured Articles — Article 4 image' ),
         'ea_img_league_hub_backdrop' => array( 'key' => 'leagueHubBackdrop', 'label' => 'League Hub — subtle background' ),
     );
 }
@@ -402,6 +406,44 @@ function ea_react_text_fields() {
             'default' => 'Apply Today',
         ),
 
+        // ── Featured Articles ────────────────────────────────────────────────
+        'ea_txt_featured_articles_heading' => array(
+            'key' => 'featuredArticlesHeading', 'label' => 'Featured Articles — Heading', 'type' => 'text',
+            'default' => 'Featured Articles',
+        ),
+        'ea_txt_featured_article_1_title' => array(
+            'key' => 'featuredArticle1Title', 'label' => 'Featured Articles — Article 1 title', 'type' => 'text',
+            'default' => 'Recreational Pickleball back in Squamish & Whistler',
+        ),
+        'ea_txt_featured_article_1_subtext' => array(
+            'key' => 'featuredArticle1Subtext', 'label' => 'Featured Articles — Article 1 subtext', 'type' => 'text',
+            'default' => 'August 7th, 2025',
+        ),
+        'ea_txt_featured_article_2_title' => array(
+            'key' => 'featuredArticle2Title', 'label' => 'Featured Articles — Article 2 title', 'type' => 'text',
+            'default' => 'Elevation Athletics brings recreational pickleball to Weyburn',
+        ),
+        'ea_txt_featured_article_2_subtext' => array(
+            'key' => 'featuredArticle2Subtext', 'label' => 'Featured Articles — Article 2 subtext', 'type' => 'text',
+            'default' => 'October 20th, 2024',
+        ),
+        'ea_txt_featured_article_3_title' => array(
+            'key' => 'featuredArticle3Title', 'label' => 'Featured Articles — Article 3 title', 'type' => 'text',
+            'default' => 'New Cambridge pickleball league hopes to be a smashing success',
+        ),
+        'ea_txt_featured_article_3_subtext' => array(
+            'key' => 'featuredArticle3Subtext', 'label' => 'Featured Articles — Article 3 subtext', 'type' => 'text',
+            'default' => 'Cambridge Times, 2024',
+        ),
+        'ea_txt_featured_article_4_title' => array(
+            'key' => 'featuredArticle4Title', 'label' => 'Featured Articles — Article 4 title', 'type' => 'text',
+            'default' => 'Sports nonprofit brings a new pickleball league to Coquitlam',
+        ),
+        'ea_txt_featured_article_4_subtext' => array(
+            'key' => 'featuredArticle4Subtext', 'label' => 'Featured Articles — Article 4 subtext', 'type' => 'text',
+            'default' => 'Tri-Cities Dispatch, 2025',
+        ),
+
         // ── Newsletter ────────────────────────────────────────────────────────
         'ea_txt_newsletter_heading' => array(
             'key' => 'newsletterHeading', 'label' => 'Newsletter — Heading', 'type' => 'text',
@@ -596,6 +638,10 @@ function ea_button_link_fields() {
         'ea_link_coaching'       => array( 'key' => 'coachingCta',    'label' => 'Coaching — button',                'hideable' => true ),
         'ea_link_partnerships'   => array( 'key' => 'partnershipsCta', 'label' => 'Community — Partnerships button',  'hideable' => true ),
         'ea_link_leaders'        => array( 'key' => 'leadersCta',     'label' => 'Community — Leaders button',        'hideable' => true ),
+        'ea_link_featured_article_1' => array( 'key' => 'featuredArticle1', 'label' => 'Featured Articles — Article 1' ),
+        'ea_link_featured_article_2' => array( 'key' => 'featuredArticle2', 'label' => 'Featured Articles — Article 2' ),
+        'ea_link_featured_article_3' => array( 'key' => 'featuredArticle3', 'label' => 'Featured Articles — Article 3' ),
+        'ea_link_featured_article_4' => array( 'key' => 'featuredArticle4', 'label' => 'Featured Articles — Article 4' ),
     );
 }
 
@@ -608,6 +654,7 @@ function ea_section_choices() {
         'active-programs' => 'Active Programs',
         'coaching'        => 'Coaching',
         'community'       => 'Community',
+        'featured-articles' => 'Featured Articles',
         'newsletter'      => 'Newsletter',
     );
 }

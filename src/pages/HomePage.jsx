@@ -3,7 +3,7 @@
  * Rendered when the mount div has data-page="home" (front-page.php / index.php).
  */
 import { useState, useEffect, useRef } from 'react';
-import { Layout, useDSComponents, useViewport, getThemeData, FB, MediaSlot, ActionButton } from '../lib/shared.jsx';
+import { Layout, useDSComponents, useViewport, getThemeData, FB, MediaSlot, ActionButton, sectionLinkAttrs } from '../lib/shared.jsx';
 
 // Scroll offset so a smooth-scrolled section isn't hidden under the sticky nav.
 const SCROLL_OFFSET = 100;
@@ -832,6 +832,14 @@ function isEnrollmentOpen(p) {
   return true;
 }
 
+function hasRegisterLink(p) {
+  return Boolean(String(p.RegisterLink || '').trim());
+}
+
+function isPickleballComingSoonProgram(p) {
+  return rowSportKey(p) === 'pb' && !hasRegisterLink(p);
+}
+
 function isStartingSoon(p, today0 = todayStart()) {
   const start = getStartDate(p);
   return start ? start > today0 : false;
@@ -867,6 +875,10 @@ function sortPrograms(programs, userCoords) {
   const activePrograms = programs.filter((p) => isActiveProgram(p));
   const allInProgress = activePrograms.length > 0 && activePrograms.every((p) => isInProgress(p, today0));
   return [...activePrograms].sort((a, b) => {
+    const aComingSoon = isPickleballComingSoonProgram(a);
+    const bComingSoon = isPickleballComingSoonProgram(b);
+    if (aComingSoon !== bComingSoon) return aComingSoon ? 1 : -1;
+
     if (userCoords) {
       const da = a.coords ? haversineKm(userCoords, a.coords) : Infinity;
       const db = b.coords ? haversineKm(userCoords, b.coords) : Infinity;
@@ -914,7 +926,7 @@ function useProgramsFeed() {
   return rows;
 }
 
-const PROGRAMS_LIMIT = 3;
+const PROGRAMS_LIMIT = 6;
 
 function formatProgramDate(dateStr, opts = {}) {
   const d = parseLocalDate(dateStr);
@@ -944,7 +956,29 @@ function displayPrice(p) {
   return `$${String(raw).replace(/^\$/, '')}`;
 }
 
+function numericLevel(p) {
+  const raw = p.level ?? p.Level ?? p.LEVEL;
+  if (raw === undefined || raw === null || raw === '') return null;
+  const match = String(raw).match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+function pickleballLevelLabel(p) {
+  const level = numericLevel(p);
+  if (level === null) return null;
+  if (level <= 1) return 'Beginner';
+  if (level === 2) return 'Experienced Beginner';
+  if (level === 3) return 'Intermediate';
+  if (level >= 4) return 'Advanced';
+  return null;
+}
+
 function inferLevelLabel(p) {
+  if (rowSportKey(p) === 'pb') {
+    const levelFromJson = pickleballLevelLabel(p);
+    if (levelFromJson) return levelFromJson;
+  }
+
   const text = `${p.Title || ''} ${p.level || ''}`.toLowerCase();
   if (text.includes('advanced') || text.includes('level 3') || text.match(/\b3\b/)) return 'Advanced';
   if (text.includes('intermediate') || text.includes('level 2') || text.match(/\b2\b/)) return 'Intermediate';
@@ -960,6 +994,15 @@ function inferProgramTypeLabel(p) {
 }
 
 function statusLabels(p) {
+  if (isPickleballComingSoonProgram(p)) {
+    const labels = ['Coming Soon'];
+    const level = inferLevelLabel(p);
+    const type = inferProgramTypeLabel(p);
+    if (level) labels.push(level);
+    if (type) labels.push(type);
+    return labels;
+  }
+
   const labels = [];
   labels.push(isEnrollmentOpen(p) ? 'Enrollment Open' : 'Enrollment Closed');
   labels.push(isStartingSoon(p) ? 'Starting Soon' : 'In Progress');
@@ -975,10 +1018,15 @@ function chipStyle(label) {
   const key = norm(label);
   if (key.includes('open')) return { bg: '#CFF6D9', color: '#287545' };
   if (key.includes('closed') || key === 'full') return { bg: '#ECEFF1', color: '#66757B' };
+  if (key.includes('coming soon')) return { bg: '#FFF1E7', color: '#A85B1F', border: '1px solid #FFD7BF' };
   if (key.includes('starting')) return { bg: '#FFE9AF', color: '#8A640F' };
   if (key.includes('progress')) return { bg: '#D7F1FF', color: '#206A87' };
+  if (key.includes('experienced beginner')) return { bg: '#A0E4F2', color: '#0B5364' };
+  if (key.includes('beginner')) return { bg: '#BDEEFF', color: '#0B5B73' };
+  if (key.includes('intermediate')) return { bg: '#73D3E8', color: '#0B4F63' };
   if (key.includes('advanced')) return { bg: '#0B5B73', color: '#FFFFFF' };
   if (key.includes('camp')) return { bg: '#FFBB91', color: '#0077A3' };
+  if (key.includes('league')) return { bg: '#F1ECFF', color: '#55438F', border: '1px solid #D8CCFF' };
   if (key.includes('lesson')) return { bg: '#FFFFFF', color: '#0B5B73', border: '1px solid #0B5B73' };
   return { bg: '#BDEEFF', color: '#0B5B73' };
 }
@@ -1033,10 +1081,11 @@ function ActiveProgramCard({ program, isMobile = false, onSubscribe, t }) {
   const programSummary = programSummaryLine(program);
   const full = isFullProgram(program);
   const enrollmentOpen = isEnrollmentOpen(program);
-  const registerHref = enrollmentOpen
+  const comingSoon = isPickleballComingSoonProgram(program);
+  const registerHref = enrollmentOpen && !comingSoon
     ? (program.RegisterLink || program.URL || `${t.siteUrl || ''}/signup/`)
     : `mailto:info@elevationathletics.ca?subject=${encodeURIComponent(`${sport} program enrollment`)}`;
-  const cta = !enrollmentOpen ? 'Email Us' : full ? 'Join Waitlist' : 'Register';
+  const cta = comingSoon ? 'Coming Soon' : !enrollmentOpen ? 'Email Us' : full ? 'Join Waitlist' : 'Register';
   const meta = programMetaLine(program);
   const price = displayPrice(program);
   return (
@@ -1102,11 +1151,29 @@ function ActiveProgramCard({ program, isMobile = false, onSubscribe, t }) {
             <div style={{ marginTop: 2, fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ea-slate, #47636B)' }}>incl. taxes</div>
           </div>
         )}
-        <a
-          href={registerHref}
-          target={registerHref.startsWith('mailto:') ? undefined : '_blank'}
-          rel={registerHref.startsWith('mailto:') ? undefined : 'noopener noreferrer'}
-          style={{
+        {comingSoon ? (
+          <span
+            aria-disabled="true"
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              minWidth: isMobile ? 108 : 144,
+              padding: '12px 18px',
+              borderRadius: 7,
+              background: '#F9F4FF',
+              color: '#6F677B',
+              textDecoration: 'none',
+              fontFamily: 'var(--font-body)', fontSize: 16, fontWeight: 'var(--fw-bold)',
+              cursor: 'not-allowed',
+            }}
+          >
+            {cta}
+          </span>
+        ) : (
+          <a
+            href={registerHref}
+            target={registerHref.startsWith('mailto:') ? undefined : '_blank'}
+            rel={registerHref.startsWith('mailto:') ? undefined : 'noopener noreferrer'}
+            style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             minWidth: isMobile ? 108 : 144,
             padding: '12px 18px',
@@ -1115,10 +1182,11 @@ function ActiveProgramCard({ program, isMobile = false, onSubscribe, t }) {
             color: full || !enrollmentOpen ? '#6F677B' : '#fff',
             textDecoration: 'none',
             fontFamily: 'var(--font-body)', fontSize: 16, fontWeight: 'var(--fw-bold)',
-          }}
-        >
-          {cta}
-        </a>
+            }}
+          >
+            {cta}
+          </a>
+        )}
       </div>
     </article>
   );
@@ -1268,7 +1336,8 @@ function ProgramsSection({ DS, isMobile, t }) {
   // Live feed when available, otherwise bundled fallback programs.
   const rows = useProgramsFeed();
   const feed = rows ? buildProgramList(rows, selectedSports, userCoords) : null;
-  const cards = ((feed && feed.length ? feed : buildProgramList(PROGRAM_FALLBACKS, selectedSports, userCoords)) || []).slice(0, PROGRAMS_LIMIT);
+  const homepageFeed = feed ? feed.filter((program) => !isPickleballComingSoonProgram(program)) : null;
+  const cards = ((homepageFeed && homepageFeed.length ? homepageFeed : buildProgramList(PROGRAM_FALLBACKS, selectedSports, userCoords)) || []).slice(0, PROGRAMS_LIMIT);
   // Which location's newsletter popup is open (null = closed).
   const [subscribeLoc, setSubscribeLoc] = useState(null);
   return (
@@ -1437,6 +1506,107 @@ function CommunitySection({ DS, isMobile, t }) {
   );
 }
 
+function FeaturedArticlesSection({ DS, isMobile, t }) {
+  const { SectionHeading } = DS;
+  const articles = [
+    {
+      image: t.images.featuredArticle1,
+      title: t.texts.featuredArticle1Title || 'Recreational Pickleball back in Squamish & Whistler',
+      subtext: t.texts.featuredArticle1Subtext || 'August 7th, 2025',
+      link: t.links.featuredArticle1,
+      color: 'var(--ea-sky-soft, #D0F5FF)',
+    },
+    {
+      image: t.images.featuredArticle2,
+      title: t.texts.featuredArticle2Title || 'Elevation Athletics brings recreational pickleball to Weyburn',
+      subtext: t.texts.featuredArticle2Subtext || 'October 20th, 2024',
+      link: t.links.featuredArticle2,
+      color: 'var(--ea-sky, #46AFE3)',
+    },
+    {
+      image: t.images.featuredArticle3,
+      title: t.texts.featuredArticle3Title || 'New Cambridge pickleball league hopes to be a smashing success',
+      subtext: t.texts.featuredArticle3Subtext || 'Cambridge Times, 2024',
+      link: t.links.featuredArticle3,
+      color: 'var(--ea-peach, #FFBB91)',
+    },
+    {
+      image: t.images.featuredArticle4,
+      title: t.texts.featuredArticle4Title || 'Sports nonprofit brings a new pickleball league to Coquitlam',
+      subtext: t.texts.featuredArticle4Subtext || 'Tri-Cities Dispatch, 2025',
+      link: t.links.featuredArticle4,
+      color: 'var(--ea-sky-soft, #D0F5FF)',
+    },
+  ];
+
+  return (
+    <section id="featured-articles" style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile), scrollMarginTop: SCROLL_OFFSET }}>
+      {SectionHeading
+        ? <SectionHeading level={isMobile ? 'md' : 'sm'}>{t.texts.featuredArticlesHeading || 'Featured Articles'}</SectionHeading>
+        : <h2 style={FB.h(isMobile ? 30 : 36)}>{t.texts.featuredArticlesHeading || 'Featured Articles'}</h2>
+      }
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))',
+        gap: isMobile ? 14 : 20,
+        marginTop: isMobile ? 18 : 24,
+      }}>
+        {articles.map((article, index) => {
+          const attrs = sectionLinkAttrs(article.link) || {};
+          const clickable = Boolean(attrs.href);
+          const CardTag = clickable ? 'a' : 'article';
+          return (
+            <CardTag
+              key={article.title}
+              {...attrs}
+              style={{
+                display: 'block',
+                minWidth: 0,
+                color: 'inherit',
+                textDecoration: 'none',
+              }}
+            >
+              <MediaSlot
+                url={article.image}
+                color={article.color}
+                ratio="4 / 3"
+                alt={article.title}
+                style={{
+                  borderRadius: 0,
+                  aspectRatio: 'auto',
+                  height: isMobile ? 112 : 170,
+                  objectPosition: index === 0 ? 'center' : 'top',
+                }}
+              />
+              <h3 style={{
+                margin: isMobile ? '8px 0 0' : '10px 0 0',
+                fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+                fontSize: isMobile ? 12 : 16,
+                lineHeight: 1.2,
+                fontWeight: 'var(--fw-bold, 700)',
+                color: 'var(--ea-navy, #10414F)',
+              }}>
+                {article.title}
+              </h3>
+              {article.subtext && (
+                <p style={{
+                  margin: isMobile ? '5px 0 0' : '6px 0 0',
+                  fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+                  fontSize: isMobile ? 11 : 13,
+                  lineHeight: 1.25,
+                  color: 'var(--ea-ink, #1E526E)',
+                }}>
+                  {article.subtext}
+                </p>
+              )}
+            </CardTag>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function NewsletterSection({ DS, isMobile, t }) {
   const { SectionHeading, Button } = DS;
   const [email, setEmail] = useState('');
@@ -1563,6 +1733,7 @@ export default function HomePage() {
       <ProgramsSection  DS={DS} isMobile={isMobile} t={t} />
       <SpotlightSection DS={DS} isMobile={isMobile} isTablet={isTablet} t={t} />
       <CommunitySection DS={DS} isMobile={isMobile} t={t} />
+      <FeaturedArticlesSection DS={DS} isMobile={isMobile} t={t} />
       <NewsletterSection DS={DS} isMobile={isMobile} t={t} />
     </Layout>
   );
