@@ -10,6 +10,7 @@ import { resolveVenueCoords } from '../data/venueCoords.js';
 
 const SCROLL_OFFSET = 100;
 const PROGRAMS_DATA_URL = 'https://sleep-status.github.io/ea-programs-json/data/programs.json';
+const LIST_BATCH_SIZE = 12;
 
 const FALLBACK_PROGRAMS = [
   {
@@ -836,8 +837,10 @@ export default function LeagueHubPage() {
   const [filters, setFilters] = useState({ ...DEFAULT_FILTERS });
   const [locationFilter, setLocationFilter] = useState('');
   const [view, setView] = useState('list');
+  const [visibleCount, setVisibleCount] = useState(LIST_BATCH_SIZE);
   const showMapView = !(t.options && t.options.leagueHubShowMapView === false);
   const showCalendarView = !(t.options && t.options.leagueHubShowCalendarView === false);
+  const showComingSoon = t.options && t.options.leagueHubShowComingSoon === true;
 
   const selectedSports = (t.options && Array.isArray(t.options.leagueHubSports) && t.options.leagueHubSports.length)
     ? t.options.leagueHubSports
@@ -873,12 +876,20 @@ export default function LeagueHubPage() {
     }
   }, [t.options]);
 
-  const programs = useMemo(() => normalizePrograms(rows || FALLBACK_PROGRAMS, selectedSports, userCoords), [rows, selectedSports, userCoords]);
+  const programs = useMemo(() => {
+    const normalized = normalizePrograms(rows || FALLBACK_PROGRAMS, selectedSports, userCoords);
+    return showComingSoon ? normalized : normalized.filter((program) => !isPickleballComingSoonProgram(program));
+  }, [rows, selectedSports, userCoords, showComingSoon]);
   const filteredPrograms = useMemo(() => (
     locationFilter
       ? programs.filter((program) => cityKey(program) === locationFilter)
       : filterPrograms(programs, filters)
   ), [programs, filters, locationFilter]);
+  const visibleListPrograms = useMemo(
+    () => filteredPrograms.slice(0, visibleCount),
+    [filteredPrograms, visibleCount]
+  );
+  const hasMoreListPrograms = view === 'list' && visibleCount < filteredPrograms.length;
   const listRenderKey = [
     locationFilter || 'all-locations',
     filters.search,
@@ -888,6 +899,7 @@ export default function LeagueHubPage() {
     filters.time,
     filters.days,
     userCoords ? 'near-me' : 'default-sort',
+    showComingSoon ? 'with-coming-soon' : 'without-coming-soon',
   ].join('|');
   const cities = useMemo(() => {
     const byKey = new Map();
@@ -919,6 +931,10 @@ export default function LeagueHubPage() {
     setGeoError('');
     setLocating(false);
   };
+
+  useEffect(() => {
+    setVisibleCount(LIST_BATCH_SIZE);
+  }, [listRenderKey, view]);
 
   useEffect(() => {
     const handleNativeFilterChange = (event) => {
@@ -1018,12 +1034,37 @@ export default function LeagueHubPage() {
 
           {view === 'list' && (
             <div key={listRenderKey} style={{ display: 'grid', gap: isMobile ? 10 : 12, marginTop: 12 }}>
-              {filteredPrograms.length ? filteredPrograms.map((program, index) => (
+              {filteredPrograms.length ? visibleListPrograms.map((program, index) => (
                 <ProgramCard key={programCardKey(program, index)} program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
               )) : (
                 <div style={{ ...FB.card, textAlign: 'center' }}>
                   <strong>No programs match those filters.</strong>
                   <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)' }}>Try clearing one filter or searching a nearby city.</p>
+                </div>
+              )}
+              {hasMoreListPrograms && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: isMobile ? 8 : 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount((count) => count + LIST_BATCH_SIZE)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minHeight: 46,
+                      padding: '12px 24px',
+                      borderRadius: 8,
+                      border: '1px solid var(--ea-navy, #10414F)',
+                      background: '#fff',
+                      color: 'var(--ea-navy, #10414F)',
+                      fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+                      fontSize: 16,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Load More Programs
+                  </button>
                 </div>
               )}
             </div>
