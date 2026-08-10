@@ -79,7 +79,10 @@ function cityKey(p) {
   return norm(p.City || p.city || p.Location || p.location);
 }
 
-function programCardKey(program, index) {
+// Identity fields only - deliberately NO list index. The feed rows carry no id,
+// so this composite stands in for one. normalizePrograms turns it into the
+// final `_key` and disambiguates any duplicates.
+function programIdentity(program) {
   return [
     program.id,
     program.ID,
@@ -95,8 +98,33 @@ function programCardKey(program, index) {
     program.Time,
     program['Start Date'],
     program['End Date'],
-    index,
   ].filter((part) => part !== undefined && part !== null && part !== '').join('|');
+}
+
+// Free-text search only: strips punctuation and collapses whitespace so
+// "st catharines" matches data stored as "St. Catharines". norm() alone is a
+// literal substring check where the period is a real character, so
+// "st catharines" (no period) is not a substring of "st. catharines" and the
+// search silently returns nothing. Kept separate from norm() since that's
+// also used for exact-match dropdown comparisons (level/type/location) where
+// changing punctuation handling is out of scope for this fix.
+const normSearch = (v) => norm(v).replace(/[.,]/g, '').replace(/\s+/g, ' ').trim();
+
+// City search synonyms: some venues sit in a smaller community that most
+// people know by a different, more common name (Fonthill is part of the
+// town of Welland). Listed both ways so searching either term surfaces
+// programs tagged with the other. Add future pairs here rather than
+// creating one-off matching logic per city.
+const CITY_SEARCH_SYNONYMS = [
+  ['fonthill', 'welland'],
+];
+function citySearchSynonyms(city) {
+  const c = normSearch(city);
+  const out = [];
+  for (const pair of CITY_SEARCH_SYNONYMS) {
+    if (pair.includes(c)) out.push(...pair.filter((name) => name !== c));
+  }
+  return out;
 }
 
 const SPORTS = {
@@ -144,17 +172,6 @@ function rowSportKey(p) {
   return null;
 }
 
-function isActiveProgram(p) {
-  const today0 = todayStart();
-  const sessionDates = String(p.SessionDates || '')
-    .split(',')
-    .map((s) => parseLocalDate(s.trim()))
-    .filter((d) => d instanceof Date && !isNaN(d));
-  if (sessionDates.length) return sessionDates.filter((d) => d < today0).length < sessionDates.length;
-  const end = getEndDate(p);
-  return !end || end >= today0;
-}
-
 function isFullProgram(p) {
   return p.is_full === true || String(p.is_full).toLowerCase() === 'true';
 }
@@ -179,14 +196,6 @@ function isStartingSoon(p, today0 = todayStart()) {
   return start ? start > today0 : false;
 }
 
-function isInProgress(p, today0 = todayStart()) {
-  const start = getStartDate(p);
-  const end = getEndDate(p);
-  if (!start) return true;
-  if (start > today0) return false;
-  return !end || end >= today0;
-}
-
 function haversineKm(a, b) {
   const R = 6371;
   const toRad = (d) => (d * Math.PI) / 180;
@@ -197,81 +206,158 @@ function haversineKm(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-function programSortGroup(p, allInProgress, today0) {
-  const open = isEnrollmentOpen(p);
-  const full = isFullProgram(p);
+// Ordering buckets for the list. Reads values derived once in decorateProgram
+// rather than re-deriving them on every comparison.
+function sortGroupFor(p, allInProgress) {
+  const open = p._open;
+  const full = p._full;
   if (allInProgress) {
     if (open && !full) return 0;
     if (open && full) return 1;
     if (!open && !full) return 2;
     return 3;
   }
-  if (isStartingSoon(p, today0) && open && !full) return 0;
-  if (isInProgress(p, today0) && open && !full) return 1;
-  if (isInProgress(p, today0) && open && full) return 2;
-  if (isInProgress(p, today0) && !open && !full) return 3;
-  if (isInProgress(p, today0) && !open && full) return 4;
+  if (p._startingSoon && open && !full) return 0;
+  if (p._inProgress && open && !full) return 1;
+  if (p._inProgress && open && full) return 2;
+  if (p._inProgress && !open && !full) return 3;
+  if (p._inProgress && !open && full) return 4;
   return 5;
 }
 
-function sortPrograms(programs, userCoords) {
-  const today0 = todayStart();
-  const activePrograms = programs.filter((p) => isActiveProgram(p));
-  const allInProgress = activePrograms.length > 0 && activePrograms.every((p) => isInProgress(p, today0));
-  return [...activePrograms].sort((a, b) => {
-    const aComingSoon = isPickleballComingSoonProgram(a);
-    const bComingSoon = isPickleballComingSoonProgram(b);
-    if (aComingSoon !== bComingSoon) return aComingSoon ? 1 : -1;
+// Derives every value the sort comparator and the filter need, ONCE per
+// program. Previously the comparator called isEnrollmentOpen / isStartingSoon /
+// isInProgress / getStartDate / getEndDate on both operands for every one of
+// the ~n·log(n) comparisons - roughly 8-12 `new Date()` allocations per
+// comparison, several thousand per sort - and filterPrograms rebuilt the search
+// haystack and re-ran the label regexes for every program on every keystroke.
+function decorateProgram(p, todayMs) {
+  const startMs = getStartDate(p)?.getTime() ?? null;
+  const endMs = getEndDate(p)?.getTime() ?? null;
+  const sportKey = rowSportKey(p);
 
-    if (userCoords) {
-      const da = a.coords ? haversineKm(userCoords, a.coords) : Infinity;
-      const db = b.coords ? haversineKm(userCoords, b.coords) : Infinity;
-      if (da !== db) return da - db;
-    }
-    const ga = programSortGroup(a, allInProgress, today0);
-    const gb = programSortGroup(b, allInProgress, today0);
-    if (ga !== gb) return ga - gb;
-    const aEnd = getEndDate(a)?.getTime() || 0;
-    const bEnd = getEndDate(b)?.getTime() || 0;
-    if (allInProgress && aEnd !== bEnd) return bEnd - aEnd;
-    const aStart = getStartDate(a)?.getTime() || Infinity;
-    const bStart = getStartDate(b)?.getTime() || Infinity;
-    if (aStart !== bStart) return aStart - bStart;
-    return String(a.Title || '').localeCompare(String(b.Title || ''));
+  const sessionMs = String(p.SessionDates || '')
+    .split(',')
+    .map((s) => parseLocalDate(s.trim()))
+    .filter((d) => d instanceof Date && !isNaN(d))
+    .map((d) => d.getTime());
+
+  // Mirrors isActiveProgram: active while at least one session is still ahead,
+  // or (with no session list) while the end date has not passed.
+  const active = sessionMs.length
+    ? sessionMs.some((ms) => ms >= todayMs)
+    : (endMs === null || endMs >= todayMs);
+
+  // Mirrors isInProgress / isStartingSoon.
+  const inProgress = startMs === null
+    ? true
+    : (startMs > todayMs ? false : (endMs === null || endMs >= todayMs));
+
+  // Real venue coordinates, so "nearest to you" sorts by the actual
+  // school/gym. The old city-only table missed most cities entirely -
+  // including "Newmarket/Aurora", which sorted every one of its programs
+  // last because it had no coordinate to measure.
+  const c = resolveVenueCoords(p);
+  const ageRange = programAgeRange(p);
+
+  return {
+    ...p,
+    coords: c ? [c.lat, c.lng] : null,
+    _sportKey: sportKey,
+    _active: active,
+    _inProgress: inProgress,
+    _startingSoon: startMs !== null && startMs > todayMs,
+    _open: isEnrollmentOpen(p),
+    _full: isFullProgram(p),
+    _comingSoon: sportKey === 'pb' && !hasRegisterLink(p),
+    // `|| 0` / `|| Infinity` preserve the original comparator's null handling.
+    _endSort: endMs || 0,
+    _startSort: startMs || Infinity,
+    _title: String(p.Title || ''),
+    _level: norm(levelLabel(p)),
+    _type: norm(typeLabel(p)),
+    _time: timeBucket(p),
+    _day: dayBucket(p),
+    _city: cityKey(p),
+    _minAge: ageRange.min,
+    _maxAge: ageRange.max,
+    _haystack: normSearch(
+      [p.Title, p.City, p.LocationName, p.Day, p.Time, ...citySearchSynonyms(p.City)]
+        .filter(Boolean).join(' ')
+    ),
+  };
+}
+
+function sortPrograms(programs, userCoords) {
+  const activePrograms = programs.filter((p) => p._active);
+  const allInProgress = activePrograms.length > 0 && activePrograms.every((p) => p._inProgress);
+
+  // Second pass, now that allInProgress is known: stamp the sort group and the
+  // distance so the comparator itself is nothing but number comparisons.
+  // Distance in particular drops from ~n·log(n) haversine calls to n.
+  for (const p of activePrograms) {
+    p._group = sortGroupFor(p, allInProgress);
+    p._dist = userCoords && p.coords ? haversineKm(userCoords, p.coords) : Infinity;
+  }
+
+  return [...activePrograms].sort((a, b) => {
+    if (a._comingSoon !== b._comingSoon) return a._comingSoon ? 1 : -1;
+    if (userCoords && a._dist !== b._dist) return a._dist - b._dist;
+    if (a._group !== b._group) return a._group - b._group;
+    if (allInProgress && a._endSort !== b._endSort) return b._endSort - a._endSort;
+    if (a._startSort !== b._startSort) return a._startSort - b._startSort;
+    return a._title.localeCompare(b._title);
   });
 }
 
 function normalizePrograms(rows, sports, userCoords) {
   const allow = new Set(sports && sports.length ? sports : ['bad']);
-  return sortPrograms(
-    rows
-      .filter((p) => {
-        const sportKey = rowSportKey(p);
-        return p && sportKey && allow.has(sportKey) && isEAorTS(p) && p.City && !p.is_cancelled;
-      })
-      .map((p) => {
-        // Real venue coordinates, so "nearest to you" sorts by the actual
-        // school/gym. The old city-only table missed most cities entirely -
-        // including "Newmarket/Aurora", which sorted every one of its programs
-        // last because it had no coordinate to measure.
-        const c = resolveVenueCoords(p);
-        return { ...p, coords: c ? [c.lat, c.lng] : null };
-      }),
-    userCoords
-  );
+  const todayMs = todayStart().getTime();
+
+  const decorated = rows
+    .filter((p) => {
+      const sportKey = rowSportKey(p);
+      return p && sportKey && allow.has(sportKey) && isEAorTS(p) && p.City && !p.is_cancelled;
+    })
+    .map((p) => decorateProgram(p, todayMs));
+
+  // Stable per-program React key, assigned here rather than at render time.
+  // The old key included the program's index in the *filtered* list, so
+  // filtering reshuffled indices and forced React to remount cards that had
+  // not actually changed. Identity fields only, with an occurrence counter to
+  // break ties between genuinely identical rows.
+  const seen = new Map();
+  for (const p of decorated) {
+    const base = programIdentity(p);
+    const n = seen.get(base) || 0;
+    seen.set(base, n + 1);
+    p._key = n ? `${base}#${n}` : base;
+  }
+
+  return sortPrograms(decorated, userCoords);
 }
 
+// Returns { rows, status } where status is 'loading' | 'ready' | 'error'.
+// Loading and error MUST be distinguishable: when both were represented by
+// rows === null the page rendered the "No programs match those filters."
+// empty state while the feed was still in flight, so every visitor saw
+// "no programs" first and the real list second.
 function useProgramsFeed() {
-  const [rows, setRows] = useState(null);
+  const [state, setState] = useState({ rows: null, status: 'loading' });
   useEffect(() => {
     let alive = true;
-    fetch(`${PROGRAMS_DATA_URL}?v=${Date.now()}`)
+    // No cache-buster here on purpose. The feed already serves
+    // `cache-control: max-age=600` plus a strong ETag; appending
+    // `?v=${Date.now()}` made every URL unique, which defeated both the browser
+    // cache and the CDN edge and forced a full ~189 KB re-download on every
+    // single page view.
+    fetch(PROGRAMS_DATA_URL)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('bad response'))))
-      .then((data) => { if (alive) setRows(Array.isArray(data) ? data : []); })
-      .catch(() => { if (alive) setRows(null); });
+      .then((data) => { if (alive) setState({ rows: Array.isArray(data) ? data : [], status: 'ready' }); })
+      .catch(() => { if (alive) setState({ rows: null, status: 'error' }); });
     return () => { alive = false; };
   }, []);
-  return rows;
+  return state;
 }
 
 function formatProgramDate(dateStr, opts = {}) {
@@ -728,28 +814,23 @@ function programAgeRange(p) {
   };
 }
 
-function programMatchesAge(p, age) {
-  if (!age) return true;
-  const selected = Number(age);
-  if (Number.isNaN(selected)) return true;
-  const range = programAgeRange(p);
-  return selected >= range.min && selected <= range.max;
-}
 
+// Reads only values precomputed by decorateProgram, so a keystroke costs one
+// substring test per program instead of rebuilding the haystack and re-running
+// the level/type/time/day derivations for all of them.
 function filterPrograms(programs, filters) {
-  const q = norm(filters.search);
+  const q = normSearch(filters.search);
   const selectedLocation = norm(filters.location);
+  const age = filters.age ? Number(filters.age) : NaN;
+  const hasAge = !Number.isNaN(age);
   return programs.filter((p) => {
-    if (q) {
-      const haystack = norm([p.Title, p.City, p.LocationName, p.Day, p.Time].filter(Boolean).join(' '));
-      if (!haystack.includes(q)) return false;
-    }
-    if (filters.level && norm(levelLabel(p)) !== filters.level) return false;
-    if (filters.type && norm(typeLabel(p)) !== filters.type) return false;
-    if (!programMatchesAge(p, filters.age)) return false;
-    if (filters.time && timeBucket(p) !== filters.time) return false;
-    if (filters.days && dayBucket(p) !== filters.days) return false;
-    if (selectedLocation && cityKey(p) !== selectedLocation) return false;
+    if (q && !p._haystack.includes(q)) return false;
+    if (filters.level && p._level !== filters.level) return false;
+    if (filters.type && p._type !== filters.type) return false;
+    if (hasAge && (age < p._minAge || age > p._maxAge)) return false;
+    if (filters.time && p._time !== filters.time) return false;
+    if (filters.days && p._day !== filters.days) return false;
+    if (selectedLocation && p._city !== selectedLocation) return false;
     return true;
   });
 }
@@ -829,7 +910,7 @@ export default function LeagueHubPage() {
   const DS = useDSComponents();
   const { isMobile } = useViewport();
   const t = getThemeData();
-  const rows = useProgramsFeed();
+  const { rows, status: feedStatus } = useProgramsFeed();
   const [userCoords, setUserCoords] = useState(null);
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState('');
@@ -878,11 +959,11 @@ export default function LeagueHubPage() {
 
   const programs = useMemo(() => {
     const normalized = normalizePrograms(rows || FALLBACK_PROGRAMS, selectedSports, userCoords);
-    return showComingSoon ? normalized : normalized.filter((program) => !isPickleballComingSoonProgram(program));
+    return showComingSoon ? normalized : normalized.filter((program) => !program._comingSoon);
   }, [rows, selectedSports, userCoords, showComingSoon]);
   const filteredPrograms = useMemo(() => (
     locationFilter
-      ? programs.filter((program) => cityKey(program) === locationFilter)
+      ? programs.filter((program) => program._city === locationFilter)
       : filterPrograms(programs, filters)
   ), [programs, filters, locationFilter]);
   const visibleListPrograms = useMemo(
@@ -1032,11 +1113,24 @@ export default function LeagueHubPage() {
             <ViewToggle view={view} setView={setView} isMobile={isMobile} showMap={showMapView} showCalendar={showCalendarView} />
           )}
 
+          {/* The list container deliberately has NO React `key`. It used to be
+              keyed on a string containing filters.search, so every keystroke
+              changed the key and React tore down and rebuilt every card.
+              Cards now reconcile on their own stable program._key. */}
           {view === 'list' && (
-            <div key={listRenderKey} style={{ display: 'grid', gap: isMobile ? 10 : 12, marginTop: 12 }}>
-              {filteredPrograms.length ? visibleListPrograms.map((program, index) => (
-                <ProgramCard key={programCardKey(program, index)} program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
-              )) : (
+            <div style={{ display: 'grid', gap: isMobile ? 10 : 12, marginTop: 12 }}>
+              {filteredPrograms.length ? visibleListPrograms.map((program) => (
+                <ProgramCard key={program._key} program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
+              )) : feedStatus === 'loading' ? (
+                <div style={{ ...FB.card, textAlign: 'center' }}>
+                  <strong>Loading programs…</strong>
+                </div>
+              ) : feedStatus === 'error' ? (
+                <div style={{ ...FB.card, textAlign: 'center' }}>
+                  <strong>We couldn’t load the programs list.</strong>
+                  <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)' }}>Please refresh the page, or contact us if it keeps happening.</p>
+                </div>
+              ) : (
                 <div style={{ ...FB.card, textAlign: 'center' }}>
                   <strong>No programs match those filters.</strong>
                   <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)' }}>Try clearing one filter or searching a nearby city.</p>

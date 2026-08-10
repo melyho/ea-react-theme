@@ -77,11 +77,26 @@ add_action( 'wp_enqueue_scripts', 'ea_enqueue_ds' );
 // Note: crossorigin is required on font preloads even for same-origin requests,
 // otherwise the browser fetches the font twice.
 function ea_preload_fonts() {
-    $font_uri = get_template_directory_uri() . '/ea_ds/assets/fonts/BBHBogle-Regular.woff2';
-    printf(
-        '<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin>' . "\n",
-        esc_url( $font_uri )
+    // React and ReactDOM load from unpkg.com, and the whole app - including the
+    // programs fetch - is blocked until they arrive. Opening the connection
+    // early overlaps the DNS + TLS handshake with the rest of the head instead
+    // of paying for it serially once the parser reaches the script tags.
+    echo '<link rel="preconnect" href="https://unpkg.com" crossorigin>' . "\n";
+
+    $fonts = array(
+        // Display face: every headline.
+        'BBHBogle-Regular.woff2',
+        // Body face: every paragraph, label and card on the page. It was NOT
+        // preloaded before, so it was only discovered after fonts.css parsed -
+        // the largest font on the page behind the longest discovery delay.
+        'InclusiveSans.woff2',
     );
+    foreach ( $fonts as $font ) {
+        printf(
+            '<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin>' . "\n",
+            esc_url( get_template_directory_uri() . '/ea_ds/assets/fonts/' . $font )
+        );
+    }
 }
 add_action( 'wp_head', 'ea_preload_fonts', 1 );
 

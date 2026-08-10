@@ -917,7 +917,10 @@ function useProgramsFeed() {
   const [rows, setRows] = useState(null);
   useEffect(() => {
     let alive = true;
-    fetch(`${PROGRAMS_DATA_URL}?v=${Date.now()}`)
+    // No cache-buster: the feed serves `cache-control: max-age=600` plus an
+    // ETag, and a unique `?v=` param defeated the browser and CDN caches,
+    // forcing a full re-download of the whole feed on every page view.
+    fetch(PROGRAMS_DATA_URL)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('bad response'))))
       .then((data) => { if (alive) setRows(Array.isArray(data) ? data : []); })
       .catch(() => { if (alive) setRows(null); });
