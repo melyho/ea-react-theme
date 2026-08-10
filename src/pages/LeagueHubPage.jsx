@@ -1054,25 +1054,27 @@ export default function LeagueHubPage() {
     );
   };
 
-  const backdrop = t.images.leagueHubBackdrop || t.asset('league-hub-backdrop.svg');
+  const backdrop = t.images.leagueHubBackdrop || '';
   const showSubheading = t.options.leagueHubShowSubheading === true;
 
   return (
     <Layout>
       <main style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: '#fff' }}>
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `url("${backdrop}")`,
-            backgroundRepeat: 'repeat-y',
-            backgroundPosition: 'center top',
-            backgroundSize: '100% auto',
-            opacity: 0.5,
-            pointerEvents: 'none',
-          }}
-        />
+        {backdrop && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url("${backdrop}")`,
+              backgroundRepeat: 'repeat-y',
+              backgroundPosition: 'center top',
+              backgroundSize: '100% auto',
+              opacity: 0.5,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
         <section style={{ position: 'relative', maxWidth: 1184, margin: '0 auto', padding: isMobile ? '28px 16px 72px' : '46px 32px 96px', scrollMarginTop: SCROLL_OFFSET }}>
           <div style={{ position: 'relative', textAlign: 'center', display: 'grid', justifyItems: 'center', minHeight: isMobile ? 150 : 172, alignContent: 'center' }}>
             <h1 style={{ ...FB.h(isMobile ? 42 : 58), textAlign: 'center' }}>
