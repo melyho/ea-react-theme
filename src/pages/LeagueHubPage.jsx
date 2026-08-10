@@ -73,6 +73,32 @@ const FALLBACK_PROGRAMS = [
 
 const norm = (v) => String(v || '').trim().toLowerCase();
 
+// Free-text search only: strips punctuation and collapses whitespace so
+// "st catharines" matches data stored as "St. Catharines". norm() alone is a
+// literal substring check where the period is a real character, so
+// "st catharines" (no period) is not a substring of "st. catharines" and the
+// search silently returns nothing. Kept separate from norm() since that's
+// also used for exact-match dropdown comparisons (level/type/location) where
+// changing punctuation handling is out of scope for this fix.
+const normSearch = (v) => norm(v).replace(/[.,]/g, '').replace(/\s+/g, ' ').trim();
+
+// City search synonyms: some venues sit in a smaller community that most
+// people know by a different, more common name (Fonthill is part of the
+// town of Welland). Listed both ways so searching either term surfaces
+// programs tagged with the other. Add future pairs here rather than
+// creating one-off matching logic per city.
+const CITY_SEARCH_SYNONYMS = [
+  ['fonthill', 'welland'],
+];
+function citySearchSynonyms(city) {
+  const c = normSearch(city);
+  const out = [];
+  for (const pair of CITY_SEARCH_SYNONYMS) {
+    if (pair.includes(c)) out.push(...pair.filter((name) => name !== c));
+  }
+  return out;
+}
+
 const SPORTS = {
   pb: { label: 'Pickleball', aliases: ['pb', 'pickleball', 'pickle'] },
   bad: { label: 'Badminton', aliases: ['bad', 'badm', 'badmin', 'badminton'] },
@@ -651,10 +677,11 @@ function programMatchesAge(p, age) {
 }
 
 function filterPrograms(programs, filters) {
-  const q = norm(filters.search);
+  const q = normSearch(filters.search);
   return programs.filter((p) => {
     if (q) {
-      const haystack = norm([p.Title, p.City, p.LocationName, p.Day, p.Time].filter(Boolean).join(' '));
+      const fields = [p.Title, p.City, p.LocationName, p.Day, p.Time, ...citySearchSynonyms(p.City)];
+      const haystack = normSearch(fields.filter(Boolean).join(' '));
       if (!haystack.includes(q)) return false;
     }
     if (filters.level && norm(levelLabel(p)) !== filters.level) return false;
