@@ -175,6 +175,7 @@ function ea_react_image_fields() {
         'ea_img_community_left' => array( 'key' => 'communityLeft', 'label' => 'Community left image' ),
         'ea_img_community_right' => array( 'key' => 'communityRight', 'label' => 'Community right image' ),
         'ea_img_league_hub_backdrop' => array( 'key' => 'leagueHubBackdrop', 'label' => 'League Hub — subtle background' ),
+        'ea_img_basketball_guide_backdrop' => array( 'key' => 'basketballGuideBackdrop', 'label' => 'Basketball Guide — subtle background' ),
         'ea_img_guide_box_1' => array( 'key' => 'guideBox1', 'label' => 'Basketball Guide — Box 1 image' ),
         'ea_img_guide_box_2' => array( 'key' => 'guideBox2', 'label' => 'Basketball Guide — Box 2 image' ),
         'ea_img_guide_box_3' => array( 'key' => 'guideBox3', 'label' => 'Basketball Guide — Box 3 image' ),

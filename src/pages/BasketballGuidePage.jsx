@@ -166,24 +166,26 @@ export default function BasketballGuidePage() {
   const t = getThemeData();
   const introBoxes = DEFAULT_BOXES.slice(0, 4);
   const trainingBoxes = DEFAULT_BOXES.slice(4);
-  const backdrop = t.asset('basketball-guide-backdrop.svg');
+  const backdrop = t.images.basketballGuideBackdrop || '';
 
   return (
     <Layout>
       <main style={{ position: 'relative', overflow: 'hidden', background: '#fff' }}>
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `url("${backdrop}")`,
-            backgroundRepeat: 'repeat-y',
-            backgroundPosition: 'center top',
-            backgroundSize: '100% auto',
-            opacity: 1,
-            pointerEvents: 'none',
-          }}
-        />
+        {backdrop ? (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url("${backdrop}")`,
+              backgroundRepeat: 'repeat-y',
+              backgroundPosition: 'center top',
+              backgroundSize: '100% auto',
+              opacity: 1,
+              pointerEvents: 'none',
+            }}
+          />
+        ) : null}
         <section style={{
           position: 'relative',
           maxWidth: 1184,
