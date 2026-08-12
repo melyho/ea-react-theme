@@ -77,26 +77,11 @@ add_action( 'wp_enqueue_scripts', 'ea_enqueue_ds' );
 // Note: crossorigin is required on font preloads even for same-origin requests,
 // otherwise the browser fetches the font twice.
 function ea_preload_fonts() {
-    // React and ReactDOM load from unpkg.com, and the whole app - including the
-    // programs fetch - is blocked until they arrive. Opening the connection
-    // early overlaps the DNS + TLS handshake with the rest of the head instead
-    // of paying for it serially once the parser reaches the script tags.
-    echo '<link rel="preconnect" href="https://unpkg.com" crossorigin>' . "\n";
-
-    $fonts = array(
-        // Display face: every headline.
-        'BBHBogle-Regular.woff2',
-        // Body face: every paragraph, label and card on the page. It was NOT
-        // preloaded before, so it was only discovered after fonts.css parsed -
-        // the largest font on the page behind the longest discovery delay.
-        'InclusiveSans.woff2',
+    $font_uri = get_template_directory_uri() . '/ea_ds/assets/fonts/BBHBogle-Regular.woff2';
+    printf(
+        '<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin>' . "\n",
+        esc_url( $font_uri )
     );
-    foreach ( $fonts as $font ) {
-        printf(
-            '<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin>' . "\n",
-            esc_url( get_template_directory_uri() . '/ea_ds/assets/fonts/' . $font )
-        );
-    }
 }
 add_action( 'wp_head', 'ea_preload_fonts', 1 );
 
@@ -1033,6 +1018,174 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     wp_mail( $to, $subject, $body, $headers );
 
     return new WP_REST_Response( array( 'ok' => true, 'id' => (int) $entry_id ), 200 );
+}
+
+// ─── Venue coordinate resolver (map pins for venues not in the baked table) ───
+// src/data/venueCoords.generated.js is a build-time snapshot. Any venue added to
+// the programs feed after that snapshot has no coordinates, so it silently drops
+// off the map ("N programs aren't shown"). Re-running the generator and
+// re-uploading the theme fixes it only until the next new venue, so the gap
+// always comes back.
+//
+// The browser can't resolve the feed's maps.app.goo.gl links itself: Google
+// sends no Access-Control-Allow-Origin and marks the response same-site, so a
+// cross-origin fetch is blocked. This proxies the lookup server-side instead.
+//
+// The coordinates live in the redirect TARGET (!3d<lat>!4d<lng>), so this only
+// walks the redirect chain and reads Location headers - no API key, no
+// geocoding service, and no response body is ever parsed.
+//
+// Each result is cached in a transient effectively forever, since a venue's
+// coordinates don't change. Only the first visitor after a venue appears pays
+// the lookup; everyone after that is served from cache.
+define( 'EA_VENUE_COORD_TTL',       YEAR_IN_SECONDS );
+define( 'EA_VENUE_COORD_FAIL_TTL',  6 * HOUR_IN_SECONDS ); // retry broken links, but not on every view
+define( 'EA_VENUE_COORD_MAX_LINKS', 80 );  // per request, caps abuse
+define( 'EA_VENUE_COORD_MAX_FRESH', 12 );  // new lookups per request, keeps the response quick
+define( 'EA_VENUE_COORD_BUDGET',    8.0 ); // seconds spent on new lookups per request
+
+/**
+ * Only ever fetch Google's own map hosts. Without this the endpoint would be an
+ * open proxy: anyone could POST an internal address and have the server fetch it.
+ */
+function ea_venue_coord_allowed_host( $url ) {
+    $host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+    return in_array( $host, array(
+        'maps.app.goo.gl', 'goo.gl',
+        'maps.google.com', 'www.google.com', 'google.com',
+        'maps.google.ca',  'www.google.ca',  'google.ca',
+    ), true );
+}
+
+/** Port of extractCoords() in tools/build-venue-coords.mjs - keep the two in step. */
+function ea_venue_coord_extract( $text ) {
+    // !3d!4d is the authoritative place coordinate.
+    if ( preg_match( '/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/', $text, $m ) ) {
+        return array( 'lat' => (float) $m[1], 'lng' => (float) $m[2] );
+    }
+    // /@lat,lng is the viewport centre: usually identical, but drifts if the
+    // link was made from a panned view. Fallback only.
+    if ( preg_match( '/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/', $text, $m ) ) {
+        return array( 'lat' => (float) $m[1], 'lng' => (float) $m[2] );
+    }
+    if ( preg_match( '/[?&](?:q|ll|center)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/', $text, $m ) ) {
+        return array( 'lat' => (float) $m[1], 'lng' => (float) $m[2] );
+    }
+    return null;
+}
+
+/** Canada-wide gate. Catches a redirect that landed on a consent or generic page. */
+function ea_venue_coord_in_bbox( $c ) {
+    return $c
+        && $c['lat'] >= 41 && $c['lat'] <= 84
+        && $c['lng'] >= -142 && $c['lng'] <= -52;
+}
+
+function ea_venue_coord_resolve( $link ) {
+    $url = $link;
+
+    for ( $hop = 0; $hop < 5; $hop++ ) {
+        // Re-checked every hop: the chain must never walk off Google's hosts.
+        if ( ! ea_venue_coord_allowed_host( $url ) ) {
+            return null;
+        }
+
+        $res = wp_remote_get( $url, array(
+            'timeout'     => 6,
+            'redirection' => 0, // walk the chain by hand so each Location is readable
+            // Deliberately a bare UA. Google serves a JS app shell with no
+            // coordinates to anything resembling a real browser, and a plain
+            // 302 to simple clients. A full Chrome UA breaks every lookup.
+            'user-agent'  => 'Mozilla/5.0',
+            'headers'     => array( 'Accept-Language' => 'en-CA,en;q=0.9' ),
+        ) );
+        if ( is_wp_error( $res ) ) {
+            return null;
+        }
+
+        $next = wp_remote_retrieve_header( $res, 'location' );
+        if ( is_array( $next ) ) {
+            $next = reset( $next );
+        }
+
+        $candidate = $next ? $next : $url;
+        $coords    = ea_venue_coord_extract( $candidate );
+        if ( $coords ) {
+            return ea_venue_coord_in_bbox( $coords ) ? $coords : null;
+        }
+
+        if ( ! $next ) {
+            break;
+        }
+        // Resolve a relative Location against the URL that produced it.
+        $url = ( 0 === strpos( $next, 'http' ) )
+            ? $next
+            : ( 'https://' . wp_parse_url( $url, PHP_URL_HOST ) . '/' . ltrim( $next, '/' ) );
+    }
+
+    return null;
+}
+
+function ea_register_venue_coords_route() {
+    register_rest_route( 'ea/v1', '/venue-coords', array(
+        'methods'             => 'POST',
+        'permission_callback' => '__return_true', // public map data, no user data involved
+        'callback'            => 'ea_handle_venue_coords',
+    ) );
+}
+add_action( 'rest_api_init', 'ea_register_venue_coords_route' );
+
+function ea_handle_venue_coords( WP_REST_Request $request ) {
+    $links = $request->get_param( 'links' );
+    if ( ! is_array( $links ) ) {
+        return new WP_Error( 'ea_invalid', 'links must be an array.', array( 'status' => 422 ) );
+    }
+
+    $links   = array_slice( array_unique( array_filter( array_map( 'strval', $links ) ) ), 0, EA_VENUE_COORD_MAX_LINKS );
+    $out     = array();
+    $pending = array();
+    $fresh   = 0;
+    $deadline = microtime( true ) + EA_VENUE_COORD_BUDGET;
+
+    foreach ( $links as $link ) {
+        $link = trim( $link );
+        if ( '' === $link || ! ea_venue_coord_allowed_host( $link ) ) {
+            continue;
+        }
+
+        $key    = 'ea_vc_' . md5( strtolower( rtrim( $link, '/' ) ) );
+        $cached = get_transient( $key );
+
+        if ( is_array( $cached ) ) {
+            $out[ $link ] = $cached;
+            continue;
+        }
+        if ( 'fail' === $cached ) {
+            continue; // known bad, don't retry until the short TTL lapses
+        }
+
+        // Resolve a slice now and report the rest as pending, so the first view
+        // after a batch of new venues stays fast instead of blocking on dozens
+        // of sequential lookups. The client asks again for what's left.
+        if ( $fresh >= EA_VENUE_COORD_MAX_FRESH || microtime( true ) > $deadline ) {
+            $pending[] = $link;
+            continue;
+        }
+
+        $fresh++;
+        $coords = ea_venue_coord_resolve( $link );
+        if ( $coords ) {
+            set_transient( $key, $coords, EA_VENUE_COORD_TTL );
+            $out[ $link ] = $coords;
+        } else {
+            set_transient( $key, 'fail', EA_VENUE_COORD_FAIL_TTL );
+        }
+    }
+
+    return new WP_REST_Response( array(
+        'coords'  => (object) $out,
+        'pending' => $pending,
+    ), 200 );
 }
 
 // ─── "Free Trials" admin screen (stores + lists form submissions) ─────────────
