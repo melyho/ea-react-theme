@@ -766,6 +766,92 @@ function ea_define_customize_controls() {
 }
 add_action( 'customize_register', 'ea_define_customize_controls', 9 );
 
+// Registration page shell (Appearance > Customize > EA Registration Nav).
+function ea_registration_nav_link_fields() {
+    return array(
+        'ea_registration_nav_pickleball' => array(
+            'label_key'     => 'ea_registration_nav_pickleball_label',
+            'default_label' => 'Pickleball',
+            'default_url'   => 'https://eapickleball.com/',
+        ),
+        'ea_registration_nav_badminton' => array(
+            'label_key'     => 'ea_registration_nav_badminton_label',
+            'default_label' => 'Badminton',
+            'default_url'   => 'https://eabadminton.com/',
+        ),
+        'ea_registration_nav_basketball' => array(
+            'label_key'     => 'ea_registration_nav_basketball_label',
+            'default_label' => 'Basketball',
+            'default_url'   => 'https://elevationathletics.ca/home/',
+        ),
+    );
+}
+
+function ea_registration_nav_links() {
+    $links = array();
+    foreach ( ea_registration_nav_link_fields() as $url_key => $meta ) {
+        $links[] = array(
+            'label' => get_theme_mod( $meta['label_key'], $meta['default_label'] ),
+            'url'   => get_theme_mod( $url_key, $meta['default_url'] ),
+        );
+    }
+    return $links;
+}
+
+function ea_customize_registration_nav( $wp_customize ) {
+    $wp_customize->add_section( 'ea_registration_nav', array(
+        'title'       => __( 'EA Registration Nav', 'ea-react-theme' ),
+        'description' => __( 'Controls the slim header used by the EA Registration Content page template.', 'ea-react-theme' ),
+        'priority'    => 35,
+    ) );
+
+    $wp_customize->add_setting( 'ea_registration_nav_logo', array(
+        'default'           => get_template_directory_uri() . '/assets/images/registration-logo.svg',
+        'sanitize_callback' => 'esc_url_raw',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( new WP_Customize_Image_Control( $wp_customize, 'ea_registration_nav_logo', array(
+        'label'   => __( 'Registration nav logo', 'ea-react-theme' ),
+        'section' => 'ea_registration_nav',
+    ) ) );
+
+    $wp_customize->add_setting( 'ea_registration_nav_logo_url', array(
+        'default'           => 'https://elevationathletics.ca/',
+        'sanitize_callback' => 'esc_url_raw',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'ea_registration_nav_logo_url', array(
+        'type'    => 'url',
+        'label'   => __( 'Logo link URL', 'ea-react-theme' ),
+        'section' => 'ea_registration_nav',
+    ) );
+
+    foreach ( ea_registration_nav_link_fields() as $url_key => $meta ) {
+        $wp_customize->add_setting( $meta['label_key'], array(
+            'default'           => $meta['default_label'],
+            'sanitize_callback' => 'sanitize_text_field',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( $meta['label_key'], array(
+            'type'    => 'text',
+            'label'   => sprintf( __( '%s label', 'ea-react-theme' ), $meta['default_label'] ),
+            'section' => 'ea_registration_nav',
+        ) );
+
+        $wp_customize->add_setting( $url_key, array(
+            'default'           => $meta['default_url'],
+            'sanitize_callback' => 'esc_url_raw',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( $url_key, array(
+            'type'    => 'url',
+            'label'   => sprintf( __( '%s URL', 'ea-react-theme' ), $meta['default_label'] ),
+            'section' => 'ea_registration_nav',
+        ) );
+    }
+}
+add_action( 'customize_register', 'ea_customize_registration_nav' );
+
 // ─── Social profile links via the Customizer (Appearance → Customize → EA Social) ─
 // Plain URL fields — no WP menu required. Blank fields hide that icon in the footer.
 function ea_react_social_fields() {

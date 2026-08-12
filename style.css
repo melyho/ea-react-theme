@@ -3,7 +3,7 @@ Theme Name:     Elevation Athletics React
 Theme URI:      https://elevationathletics.ca
 Description:    React-powered WordPress theme scaffold for Elevation Athletics.
 Author:         Elevation Athletics
-Version:        1.0.1
+Version:        1.0.2
 Text Domain:    ea-react-theme
 Tags:           react, javascript, wordpress, theme
 */
@@ -137,6 +137,100 @@ body {
 
 .ea-blank-content :where(.wp-block-group, .wp-block-columns, .wp-block-cover) {
   margin-bottom: 32px;
+}
+
+.ea-registration-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  min-height: 84px;
+  box-sizing: border-box;
+  padding: 14px 40px;
+  background: var(--ea-white, #fff);
+  border-bottom: 1px solid var(--border-card, #E5E5E5);
+}
+
+.ea-registration-header__logo {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+.ea-registration-header__logo img {
+  display: block;
+  width: auto;
+  height: 52px;
+}
+
+.ea-registration-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.ea-registration-header__nav a {
+  color: var(--ea-navy, #10414F);
+  font-family: var(--font-body, "Inclusive Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-size: 16px;
+  font-weight: var(--fw-semibold, 600);
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.ea-registration-header__nav a:hover {
+  color: var(--ea-blue, #0092DB);
+}
+
+.ea-registration-content {
+  min-height: calc(100vh - 84px);
+  background: var(--surface-page, #fff);
+  color: var(--text-body, var(--ea-ink, #1E526E));
+  font-family: var(--font-body, "Inclusive Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+}
+
+.ea-registration-content__article {
+  width: min(100% - 40px, 1080px);
+  margin: 0 auto;
+  padding: 52px 0 88px;
+}
+
+.ea-registration-content__article > :first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .ea-registration-header {
+    position: static;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    padding: 16px 20px;
+  }
+
+  .ea-registration-header__logo img {
+    height: 44px;
+  }
+
+  .ea-registration-header__nav {
+    width: 100%;
+    margin-left: 0;
+    gap: 14px 18px;
+  }
+
+  .ea-registration-header__nav a {
+    font-size: 15px;
+  }
+
+  .ea-registration-content__article {
+    width: min(100% - 32px, 1080px);
+    padding: 32px 0 64px;
+  }
 }
 
 @media (max-width: 767px) {
