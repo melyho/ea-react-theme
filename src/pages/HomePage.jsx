@@ -1,9 +1,10 @@
 /**
- * src/pages/HomePage.jsx — the badminton marketing home page.
+ * src/pages/HomePage.jsx — the pickleball marketing home page.
  * Rendered when the mount div has data-page="home" (front-page.php / index.php).
  */
 import { useState, useEffect, useRef } from 'react';
 import { Layout, useDSComponents, useViewport, getThemeData, FB, MediaSlot, ActionButton, sectionLinkAttrs } from '../lib/shared.jsx';
+import { summaryCityHref, useCitiesFeed } from '../data/cities.js';
 
 // Scroll offset so a smooth-scrolled section isn't hidden under the sticky nav.
 const SCROLL_OFFSET = 100;
@@ -17,7 +18,7 @@ const sectionPadX = (isMobile) => (isMobile ? '0 16px' : '0 32px'); // horizonta
 // Fallback cards used before the live programs feed loads / if it fails.
 const PROGRAM_FALLBACKS = [
   {
-    Title: 'Richmond Hill - Jr. Badminton (8 - 10 yrs)',
+    Title: 'Richmond Hill - Learn to Play Pickleball: Beginner',
     TotalPrice: 134,
     StaticPriceText: '134',
     Day: 'Mondays',
@@ -26,7 +27,7 @@ const PROGRAM_FALLBACKS = [
     'End Date': '2026-08-20',
     SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
     LocationName: 'Langstaff CC',
-    RegisterLink: 'https://eabadminton.com/signup/',
+    RegisterLink: 'https://eapickleball.com/programs/',
     City: 'Richmond Hill',
     Category: 'TS',
     sport: 'bad',
@@ -36,7 +37,7 @@ const PROGRAM_FALLBACKS = [
     MaxAge: '10',
   },
   {
-    Title: 'Richmond Hill - Jr. Badminton (11 - 13 yrs)',
+    Title: 'Richmond Hill - Pickleball League: Beginner',
     TotalPrice: 134,
     StaticPriceText: '134',
     Day: 'Mondays',
@@ -45,7 +46,7 @@ const PROGRAM_FALLBACKS = [
     'End Date': '2026-08-20',
     SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
     LocationName: 'Langstaff CC',
-    RegisterLink: 'https://eabadminton.com/signup/',
+    RegisterLink: 'https://eapickleball.com/programs/',
     City: 'Richmond Hill',
     Category: 'TS',
     sport: 'bad',
@@ -55,7 +56,7 @@ const PROGRAM_FALLBACKS = [
     MaxAge: '13',
   },
   {
-    Title: 'Newmarket - Advanced Jr. Badminton (9 - 18 yrs)',
+    Title: 'Newmarket - Learn to Play Pickleball: Intermediate',
     TotalPrice: 240,
     StaticPriceText: '240',
     Day: 'Mondays',
@@ -64,7 +65,7 @@ const PROGRAM_FALLBACKS = [
     'End Date': '2026-08-20',
     SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
     LocationName: 'Dr J.M. Dennison',
-    RegisterLink: 'https://eabadminton.com/signup/',
+    RegisterLink: 'https://eapickleball.com/programs/',
     City: 'Newmarket',
     Category: 'TS',
     sport: 'bad',
@@ -617,11 +618,9 @@ function CardHover({ children }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        cursor: 'pointer',
         borderRadius: 8,
-        transition: 'transform .15s ease, box-shadow .15s ease',
-        transform: hover ? 'translateY(-1.5px)' : 'none',
-        boxShadow: hover ? '0 4px 24px rgba(16, 65, 79, 0.05)' : 'none',
+        transition: 'box-shadow .15s ease',
+        boxShadow: hover ? '0 4px 18px rgba(16, 65, 79, 0.07)' : 'none',
       }}
     >
       {children}
@@ -706,7 +705,7 @@ function ProgramSubscribeButton({ city, sessionStart = '', programSummary = '', 
 }
 
 function siteSport(t) {
-  return (t.defaults && t.defaults.sport) || 'Badminton';
+  return (t.defaults && t.defaults.sport) || 'Pickleball';
 }
 
 function generalNewsletterLocation(t) {
@@ -900,7 +899,7 @@ function sortPrograms(programs, userCoords) {
 // Keep individual program rows whose sport is selected. When `userCoords` is
 // provided, nearest city sorts first; otherwise use the registration priority.
 function buildProgramList(programs, sports, userCoords) {
-  const allow = new Set(sports && sports.length ? sports : ['bad']);
+  const allow = new Set(sports && sports.length ? sports : ['pb']);
   return sortPrograms(
     programs
       .filter((p) => {
@@ -910,6 +909,107 @@ function buildProgramList(programs, sports, userCoords) {
       .map((p) => ({ ...p, coords: CITY_COORDS[norm(p.City)] || null })),
     userCoords
   );
+}
+
+function citySlug(city) {
+  return norm(city).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function programProvince(p) {
+  return String(p.Province || p.province || '').trim();
+}
+
+function cityDisplayName(city, province) {
+  return [city, province].filter(Boolean).join(', ');
+}
+
+function typeCounts(programs) {
+  return programs.reduce((acc, program) => {
+    const type = inferProgramTypeLabel(program);
+    if (norm(type).includes('league')) acc.leagues += 1;
+    else if (norm(type).includes('camp')) acc.camps += 1;
+    else acc.lessons += 1;
+    return acc;
+  }, { lessons: 0, leagues: 0, camps: 0 });
+}
+
+function cityStatus(summary) {
+  if (!summary.programCount) return 'Inactive';
+  if (summary.allFull) return 'Full - Join Waitlist';
+  if (summary.allClosed) return 'Enrollment Closed';
+  if (summary.startingSoonCount > 0) return 'Starting Soon';
+  if (summary.inProgressCount > 0) return 'In Progress';
+  return 'Enrollment Open';
+}
+
+function cityStatusChips(summary) {
+  const countLabel = `${summary.programCount} Active Program${summary.programCount === 1 ? '' : 's'}`;
+  const chips = [countLabel];
+
+  if (summary.openCount > 0) chips.push('Enrollment Open');
+  if (summary.startingSoonCount > 0) chips.push('Starting Soon');
+
+  if (chips.length === 1) chips.push(cityStatus(summary));
+
+  return chips;
+}
+
+function buildCityList(programs, userCoords) {
+  const byCity = new Map();
+  programs.forEach((program) => {
+    const city = String(program.City || '').trim();
+    const key = norm(city);
+    if (!city || !key) return;
+    if (!byCity.has(key)) {
+      byCity.set(key, {
+        key,
+        slug: citySlug(city),
+        city,
+        province: programProvince(program),
+        coords: CITY_COORDS[key] || program.coords || null,
+        programs: [],
+      });
+    }
+    const summary = byCity.get(key);
+    if (!summary.province) summary.province = programProvince(program);
+    if (!summary.coords && program.coords) summary.coords = program.coords;
+    summary.programs.push(program);
+  });
+
+  const today0 = todayStart();
+  return [...byCity.values()]
+    .map((summary) => {
+      const programsForCity = summary.programs;
+      const openPrograms = programsForCity.filter((program) => isEnrollmentOpen(program));
+      const fullPrograms = programsForCity.filter((program) => isFullProgram(program));
+      const closedPrograms = programsForCity.filter((program) => !isEnrollmentOpen(program));
+      const counts = typeCounts(programsForCity);
+      const nextProgram = programsForCity
+        .map((program) => ({ program, start: getStartDate(program)?.getTime() || Infinity }))
+        .sort((a, b) => a.start - b.start)[0]?.program || null;
+      const distance = userCoords && summary.coords ? haversineKm(userCoords, summary.coords) : Infinity;
+      return {
+        ...summary,
+        displayName: cityDisplayName(summary.city, summary.province),
+        programCount: programsForCity.length,
+        openCount: openPrograms.length,
+        fullCount: fullPrograms.length,
+        closedCount: closedPrograms.length,
+        startingSoonCount: programsForCity.filter((program) => isStartingSoon(program, today0)).length,
+        inProgressCount: programsForCity.filter((program) => isInProgress(program, today0)).length,
+        allFull: programsForCity.length > 0 && fullPrograms.length === programsForCity.length,
+        allClosed: programsForCity.length > 0 && closedPrograms.length === programsForCity.length,
+        typeCounts: counts,
+        nextProgram,
+        nextStart: nextProgram ? getStartDate(nextProgram)?.getTime() || Infinity : Infinity,
+        distance,
+      };
+    })
+    .sort((a, b) => {
+      if (userCoords && a.distance !== b.distance) return a.distance - b.distance;
+      if (a.nextStart !== b.nextStart) return a.nextStart - b.nextStart;
+      return a.displayName.localeCompare(b.displayName);
+    });
 }
 
 // Fetch the raw rows once on mount; returns null while loading or on error.
@@ -1052,7 +1152,7 @@ function ProgramChip({ label }) {
 }
 
 function cleanProgramTitle(p) {
-  const title = String(p.Title || 'Badminton Program').trim();
+  const title = String(p.Title || 'Pickleball Program').trim();
   return title
     .replace(/\s*-\s*/g, ' – ')
     .replace(/\((\d+\s*[-–]\s*\d+)\)/g, '($1 yrs)')
@@ -1195,6 +1295,85 @@ function ActiveProgramCard({ program, isMobile = false, onSubscribe, t }) {
   );
 }
 
+function CityProgramCard({ summary, isMobile = false, onSubscribe, t, href }) {
+  const [hover, setHover] = useState(false);
+  const statusChips = cityStatusChips(summary);
+  const cityUrl = href || `${t.siteUrl || ''}/programs/?city=${encodeURIComponent(summary.key)}`;
+  const detailItems = [
+    summary.typeCounts.lessons ? `${summary.typeCounts.lessons} Lesson${summary.typeCounts.lessons === 1 ? '' : 's'}` : '',
+    summary.typeCounts.leagues ? `${summary.typeCounts.leagues} League${summary.typeCounts.leagues === 1 ? '' : 's'}` : '',
+    summary.typeCounts.camps ? `${summary.typeCounts.camps} Camp${summary.typeCounts.camps === 1 ? '' : 's'}` : '',
+  ].filter(Boolean);
+
+  return (
+    <article
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+      position: 'relative',
+      display: 'grid',
+      gap: isMobile ? 14 : 16,
+      alignItems: 'start',
+      background: 'var(--ea-white, #fff)',
+      border: `1px solid ${hover ? 'rgba(10, 152, 214, 0.35)' : 'var(--border-card, #E5E5E5)'}`,
+      borderRadius: 8,
+      boxShadow: 'var(--shadow-card, 0 1px 4px rgba(16,65,79,.04))',
+      padding: isMobile ? '18px 20px' : '22px 24px',
+      fontFamily: 'var(--font-body)',
+      transition: 'border-color .15s ease',
+      cursor: 'pointer',
+    }}>
+      <a
+        href={cityUrl}
+        aria-label={`View programs in ${summary.displayName}`}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          borderRadius: 8,
+          textDecoration: 'none',
+        }}
+      />
+      <div style={{ minWidth: 0 }}>
+        <h3 style={{
+          fontFamily: 'var(--font-body)',
+          fontWeight: 'var(--fw-bold)',
+          fontSize: isMobile ? 20 : 22,
+          lineHeight: 1.18,
+          color: 'var(--ea-teal-800, #0B5364)',
+          margin: 0,
+          textTransform: 'none',
+          letterSpacing: 'var(--ls-body)',
+        }}>
+          {summary.displayName}
+        </h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+          {statusChips.map((label) => <ProgramChip key={label} label={label} />)}
+        </div>
+        <p style={{
+          margin: '10px 0 0',
+          fontFamily: 'var(--font-body)',
+          fontSize: isMobile ? 14 : 15,
+          color: 'var(--ea-slate, #47636B)',
+          lineHeight: 1.35,
+        }}>
+          {detailItems.length ? detailItems.join(' · ') : 'Programs available'}
+        </p>
+      </div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        marginTop: 2,
+      }}>
+        <div style={{ position: 'relative', zIndex: 2, display: 'inline-flex', minWidth: 0, overflow: 'visible' }}>
+          <ProgramSubscribeButton city={summary.city} isMobile={isMobile} onSubscribe={onSubscribe} />
+        </div>
+      </div>
+    </article>
+  );
+}
+
 // Popup newsletter signup, opened from a location card's Subscribe button. Mirrors
 // the Free Trial confirmation modal: enter email → submit → confirmation, all in place.
 // When `startSubmitted` is true it opens straight to the thank-you view — used as a
@@ -1297,6 +1476,7 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
 
 function ProgramsSection({ DS, isMobile, t }) {
   const { SectionHeading, Button } = DS;
+  const cityRecords = useCitiesFeed();
   const programsHref = `${t.siteUrl || ''}/programs/`;
   const configuredViewAllLink = t.links && t.links.programsViewAll;
   const viewAllLink = configuredViewAllLink && (configuredViewAllLink.section || configuredViewAllLink.url)
@@ -1315,8 +1495,7 @@ function ProgramsSection({ DS, isMobile, t }) {
     }
   };
   // Sports to include come from the Customizer (EA Options -> Active Programs sports).
-  const selectedSports = (t.options && Array.isArray(t.options.sports) && t.options.sports.length)
-    ? t.options.sports : ['bad'];
+  const selectedSports = ['pb'];
   // Visitor location for nearest-first sorting (null until they opt in).
   const [userCoords, setUserCoords] = useState(null);
   const [locating, setLocating] = useState(false);
@@ -1340,7 +1519,10 @@ function ProgramsSection({ DS, isMobile, t }) {
   const rows = useProgramsFeed();
   const feed = rows ? buildProgramList(rows, selectedSports, userCoords) : null;
   const homepageFeed = feed ? feed.filter((program) => !isPickleballComingSoonProgram(program)) : null;
-  const cards = ((homepageFeed && homepageFeed.length ? homepageFeed : buildProgramList(PROGRAM_FALLBACKS, selectedSports, userCoords)) || []).slice(0, PROGRAMS_LIMIT);
+  const cityCards = buildCityList(
+    (homepageFeed && homepageFeed.length ? homepageFeed : buildProgramList(PROGRAM_FALLBACKS, selectedSports, userCoords)) || [],
+    userCoords
+  ).slice(0, PROGRAMS_LIMIT);
   // Which location's newsletter popup is open (null = closed).
   const [subscribeLoc, setSubscribeLoc] = useState(null);
   return (
@@ -1384,10 +1566,16 @@ function ProgramsSection({ DS, isMobile, t }) {
       {geoError && (
         <p role="alert" style={{ marginTop: 10, marginBottom: 0, fontFamily: 'var(--font-body, sans-serif)', fontSize: 14, color: 'var(--ea-error, #C0392B)' }}>{geoError}</p>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: isMobile ? 10 : 12, marginTop: isMobile ? 18 : 16 }}>
-        {cards.map((program, index) => (
-          <CardHover key={`${program.Title || 'program'}-${program.City || 'city'}-${program['Start Date'] || index}`}>
-            <ActiveProgramCard program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: isMobile ? 10 : 12, marginTop: isMobile ? 18 : 16 }}>
+        {cityCards.map((summary) => (
+          <CardHover key={summary.key}>
+            <CityProgramCard
+              summary={summary}
+              isMobile={isMobile}
+              onSubscribe={setSubscribeLoc}
+              t={t}
+              href={summaryCityHref(summary, cityRecords, t)}
+            />
           </CardHover>
         ))}
       </div>
@@ -1466,7 +1654,7 @@ function CommunitySection({ DS, isMobile, t }) {
             : <h2 style={FB.h(32)}>{t.texts.communityHeading || 'Want to be a part of the community?'}</h2>
           }
           <p style={{ ...bodyStyle, marginTop: 16 }}>
-            {t.texts.communityDesc1 || 'From first-timers to future champions, Elevation Athletics badminton is built around fun, inclusive play for every family.'}
+            {t.texts.communityDesc1 || 'From first-timers to future champions, Elevation Athletics pickleball is built around fun, inclusive play for every community.'}
           </p>
           <p style={{ ...bodyStyle, marginTop: 12 }}>
             {t.texts.communityDesc2 || 'Join a welcoming community of players, parents, and coaches who make every session something to look forward to.'}
@@ -1477,8 +1665,8 @@ function CommunitySection({ DS, isMobile, t }) {
       {/* Bottom: two promo cards with solid-colour image areas */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, marginTop: isMobile ? 32 : 24 }}>
         {[
-          { bg: 'var(--ea-sky, #46AFE3)',  img: t.images.communityLeft,  focus: communityLeftFocus,  title: t.texts.partnershipsTitle || 'Community Partnerships',   cta: t.texts.partnershipsCta || 'Learn More',  link: t.links.partnershipsCta, blurb: t.texts.partnershipsBlurb || 'Help bring inclusive, low-cost badminton to your township. We\'ll set you up with courts, coaching, and leagues.' },
-          { bg: 'var(--ea-peach, #FFBB91)', img: t.images.communityRight, focus: communityRightFocus, title: t.texts.leadersTitle || 'Become a Community Leader', cta: t.texts.leadersCta || 'Apply Today', link: t.links.leadersCta, blurb: t.texts.leadersBlurb || 'Help bring inclusive, low-cost badminton to your township. We\'ll set you up with courts, coaching, and leagues.' },
+          { bg: 'var(--ea-sky, #46AFE3)',  img: t.images.communityLeft,  focus: communityLeftFocus,  title: t.texts.partnershipsTitle || 'Community Partnerships',   cta: t.texts.partnershipsCta || 'Learn More',  link: t.links.partnershipsCta, blurb: t.texts.partnershipsBlurb || 'Help bring inclusive, low-cost pickleball to your township. We\'ll set you up with courts, coaching, and leagues.' },
+          { bg: 'var(--ea-peach, #FFBB91)', img: t.images.communityRight, focus: communityRightFocus, title: t.texts.leadersTitle || 'Become a Community Leader', cta: t.texts.leadersCta || 'Apply Today', link: t.links.leadersCta, blurb: t.texts.leadersBlurb || 'Help bring inclusive, low-cost pickleball to your township. We\'ll set you up with courts, coaching, and leagues.' },
         ].map(({ bg, img, focus, title, cta, link, blurb }) => (
           // Background is the admin image (cover) when set, else the solid colour.
           // `focus` sets which part of the image stays visible (never cropped).
@@ -1649,7 +1837,7 @@ function NewsletterSection({ DS, isMobile, t }) {
     }
   };
 
-  // Decorative badminton scene behind the form (different art for mobile vs desktop).
+  // Decorative pickleball scene behind the form (different art for mobile vs desktop).
   // Admin-set Customizer images (EA Images → Newsletter image / (mobile)) override the bundled art.
   const decor = isMobile
     ? (t.images.newsletterMobile || t.asset('newsletter-mobile.svg'))

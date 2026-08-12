@@ -430,7 +430,7 @@ const FOOTER_QUICK_LINKS = [
 ];
 const FOOTER_MORE_SPORTS = [
   { label: 'Basketball',              href: '#' },
-  { label: 'Badminton',              href: '#' },
+  { label: 'Pickleball',            href: '#' },
   { label: 'Camps',                  href: '#' },
   { label: 'Community Partnerships', href: '#' },
 ];

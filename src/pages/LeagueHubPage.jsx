@@ -7,14 +7,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { Layout, useDSComponents, useViewport, getThemeData, FB } from '../lib/shared.jsx';
 import { ViewToggle, LeagueHubMapView, LeagueHubCalendarView } from './LeagueHubMapCalendar.jsx';
 import { resolveVenueCoords } from '../data/venueCoords.js';
+import { summaryCityHref, useCitiesFeed } from '../data/cities.js';
 
 const SCROLL_OFFSET = 100;
-const PROGRAMS_DATA_URL = 'https://sleep-status.github.io/ea-programs-json/data/programs.json';
+export const PROGRAMS_DATA_URL = 'https://sleep-status.github.io/ea-programs-json/data/programs.json';
 const LIST_BATCH_SIZE = 12;
 
 const FALLBACK_PROGRAMS = [
   {
-    Title: 'Richmond Hill - Jr. Badminton (8 - 10 yrs)',
+    Title: 'Richmond Hill - Learn to Play Pickleball: Beginner',
     TotalPrice: 134,
     StaticPriceText: '134',
     Day: 'Mondays',
@@ -23,7 +24,7 @@ const FALLBACK_PROGRAMS = [
     'End Date': '2026-08-20',
     SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
     LocationName: 'Langstaff CC',
-    RegisterLink: 'https://eabadminton.com/signup/',
+    RegisterLink: 'https://eapickleball.com/programs/',
     City: 'Richmond Hill',
     Category: 'TS',
     sport: 'bad',
@@ -33,7 +34,7 @@ const FALLBACK_PROGRAMS = [
     MaxAge: '10',
   },
   {
-    Title: 'Richmond Hill - Jr. Badminton (11 - 13 yrs)',
+    Title: 'Richmond Hill - Pickleball League: Beginner',
     TotalPrice: 134,
     StaticPriceText: '134',
     Day: 'Mondays',
@@ -42,7 +43,7 @@ const FALLBACK_PROGRAMS = [
     'End Date': '2026-08-20',
     SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
     LocationName: 'Langstaff CC',
-    RegisterLink: 'https://eabadminton.com/signup/',
+    RegisterLink: 'https://eapickleball.com/programs/',
     City: 'Richmond Hill',
     Category: 'TS',
     sport: 'bad',
@@ -52,7 +53,7 @@ const FALLBACK_PROGRAMS = [
     MaxAge: '13',
   },
   {
-    Title: 'Newmarket - Advanced Jr. Badminton (9 - 18 yrs)',
+    Title: 'Newmarket - Learn to Play Pickleball: Intermediate',
     TotalPrice: 240,
     StaticPriceText: '240',
     Day: 'Mondays',
@@ -61,7 +62,7 @@ const FALLBACK_PROGRAMS = [
     'End Date': '2026-08-20',
     SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
     LocationName: 'Dr J.M. Dennison',
-    RegisterLink: 'https://eabadminton.com/signup/',
+    RegisterLink: 'https://eapickleball.com/programs/',
     City: 'Newmarket',
     Category: 'TS',
     sport: 'bad',
@@ -117,6 +118,7 @@ const normSearch = (v) => norm(v).replace(/[.,]/g, '').replace(/\s+/g, ' ').trim
 // creating one-off matching logic per city.
 const CITY_SEARCH_SYNONYMS = [
   ['fonthill', 'welland'],
+  ['bolton', 'caledon'],
 ];
 function citySearchSynonyms(city) {
   const c = normSearch(city);
@@ -310,8 +312,8 @@ function sortPrograms(programs, userCoords) {
   });
 }
 
-function normalizePrograms(rows, sports, userCoords) {
-  const allow = new Set(sports && sports.length ? sports : ['bad']);
+export function normalizePrograms(rows, sports, userCoords) {
+  const allow = new Set(sports && sports.length ? sports : ['pb']);
   const todayMs = todayStart().getTime();
 
   const decorated = rows
@@ -342,7 +344,7 @@ function normalizePrograms(rows, sports, userCoords) {
 // rows === null the page rendered the "No programs match those filters."
 // empty state while the feed was still in flight, so every visitor saw
 // "no programs" first and the real list second.
-function useProgramsFeed() {
+export function useProgramsFeed() {
   const [state, setState] = useState({ rows: null, status: 'loading' });
   useEffect(() => {
     let alive = true;
@@ -457,7 +459,7 @@ export function chipStyle(label) {
   return { bg: '#BDEEFF', color: '#0B5B73' };
 }
 
-function ProgramChip({ label }) {
+export function ProgramChip({ label }) {
   const styles = chipStyle(label);
   return (
     <span style={{
@@ -474,7 +476,7 @@ function ProgramChip({ label }) {
 }
 
 function cleanProgramTitle(p) {
-  return String(p.Title || 'Badminton Program')
+  return String(p.Title || 'Pickleball Program')
     .trim()
     .replace(/\s*-\s*/g, ' – ')
     .replace(/\((\d+\s*[-–]\s*\d+)\)/g, '($1 yrs)')
@@ -536,8 +538,8 @@ export function ProgramSubscribeButton({ city, sessionStart = '', programSummary
   );
 }
 
-function siteSport(t) {
-  return (t.defaults && t.defaults.sport) || 'Badminton';
+export function siteSport(t) {
+  return (t.defaults && t.defaults.sport) || 'Pickleball';
 }
 
 function sportBrand(t) {
@@ -650,7 +652,192 @@ export function ProgramCard({ program, isMobile, onSubscribe, stacked = false, t
   );
 }
 
-function NewsletterModal({ DS, t, location, onClose }) {
+export function citySlug(city) {
+  return norm(city).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function programProvince(program) {
+  return String(program.Province || program.province || '').trim();
+}
+
+export function cityDisplayName(city, province) {
+  return [city, province].filter(Boolean).join(', ');
+}
+
+function cityTypeCounts(programs) {
+  return programs.reduce((acc, program) => {
+    const type = norm(typeLabel(program));
+    if (type.includes('league')) acc.leagues += 1;
+    else if (type.includes('camp')) acc.camps += 1;
+    else acc.lessons += 1;
+    return acc;
+  }, { lessons: 0, leagues: 0, camps: 0 });
+}
+
+export function cityStatus(summary) {
+  if (!summary.programCount) return 'Inactive';
+  if (summary.availableCount === 0) return 'Coming Soon';
+  if (summary.allFull) return 'Full - Join Waitlist';
+  if (summary.allClosed) return 'Enrollment Closed';
+  if (summary.startingSoonCount > 0) return 'Starting Soon';
+  if (summary.inProgressCount > 0) return 'In Progress';
+  return 'Enrollment Open';
+}
+
+export function cityStatusChips(summary) {
+  const activeCount = summary.availableCount || summary.programCount;
+  const countLabel = `${activeCount} Active Program${activeCount === 1 ? '' : 's'}`;
+  const chips = [countLabel];
+
+  if (activeCount > 0 && !summary.allClosed) chips.push('Enrollment Open');
+  if (summary.startingSoonCount > 0) chips.push('Starting Soon');
+
+  if (chips.length === 1) chips.push(cityStatus(summary));
+
+  return chips;
+}
+
+export function buildCitySummaries(programs, userCoords, includeInactive = false) {
+  const byCity = new Map();
+  programs.forEach((program) => {
+    const city = String(program.City || '').trim();
+    const key = cityKey(program);
+    if (!city || !key) return;
+    if (!byCity.has(key)) {
+      byCity.set(key, {
+        key,
+        slug: citySlug(city),
+        city,
+        province: programProvince(program),
+        coords: program._coords || null,
+        programs: [],
+      });
+    }
+    const summary = byCity.get(key);
+    if (!summary.province) summary.province = programProvince(program);
+    if (!summary.coords && program._coords) summary.coords = program._coords;
+    summary.programs.push(program);
+  });
+
+  return [...byCity.values()]
+    .map((summary) => {
+      const programsForCity = summary.programs;
+      const availablePrograms = programsForCity.filter((program) => !program._comingSoon);
+      const nextProgram = programsForCity
+        .map((program) => ({ program, start: program._startMs ?? Infinity }))
+        .sort((a, b) => a.start - b.start)[0]?.program || null;
+      const distance = userCoords && summary.coords ? haversineKm(userCoords, summary.coords) : Infinity;
+      const typeCounts = cityTypeCounts(programsForCity);
+      const allFull = availablePrograms.length > 0 && availablePrograms.every((program) => program._full);
+      const allClosed = availablePrograms.length > 0 && availablePrograms.every((program) => !program._open);
+      const inactive = availablePrograms.length === 0;
+
+      return {
+        ...summary,
+        displayName: cityDisplayName(summary.city, summary.province),
+        programCount: programsForCity.length,
+        availableCount: availablePrograms.length,
+        startingSoonCount: availablePrograms.filter((program) => program._startingSoon).length,
+        inProgressCount: availablePrograms.filter((program) => program._inProgress).length,
+        fullCount: availablePrograms.filter((program) => program._full).length,
+        allFull,
+        allClosed,
+        inactive,
+        typeCounts,
+        nextProgram,
+        nextStart: nextProgram ? nextProgram._startMs ?? Infinity : Infinity,
+        distance,
+      };
+    })
+    .filter((summary) => includeInactive || !summary.inactive)
+    .sort((a, b) => {
+      if (userCoords && a.distance !== b.distance) return a.distance - b.distance;
+      if (a.inactive !== b.inactive) return a.inactive ? 1 : -1;
+      if (a.nextStart !== b.nextStart) return a.nextStart - b.nextStart;
+      return a.displayName.localeCompare(b.displayName);
+    });
+}
+
+export function LeagueCityCard({ summary, isMobile = false, onSubscribe, t, href }) {
+  const [hover, setHover] = useState(false);
+  const statusChips = cityStatusChips(summary);
+  const cityUrl = href || `${t.siteUrl || ''}/programs/?city=${encodeURIComponent(summary.key)}`;
+  const detailItems = [
+    summary.typeCounts.lessons ? `${summary.typeCounts.lessons} Lesson${summary.typeCounts.lessons === 1 ? '' : 's'}` : '',
+    summary.typeCounts.leagues ? `${summary.typeCounts.leagues} League${summary.typeCounts.leagues === 1 ? '' : 's'}` : '',
+    summary.typeCounts.camps ? `${summary.typeCounts.camps} Camp${summary.typeCounts.camps === 1 ? '' : 's'}` : '',
+  ].filter(Boolean);
+
+  return (
+    <article
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+      position: 'relative',
+      display: 'grid',
+      gap: isMobile ? 14 : 16,
+      alignItems: 'start',
+      background: '#fff',
+      border: `1px solid ${hover ? 'rgba(10, 152, 214, 0.35)' : 'var(--border-card, #E5E5E5)'}`,
+      borderRadius: 8,
+      boxShadow: hover ? '0 4px 18px rgba(16,65,79,.07)' : '0 1px 4px rgba(16,65,79,.04)',
+      padding: isMobile ? '18px 20px' : '22px 24px',
+      fontFamily: 'var(--font-body)',
+      transition: 'border-color .15s ease, box-shadow .15s ease',
+      cursor: 'pointer',
+    }}>
+      <a
+        href={cityUrl}
+        aria-label={`View programs in ${summary.displayName}`}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          borderRadius: 8,
+          textDecoration: 'none',
+        }}
+      />
+      <div style={{ minWidth: 0 }}>
+        <h3 style={{
+          margin: 0,
+          fontFamily: 'var(--font-body)',
+          fontWeight: 'var(--fw-bold)',
+          fontSize: isMobile ? 20 : 22,
+          lineHeight: 1.18,
+          letterSpacing: 'var(--ls-body)',
+          textTransform: 'none',
+          color: 'var(--ea-teal-800, #0B5364)',
+        }}>
+          {summary.displayName}
+        </h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+          {statusChips.map((label) => <ProgramChip key={label} label={label} />)}
+        </div>
+        <p style={{
+          margin: '10px 0 0',
+          fontFamily: 'var(--font-body)',
+          fontSize: isMobile ? 14 : 15,
+          color: 'var(--ea-slate, #47636B)',
+          lineHeight: 1.35,
+        }}>
+          {detailItems.length ? detailItems.join(' · ') : 'Programs available'}
+        </p>
+      </div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        marginTop: 2,
+      }}>
+        <div style={{ position: 'relative', zIndex: 2, display: 'inline-flex', minWidth: 0, overflow: 'visible' }}>
+          <ProgramSubscribeButton city={summary.city} isMobile={isMobile} onSubscribe={onSubscribe} />
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export function NewsletterModal({ DS, t, location, onClose }) {
   const { Button } = DS;
   const [email, setEmail] = useState('');
   const [website, setWebsite] = useState('');
@@ -835,7 +1022,21 @@ function filterPrograms(programs, filters) {
   });
 }
 
-function LeagueHubFilters({ filters, setFilters, locationFilter, onLocationChange, onFilterChange, onClearFilters, cities, options, isMobile }) {
+function LeagueHubFilters({
+  filters,
+  setFilters,
+  locationFilter,
+  onLocationChange,
+  provinceFilter,
+  onProvinceChange,
+  onFilterChange,
+  onClearFilters,
+  provinces,
+  options,
+  isMobile,
+  showInactiveCities,
+  onShowInactiveCitiesChange,
+}) {
   const show = (key) => options[key] !== false;
   const update = (key) => (value) => {
     if (key === 'location') {
@@ -852,12 +1053,10 @@ function LeagueHubFilters({ filters, setFilters, locationFilter, onLocationChang
   const clear = () => {
     setFilters({ ...DEFAULT_FILTERS });
     onLocationChange('');
+    onProvinceChange('');
+    onShowInactiveCitiesChange(false);
     if (onClearFilters) onClearFilters();
   };
-  const ageOptions = Array.from({ length: 14 }, (_, index) => {
-    const age = index + 5;
-    return { value: String(age), label: age === 18 ? '18+' : `${age}` };
-  });
 
   return (
     <div style={{ display: 'grid', gap: 10, marginTop: isMobile ? 16 : 20 }}>
@@ -891,12 +1090,32 @@ function LeagueHubFilters({ filters, setFilters, locationFilter, onLocationChang
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)', fontSize: 15 }}>
             <FilterIcon /> Filter By:
           </span>
-          {show('leagueHubFilterLevel') && <SelectChip filterKey="level" label="Skill Level" value={filters.level} onChange={update('level')} options={[{ value: 'beginner', label: 'Beginner' }, { value: 'experienced beginner', label: 'Experienced Beginner' }, { value: 'intermediate', label: 'Intermediate' }, { value: 'advanced', label: 'Advanced' }]} />}
-          {show('leagueHubFilterType') && <SelectChip filterKey="type" label="Program Type" value={filters.type} onChange={update('type')} options={[{ value: 'lessons', label: 'Lessons' }, { value: 'leagues', label: 'Leagues' }, { value: 'camps', label: 'Camps' }]} />}
-          {show('leagueHubFilterAge') && <SelectChip filterKey="age" label="Age" value={filters.age} onChange={update('age')} options={ageOptions} />}
-          {show('leagueHubFilterTime') && <SelectChip filterKey="time" label="Time" value={filters.time} onChange={update('time')} options={[{ value: 'morning', label: 'Mornings' }, { value: 'afternoon', label: 'Afternoons' }, { value: 'evening', label: 'Evenings' }]} />}
-          {show('leagueHubFilterDays') && <SelectChip filterKey="days" label="Days" value={filters.days} onChange={update('days')} options={[{ value: 'weekdays', label: 'Weekdays' }, { value: 'weekends', label: 'Weekends' }]} />}
-          {show('leagueHubFilterLocation') && <SelectChip filterKey="location" label="Location" value={locationFilter} onChange={update('location')} options={cities.map((city) => ({ value: norm(city), label: city }))} />}
+          <SelectChip filterKey="province" label="Province" value={provinceFilter} onChange={(value) => {
+            onProvinceChange(value);
+            if (onFilterChange) onFilterChange('province', value);
+          }} options={provinces.map((province) => ({ value: norm(province), label: province }))} />
+          <label style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 7,
+            minHeight: 28,
+            padding: '5px 9px',
+            borderRadius: 7,
+            background: '#F1F4FA',
+            color: '#405C66',
+            fontFamily: 'var(--font-body)',
+            fontSize: 14,
+            fontWeight: 'var(--fw-medium)',
+            cursor: 'pointer',
+          }}>
+            <input
+              type="checkbox"
+              checked={showInactiveCities}
+              onChange={(event) => onShowInactiveCitiesChange(event.currentTarget.checked)}
+              style={{ margin: 0 }}
+            />
+            Show inactive cities
+          </label>
         </div>
         <button type="button" onClick={clear} style={{ flex: '0 0 auto', alignSelf: isMobile ? 'flex-end' : 'center', border: 'none', background: 'transparent', color: '#2E91C8', fontFamily: 'var(--font-body)', fontSize: 14, cursor: 'pointer', padding: isMobile ? '6px 0 0' : 0 }}>
           Clear Filters
@@ -911,23 +1130,26 @@ export default function LeagueHubPage() {
   const { isMobile } = useViewport();
   const t = getThemeData();
   const { rows, status: feedStatus } = useProgramsFeed();
+  const cityRecords = useCitiesFeed();
   const [userCoords, setUserCoords] = useState(null);
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState('');
   const [subscribeLoc, setSubscribeLoc] = useState(null);
   const [filters, setFilters] = useState({ ...DEFAULT_FILTERS });
-  const [locationFilter, setLocationFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const params = new URLSearchParams(window.location.search);
+    return norm(params.get('city') || '');
+  });
+  const [provinceFilter, setProvinceFilter] = useState('');
+  const [showInactiveCities, setShowInactiveCities] = useState(false);
   const [view, setView] = useState('list');
   const [visibleCount, setVisibleCount] = useState(LIST_BATCH_SIZE);
   const showMapView = !(t.options && t.options.leagueHubShowMapView === false);
   const showCalendarView = !(t.options && t.options.leagueHubShowCalendarView === false);
   const showComingSoon = t.options && t.options.leagueHubShowComingSoon === true;
 
-  const selectedSports = (t.options && Array.isArray(t.options.leagueHubSports) && t.options.leagueHubSports.length)
-    ? t.options.leagueHubSports
-    : (t.options && Array.isArray(t.options.sports) && t.options.sports.length)
-      ? t.options.sports
-      : ['bad'];
+  const selectedSports = ['pb'];
 
   useEffect(() => {
     const optionKeyByFilter = {
@@ -957,20 +1179,31 @@ export default function LeagueHubPage() {
     }
   }, [t.options]);
 
-  const programs = useMemo(() => {
-    const normalized = normalizePrograms(rows || FALLBACK_PROGRAMS, selectedSports, userCoords);
-    return showComingSoon ? normalized : normalized.filter((program) => !program._comingSoon);
-  }, [rows, selectedSports, userCoords, showComingSoon]);
+  const allPrograms = useMemo(
+    () => normalizePrograms(rows || FALLBACK_PROGRAMS, selectedSports, userCoords),
+    [rows, selectedSports, userCoords]
+  );
+  const programs = useMemo(
+    () => (showComingSoon ? allPrograms : allPrograms.filter((program) => !program._comingSoon)),
+    [allPrograms, showComingSoon]
+  );
+  const citySourcePrograms = showInactiveCities ? allPrograms : programs;
   const filteredPrograms = useMemo(() => (
     locationFilter
-      ? programs.filter((program) => program._city === locationFilter)
-      : filterPrograms(programs, filters)
-  ), [programs, filters, locationFilter]);
-  const visibleListPrograms = useMemo(
-    () => filteredPrograms.slice(0, visibleCount),
-    [filteredPrograms, visibleCount]
+      ? citySourcePrograms.filter((program) => program._city === locationFilter)
+      : filterPrograms(citySourcePrograms, filters)
+  ), [citySourcePrograms, filters, locationFilter]);
+  const filteredCitySummaries = useMemo(
+    () => buildCitySummaries(filteredPrograms, userCoords, showInactiveCities).filter((summary) => (
+      !provinceFilter || norm(summary.province) === provinceFilter
+    )),
+    [filteredPrograms, userCoords, showInactiveCities, provinceFilter]
   );
-  const hasMoreListPrograms = view === 'list' && visibleCount < filteredPrograms.length;
+  const visibleCitySummaries = useMemo(
+    () => filteredCitySummaries.slice(0, visibleCount),
+    [filteredCitySummaries, visibleCount]
+  );
+  const hasMoreListCities = view === 'list' && visibleCount < filteredCitySummaries.length;
   const listRenderKey = [
     locationFilter || 'all-locations',
     filters.search,
@@ -979,18 +1212,29 @@ export default function LeagueHubPage() {
     filters.age,
     filters.time,
     filters.days,
+    provinceFilter || 'all-provinces',
     userCoords ? 'near-me' : 'default-sort',
     showComingSoon ? 'with-coming-soon' : 'without-coming-soon',
+    showInactiveCities ? 'show-inactive-cities' : 'hide-inactive-cities',
   ].join('|');
   const cities = useMemo(() => {
     const byKey = new Map();
-    programs.forEach((p) => {
+    allPrograms.forEach((p) => {
       const label = String(p.City || '').trim();
       const key = cityKey(p);
       if (label && key && !byKey.has(key)) byKey.set(key, label);
     });
     return [...byKey.values()].sort((a, b) => a.localeCompare(b));
-  }, [programs]);
+  }, [allPrograms]);
+  const provinces = useMemo(() => {
+    const byKey = new Map();
+    allPrograms.forEach((program) => {
+      const province = programProvince(program);
+      const key = norm(province);
+      if (province && key && !byKey.has(key)) byKey.set(key, province);
+    });
+    return [...byKey.values()].sort((a, b) => a.localeCompare(b));
+  }, [allPrograms]);
 
   const resetFiltersAndSort = () => {
     setUserCoords(null);
@@ -1026,6 +1270,9 @@ export default function LeagueHubPage() {
       const value = target.value;
       if (key === 'location') {
         handleLocationChange(value);
+      } else if (key === 'province') {
+        setProvinceFilter(norm(value));
+        handleFilterChange(key, value);
       } else {
         setFilters((current) => ({ ...current, [key]: value }));
         handleFilterChange(key, value);
@@ -1056,6 +1303,7 @@ export default function LeagueHubPage() {
 
   const backdrop = t.images.leagueHubBackdrop || '';
   const showSubheading = t.options.leagueHubShowSubheading === true;
+  const cityGridColumns = isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))';
 
   return (
     <Layout>
@@ -1109,7 +1357,22 @@ export default function LeagueHubPage() {
             {geoError && <p role="alert" style={{ margin: '10px 0 0', color: 'var(--ea-error, #C0392B)', fontFamily: 'var(--font-body)', fontSize: 14 }}>{geoError}</p>}
           </div>
 
-          <LeagueHubFilters filters={filters} setFilters={setFilters} locationFilter={locationFilter} onLocationChange={handleLocationChange} onFilterChange={handleFilterChange} onClearFilters={resetFiltersAndSort} cities={cities} options={t.options} isMobile={isMobile} />
+          <LeagueHubFilters
+            filters={filters}
+            setFilters={setFilters}
+            locationFilter={locationFilter}
+            onLocationChange={handleLocationChange}
+            provinceFilter={provinceFilter}
+            onProvinceChange={(value) => setProvinceFilter(norm(value))}
+            onFilterChange={handleFilterChange}
+            onClearFilters={resetFiltersAndSort}
+            cities={cities}
+            provinces={provinces}
+            options={t.options}
+            isMobile={isMobile}
+            showInactiveCities={showInactiveCities}
+            onShowInactiveCitiesChange={setShowInactiveCities}
+          />
 
           {(showMapView || showCalendarView) && (
             <ViewToggle view={view} setView={setView} isMobile={isMobile} showMap={showMapView} showCalendar={showCalendarView} />
@@ -1120,9 +1383,21 @@ export default function LeagueHubPage() {
               changed the key and React tore down and rebuilt every card.
               Cards now reconcile on their own stable program._key. */}
           {view === 'list' && (
-            <div style={{ display: 'grid', gap: isMobile ? 10 : 12, marginTop: 12 }}>
-              {filteredPrograms.length ? visibleListPrograms.map((program) => (
-                <ProgramCard key={program._key} program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: cityGridColumns,
+              gap: isMobile ? 10 : 12,
+              marginTop: 12,
+            }}>
+              {filteredCitySummaries.length ? visibleCitySummaries.map((summary) => (
+                <LeagueCityCard
+                  key={summary.key}
+                  summary={summary}
+                  isMobile={isMobile}
+                  onSubscribe={setSubscribeLoc}
+                  t={t}
+                  href={summaryCityHref(summary, cityRecords, t)}
+                />
               )) : feedStatus === 'loading' ? (
                 <div style={{ ...FB.card, textAlign: 'center' }}>
                   <strong>Loading programs…</strong>
@@ -1138,8 +1413,8 @@ export default function LeagueHubPage() {
                   <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)' }}>Try clearing one filter or searching a nearby city.</p>
                 </div>
               )}
-              {hasMoreListPrograms && (
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: isMobile ? 8 : 12 }}>
+              {hasMoreListCities && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: isMobile ? 8 : 12, gridColumn: '1 / -1' }}>
                   <button
                     type="button"
                     onClick={() => setVisibleCount((count) => count + LIST_BATCH_SIZE)}
@@ -1159,7 +1434,7 @@ export default function LeagueHubPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    Load More Programs
+                    Load More Cities
                   </button>
                 </div>
               )}

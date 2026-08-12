@@ -9,7 +9,7 @@
  * original as possible and run as plain DOM code inside a single effect,
  * the same way they ran in the prototype - not rewritten as JSX.
  *
- * The only new code is the adapter at the top that maps the real badminton
+ * The only new code is the adapter at the top that maps the real pickleball
  * feed's fields (Title, City, Day, Time, SessionDates, ...) onto the shape
  * the copied code expects (name, lat, lng, location, dates, days, time,
  * price, ...), since the prototype's mock data used different field names
@@ -20,7 +20,12 @@
 import { useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
-import { resolveVenueCoords, venueKeyFor } from '../data/venueCoords.js';
+import {
+  needsRuntimeVenueLookup,
+  registerRuntimeVenueCoords,
+  resolveVenueCoords,
+  venueKeyFor,
+} from '../data/venueCoords.js';
 
 const LEAFLET_CSS_URL = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 const LEAFLET_JS_URL = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
@@ -60,7 +65,7 @@ function adaptProgram(p, index) {
 
   return {
     id: `bad-${index}-${p.Title || ''}`,
-    name: p.Title || 'Badminton Program',
+    name: p.Title || 'Pickleball Program',
     ctaTags: [],
     lat: coords ? coords.lat : null,
     lng: coords ? coords.lng : null,
@@ -76,10 +81,10 @@ function adaptProgram(p, index) {
     facility: p.LocationName || '',
     price: price || 'See website',
     priceNote: '',
-    sport: 'Badminton',
+    sport: 'Pickleball',
     badge: isFull ? 'Full' : 'Registration Open',
     badgeKey: isFull ? 'full' : 'open',
-    registerLink: p.RegisterLink || 'https://eabadminton.com/signup/',
+    registerLink: p.RegisterLink || 'https://eapickleball.com/programs/',
     raw: p,
   };
 }
@@ -480,6 +485,47 @@ export function LeagueHubMapView({ programs, SubscribeButton, onSubscribe, isMob
   stateRef.current.onSubscribe = onSubscribe;
   stateRef.current.ProgramCard = ProgramCard;
   stateRef.current.t = t;
+
+  useEffect(() => {
+    let cancelled = false;
+    const s = stateRef.current;
+    const apiUrl = (t && t.apiUrl) || '/wp-json/';
+
+    async function resolveMissingVenues() {
+      let pending = Array.from(new Set(
+        programs.filter(needsRuntimeVenueLookup).map((p) => p.LocationLink).filter(Boolean),
+      ));
+      let rounds = 0;
+
+      while (!cancelled && pending.length && rounds < 6) {
+        rounds++;
+        try {
+          const res = await fetch(`${apiUrl}ea/v1/venue-coords`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ links: pending }),
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (registerRuntimeVenueCoords(data && data.coords)) {
+            s.allPrograms = programs.map(adaptProgram);
+            if (s.map && s.syncMarkersAndList) {
+              s.syncMarkersAndList(window.L, false);
+            }
+          }
+          pending = Array.isArray(data && data.pending) ? data.pending : [];
+        } catch {
+          return;
+        }
+      }
+    }
+
+    resolveMissingVenues();
+    return () => {
+      cancelled = true;
+    };
+  }, [programs, t]);
 
   useEffect(() => {
     const s = stateRef.current;

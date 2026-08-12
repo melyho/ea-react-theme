@@ -194,6 +194,7 @@ function ea_react_image_fields() {
         'ea_img_featured_article_3' => array( 'key' => 'featuredArticle3', 'label' => 'Featured Articles — Article 3 image' ),
         'ea_img_featured_article_4' => array( 'key' => 'featuredArticle4', 'label' => 'Featured Articles — Article 4 image' ),
         'ea_img_league_hub_backdrop' => array( 'key' => 'leagueHubBackdrop', 'label' => 'League Hub — subtle background' ),
+        'ea_img_city_programs_backdrop' => array( 'key' => 'cityProgramsBackdrop', 'label' => 'City Programs — subtle background' ),
         'ea_img_faq_question_squid' => array( 'key' => 'faqQuestionSquid', 'label' => 'FAQ — question mascot image' ),
     );
 }
@@ -391,7 +392,7 @@ function ea_react_text_fields() {
         ),
         'ea_txt_community_desc_1' => array(
             'key' => 'communityDesc1', 'label' => 'Community — Paragraph 1', 'type' => 'textarea',
-            'default' => 'From first-timers to future champions, Elevation Athletics badminton is built around fun, inclusive play for every family.',
+            'default' => 'From first-timers to future champions, Elevation Athletics pickleball is built around fun, inclusive play for every community.',
         ),
         'ea_txt_community_desc_2' => array(
             'key' => 'communityDesc2', 'label' => 'Community — Paragraph 2', 'type' => 'textarea',
@@ -403,7 +404,7 @@ function ea_react_text_fields() {
         ),
         'ea_txt_partnerships_blurb' => array(
             'key' => 'partnershipsBlurb', 'label' => 'Community — Partnerships blurb', 'type' => 'textarea',
-            'default' => 'Help bring inclusive, low-cost badminton to your township. We\'ll set you up with courts, coaching, and leagues.',
+            'default' => 'Help bring inclusive, low-cost pickleball to your township. We\'ll set you up with courts, coaching, and leagues.',
         ),
         'ea_txt_partnerships_cta' => array(
             'key' => 'partnershipsCta', 'label' => 'Community — Partnerships button', 'type' => 'text',
@@ -415,7 +416,7 @@ function ea_react_text_fields() {
         ),
         'ea_txt_leaders_blurb' => array(
             'key' => 'leadersBlurb', 'label' => 'Community — Leaders blurb', 'type' => 'textarea',
-            'default' => 'Help bring inclusive, low-cost badminton to your township. We\'ll set you up with courts, coaching, and leagues.',
+            'default' => 'Help bring inclusive, low-cost pickleball to your township. We\'ll set you up with courts, coaching, and leagues.',
         ),
         'ea_txt_leaders_cta' => array(
             'key' => 'leadersCta', 'label' => 'Community — Leaders button', 'type' => 'text',
@@ -626,7 +627,7 @@ function ea_react_social_fields() {
     return array(
         'ea_social_instagram' => array(
             'key' => 'instagram', 'label' => 'Instagram URL',
-            'default' => 'https://www.instagram.com/elevationathleticsbadminton/',
+            'default' => 'https://www.instagram.com/elevationathleticspickleball/',
         ),
         'ea_social_facebook' => array(
             'key' => 'facebook', 'label' => 'Facebook URL',
@@ -915,16 +916,16 @@ const EA_FAQ_SLOTS = 12;
 function ea_faq_defaults() {
     return array(
         array(
-            'q'    => 'What badminton programs does Elevation Athletics offer?',
-            'a'    => 'We offer badminton lessons, leagues, camps, and seasonal programs for youth players. Available programs vary by city and season, so check the active programs section for the most up-to-date options.',
+            'q'    => 'What pickleball programs does Elevation Athletics offer?',
+            'a'    => 'We offer pickleball lessons, leagues, camps, and seasonal programs for players of different ages and levels. Available programs vary by city and season, so check the active programs section for the most up-to-date options.',
             'open' => true,
         ),
         array(
-            'q'    => 'Do players need their own badminton racquet?',
-            'a'    => 'Players are encouraged to bring their own racquet if they have one. If your child is new and does not have equipment yet, contact us before the program starts and we can let you know what is available.',
+            'q'    => 'Do players need their own pickleball paddle?',
+            'a'    => 'Players are encouraged to bring their own paddle if they have one. If they are new and do not have equipment yet, contact us before the program starts and we can let you know what is available.',
             'open' => true,
         ),
-        array( 'q' => 'What should players bring to each session?', 'a' => 'Players should bring indoor court shoes, athletic clothing, a water bottle, and a badminton racquet if they have one.' ),
+        array( 'q' => 'What should players bring to each session?', 'a' => 'Players should bring court shoes, athletic clothing, a water bottle, and a pickleball paddle if they have one.' ),
         array( 'q' => 'How long is each program?', 'a' => 'Most programs run for multiple weekly sessions, and the exact number of sessions, dates, and times are listed on the registration card.' ),
         array( 'q' => 'Where do the programs take place?', 'a' => 'Program locations vary by city. Each registration card lists the school, community centre, or facility where that program runs.' ),
         array( 'q' => 'How long does a league season run?', 'a' => 'Season length varies by location. Each town’s registration page lists the exact number of weeks, dates, and times.' ),
@@ -1085,6 +1086,152 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     return new WP_REST_Response( array( 'ok' => true, 'id' => (int) $entry_id ), 200 );
 }
 
+// ─── Venue coordinate resolver (map pins for venues not in the baked table) ───
+// The generated coordinate table is a build-time snapshot. New venue links added
+// after a build can be resolved server-side here, cached, then reused by the map.
+if ( ! defined( 'EA_VENUE_COORD_TTL' ) ) {
+    define( 'EA_VENUE_COORD_TTL', YEAR_IN_SECONDS );
+}
+if ( ! defined( 'EA_VENUE_COORD_FAIL_TTL' ) ) {
+    define( 'EA_VENUE_COORD_FAIL_TTL', 6 * HOUR_IN_SECONDS );
+}
+if ( ! defined( 'EA_VENUE_COORD_MAX_LINKS' ) ) {
+    define( 'EA_VENUE_COORD_MAX_LINKS', 80 );
+}
+if ( ! defined( 'EA_VENUE_COORD_MAX_FRESH' ) ) {
+    define( 'EA_VENUE_COORD_MAX_FRESH', 12 );
+}
+if ( ! defined( 'EA_VENUE_COORD_BUDGET' ) ) {
+    define( 'EA_VENUE_COORD_BUDGET', 8.0 );
+}
+
+function ea_venue_coord_allowed_host( $url ) {
+    $host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+    return in_array( $host, array(
+        'maps.app.goo.gl', 'goo.gl',
+        'maps.google.com', 'www.google.com', 'google.com',
+        'maps.google.ca', 'www.google.ca', 'google.ca',
+    ), true );
+}
+
+function ea_venue_coord_extract( $text ) {
+    if ( preg_match( '/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/', $text, $m ) ) {
+        return array( 'lat' => (float) $m[1], 'lng' => (float) $m[2] );
+    }
+    if ( preg_match( '/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/', $text, $m ) ) {
+        return array( 'lat' => (float) $m[1], 'lng' => (float) $m[2] );
+    }
+    if ( preg_match( '/[?&](?:q|ll|center)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/', $text, $m ) ) {
+        return array( 'lat' => (float) $m[1], 'lng' => (float) $m[2] );
+    }
+    return null;
+}
+
+function ea_venue_coord_in_bbox( $c ) {
+    return $c
+        && $c['lat'] >= 41 && $c['lat'] <= 84
+        && $c['lng'] >= -142 && $c['lng'] <= -52;
+}
+
+function ea_venue_coord_resolve( $link ) {
+    $url = $link;
+
+    for ( $hop = 0; $hop < 5; $hop++ ) {
+        if ( ! ea_venue_coord_allowed_host( $url ) ) {
+            return null;
+        }
+
+        $res = wp_remote_get( $url, array(
+            'timeout'     => 6,
+            'redirection' => 0,
+            'user-agent'  => 'Mozilla/5.0',
+            'headers'     => array( 'Accept-Language' => 'en-CA,en;q=0.9' ),
+        ) );
+        if ( is_wp_error( $res ) ) {
+            return null;
+        }
+
+        $next = wp_remote_retrieve_header( $res, 'location' );
+        if ( is_array( $next ) ) {
+            $next = reset( $next );
+        }
+
+        $candidate = $next ? $next : $url;
+        $coords    = ea_venue_coord_extract( $candidate );
+        if ( $coords ) {
+            return ea_venue_coord_in_bbox( $coords ) ? $coords : null;
+        }
+
+        if ( ! $next ) {
+            break;
+        }
+        $url = ( 0 === strpos( $next, 'http' ) )
+            ? $next
+            : ( 'https://' . wp_parse_url( $url, PHP_URL_HOST ) . '/' . ltrim( $next, '/' ) );
+    }
+
+    return null;
+}
+
+function ea_register_venue_coords_route() {
+    register_rest_route( 'ea/v1', '/venue-coords', array(
+        'methods'             => 'POST',
+        'permission_callback' => '__return_true',
+        'callback'            => 'ea_handle_venue_coords',
+    ) );
+}
+add_action( 'rest_api_init', 'ea_register_venue_coords_route' );
+
+function ea_handle_venue_coords( WP_REST_Request $request ) {
+    $links = $request->get_param( 'links' );
+    if ( ! is_array( $links ) ) {
+        return new WP_Error( 'ea_invalid', 'links must be an array.', array( 'status' => 422 ) );
+    }
+
+    $links    = array_slice( array_unique( array_filter( array_map( 'strval', $links ) ) ), 0, EA_VENUE_COORD_MAX_LINKS );
+    $out      = array();
+    $pending  = array();
+    $fresh    = 0;
+    $deadline = microtime( true ) + EA_VENUE_COORD_BUDGET;
+
+    foreach ( $links as $link ) {
+        $link = trim( $link );
+        if ( '' === $link || ! ea_venue_coord_allowed_host( $link ) ) {
+            continue;
+        }
+
+        $key    = 'ea_vc_' . md5( strtolower( rtrim( $link, '/' ) ) );
+        $cached = get_transient( $key );
+
+        if ( is_array( $cached ) ) {
+            $out[ $link ] = $cached;
+            continue;
+        }
+        if ( 'fail' === $cached ) {
+            continue;
+        }
+
+        if ( $fresh >= EA_VENUE_COORD_MAX_FRESH || microtime( true ) > $deadline ) {
+            $pending[] = $link;
+            continue;
+        }
+
+        $fresh++;
+        $coords = ea_venue_coord_resolve( $link );
+        if ( $coords ) {
+            set_transient( $key, $coords, EA_VENUE_COORD_TTL );
+            $out[ $link ] = $coords;
+        } else {
+            set_transient( $key, 'fail', EA_VENUE_COORD_FAIL_TTL );
+        }
+    }
+
+    return new WP_REST_Response( array(
+        'coords'  => (object) $out,
+        'pending' => $pending,
+    ), 200 );
+}
+
 // ─── "Free Trials" admin screen (stores + lists form submissions) ─────────────
 // A private post type that only the form writes to. Admins view submissions under
 // wp-admin → Free Trials; "Add New" is disabled since entries come from the form.
@@ -1115,7 +1262,7 @@ add_action( 'init', 'ea_register_free_trial_cpt' );
 function ea_default_sport_value() {
     return defined( 'EA_CC_DEFAULT_SPORT' ) && '' !== trim( (string) EA_CC_DEFAULT_SPORT )
         ? sanitize_text_field( EA_CC_DEFAULT_SPORT )
-        : 'Badminton';
+        : 'Pickleball';
 }
 
 function ea_default_region_value() {

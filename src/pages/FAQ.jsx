@@ -27,16 +27,16 @@ function faqItems(t) {
   // Dev-only fallback (no window.eaReactData, e.g. `npm run dev` outside WP).
   return [
     {
-      q: 'What badminton programs does Elevation Athletics offer?',
+      q: 'What pickleball programs does Elevation Athletics offer?',
       defaultOpen: true,
-      a: 'We offer badminton lessons, leagues, camps, and seasonal programs for youth players. Available programs vary by city and season, so check the active programs section for the most up-to-date options.',
+      a: 'We offer pickleball lessons, leagues, camps, and seasonal programs for players of different ages and levels. Available programs vary by city and season, so check the active programs section for the most up-to-date options.',
     },
     {
-      q: 'Do players need their own badminton racquet?',
+      q: 'Do players need their own pickleball paddle?',
       defaultOpen: true,
-      a: 'Players are encouraged to bring their own racquet if they have one. If your child is new and does not have equipment yet, contact us before the program starts and we can let you know what is available.',
+      a: 'Players are encouraged to bring their own paddle if they have one. If they are new and do not have equipment yet, contact us before the program starts and we can let you know what is available.',
     },
-    { q: 'What should players bring to each session?', a: 'Players should bring indoor court shoes, athletic clothing, a water bottle, and a badminton racquet if they have one.' },
+    { q: 'What should players bring to each session?', a: 'Players should bring court shoes, athletic clothing, a water bottle, and a pickleball paddle if they have one.' },
     { q: 'How long is each program?', a: 'Most programs run for multiple weekly sessions, and the exact number of sessions, dates, and times are listed on the registration card.' },
     { q: 'Where do the programs take place?', a: 'Program locations vary by city. Each registration card lists the school, community centre, or facility where that program runs.' },
     { q: 'How long does a league season run?', a: 'Season length varies by location. Each town’s registration page lists the exact number of weeks, dates, and times.' },

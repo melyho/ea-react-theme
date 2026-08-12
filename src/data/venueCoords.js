@@ -57,6 +57,53 @@ export const VENUE_COORDS_BY_NAME = GENERATED_VENUE_COORDS_BY_NAME;
 export const CITY_COORDS = { ...GENERATED_CITY_COORDS, ...MANUAL_CITY_COORDS };
 
 /**
+ * Coordinates resolved at runtime, for venues the generated table predates.
+ *
+ * venueCoords.generated.js is a build-time snapshot, so a venue added to the
+ * feed after the last build has no coordinates and drops off the map entirely.
+ * The League Hub asks the theme's /ea/v1/venue-coords endpoint for anything it
+ * can't resolve locally, then merges the answers here.
+ */
+const RUNTIME_STORAGE_KEY = 'ea_venue_coords_v1';
+
+const runtimeCoords = (() => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(RUNTIME_STORAGE_KEY) || 'null');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+})();
+
+export function registerRuntimeVenueCoords(entries) {
+  let added = 0;
+  Object.keys(entries || {}).forEach((link) => {
+    const c = entries[link];
+    const k = linkKey(link);
+    if (!k || runtimeCoords[k]) return;
+    if (!c || !Number.isFinite(c.lat) || !Number.isFinite(c.lng)) return;
+    runtimeCoords[k] = { lat: c.lat, lng: c.lng };
+    added++;
+  });
+  if (added && typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem(RUNTIME_STORAGE_KEY, JSON.stringify(runtimeCoords));
+    } catch {
+      // Storage unavailable; the in-memory copy still serves this page view.
+    }
+  }
+  return added;
+}
+
+export function needsRuntimeVenueLookup(p) {
+  const linkK = linkKey(p && p.LocationLink);
+  if (!linkK || runtimeCoords[linkK]) return false;
+  const resolved = resolveVenueCoords(p);
+  return !resolved || resolved.source === 'city';
+}
+
+/**
  * Stable identity for a venue. Link first, since several venues are spelled
  * differently across rows but share one link ("AFLC" / "Aurora Family Leisure
  * Centre"). Falls back to name, then city, so nothing is ever unkeyed.
@@ -65,10 +112,10 @@ export const CITY_COORDS = { ...GENERATED_CITY_COORDS, ...MANUAL_CITY_COORDS };
  * array index and therefore changes whenever filters change.
  */
 export function venueKeyFor(p) {
-  const link = linkKey(p && p.LocationLink);
-  if (link) return `link:${link}`;
   const name = norm(p && p.LocationName);
   if (name) return `name:${name}`;
+  const link = linkKey(p && p.LocationLink);
+  if (link) return `link:${link}`;
   const city = norm(p && p.City);
   return city ? `city:${city}` : 'venue:unknown';
 }
@@ -97,6 +144,9 @@ export function resolveVenueCoords(p) {
   const mappedKey = nameK && VENUE_COORDS_BY_NAME[nameK];
   const byName = mappedKey && VENUE_COORDS[mappedKey];
   if (byName) return { lat: byName.lat, lng: byName.lng, source: 'venue-name' };
+
+  const runtime = linkK && runtimeCoords[linkK];
+  if (runtime) return { lat: runtime.lat, lng: runtime.lng, source: 'venue' };
 
   const city = CITY_COORDS[norm(p.City)];
   if (city) return { lat: city.lat, lng: city.lng, source: 'city' };
