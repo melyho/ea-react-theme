@@ -10,6 +10,7 @@ import { resolveVenueCoords } from '../data/venueCoords.js';
 
 const SCROLL_OFFSET = 100;
 const PROGRAMS_DATA_URL = 'https://sleep-status.github.io/ea-programs-json/data/programs.json';
+const LIST_BATCH_SIZE = 12;
 
 const FALLBACK_PROGRAMS = [
   {
@@ -72,6 +73,33 @@ const FALLBACK_PROGRAMS = [
 ];
 
 const norm = (v) => String(v || '').trim().toLowerCase();
+
+// Free-text search only: strips punctuation and collapses whitespace so
+// "st catharines" matches data stored as "St. Catharines". norm() alone is a
+// literal substring check where the period is a real character, so
+// "st catharines" (no period) is not a substring of "st. catharines" and the
+// search silently returns nothing. Kept separate from norm() since that's
+// also used for exact-match dropdown comparisons (level/type/location) where
+// changing punctuation handling is out of scope for this fix.
+const normSearch = (v) => norm(v).replace(/[.,]/g, '').replace(/\s+/g, ' ').trim();
+
+// City search synonyms: some venues sit in a smaller community that most
+// people know by a different, more common name (Fonthill is part of the
+// town of Welland). Listed both ways so searching either term surfaces
+// programs tagged with the other. Add future pairs here rather than
+// creating one-off matching logic per city.
+const CITY_SEARCH_SYNONYMS = [
+  ['fonthill', 'welland'],
+  ['bolton', 'caledon'],
+];
+function citySearchSynonyms(city) {
+  const c = normSearch(city);
+  const out = [];
+  for (const pair of CITY_SEARCH_SYNONYMS) {
+    if (pair.includes(c)) out.push(...pair.filter((name) => name !== c));
+  }
+  return out;
+}
 
 const SPORTS = {
   pb: { label: 'Pickleball', aliases: ['pb', 'pickleball', 'pickle'] },
@@ -203,13 +231,35 @@ function sortPrograms(programs, userCoords) {
   });
 }
 
+function rawProgramPrice(p) {
+  return p.updated_price ?? p.StaticPriceText ?? p.TotalPrice;
+}
+
+function hasRealProgramPrice(p) {
+  const raw = rawProgramPrice(p);
+  if (raw === undefined || raw === null) return false;
+  const text = String(raw).trim();
+  if (!text || /^tbd$/i.test(text)) return false;
+  const normalized = text.replace(/[$,\s]/g, '');
+  return normalized !== '' && !Number.isNaN(Number(normalized));
+}
+
+function hasRegistrationLink(p) {
+  const link = String(p.RegisterLink || p.URL || '').trim();
+  return Boolean(link) && !/^tbd$/i.test(link);
+}
+
+function isRegistrableProgram(p) {
+  return hasRegistrationLink(p) && hasRealProgramPrice(p);
+}
+
 function normalizePrograms(rows, sports, userCoords) {
   const allow = new Set(sports && sports.length ? sports : ['bad']);
   return sortPrograms(
     rows
       .filter((p) => {
         const sportKey = rowSportKey(p);
-        return p && sportKey && allow.has(sportKey) && isEAorTS(p) && p.City && !p.is_cancelled;
+        return p && sportKey && allow.has(sportKey) && isEAorTS(p) && p.City && !p.is_cancelled && isRegistrableProgram(p);
       })
       .map((p) => {
         // Real venue coordinates, so "nearest to you" sorts by the actual
@@ -254,16 +304,37 @@ function sessionCount(p) {
 }
 
 function displayPrice(p) {
-  const raw = p.updated_price || p.StaticPriceText || p.TotalPrice;
+  const raw = rawProgramPrice(p);
   if (raw === undefined || raw === null || raw === '') return '';
-  const num = Number(raw);
+  const num = Number(String(raw).replace(/[$,\s]/g, ''));
   if (!Number.isNaN(num)) return `$${num % 1 === 0 ? num.toFixed(0) : num.toFixed(2)}`;
   return `$${String(raw).replace(/^\$/, '')}`;
 }
 
+function numericLevel(p) {
+  const raw = p.level ?? p.Level ?? p.LEVEL;
+  if (raw === undefined || raw === null || raw === '') return null;
+  const match = String(raw).match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+function levelLabelFromNumber(level) {
+  if (level === null) return null;
+  if (level <= 1) return 'Beginner';
+  if (level === 2) return 'Experienced Beginner';
+  if (level === 3) return 'Intermediate';
+  if (level >= 4) return 'Advanced';
+  return null;
+}
+
 function levelLabel(p) {
-  const text = `${p.Title || ''} ${p.level || ''}`.toLowerCase();
-  if (text.includes('advanced') || text.includes('level 2') || text.match(/\b2\b/)) return 'Advanced';
+  const fromJson = levelLabelFromNumber(numericLevel(p));
+  if (fromJson) return fromJson;
+
+  const text = String(p.Title || '').toLowerCase();
+  if (text.includes('advanced')) return 'Advanced';
+  if (text.includes('intermediate')) return 'Intermediate';
+  if (text.includes('experienced beginner')) return 'Experienced Beginner';
   return 'Beginner';
 }
 
@@ -291,8 +362,12 @@ export function chipStyle(label) {
   if (key.includes('closed') || key === 'full') return { bg: '#ECEFF1', color: '#66757B' };
   if (key.includes('starting')) return { bg: '#FFE9AF', color: '#8A640F' };
   if (key.includes('progress')) return { bg: '#D7F1FF', color: '#206A87' };
+  if (key.includes('experienced beginner')) return { bg: '#A0E4F2', color: '#0B5364' };
+  if (key.includes('beginner')) return { bg: '#BDEEFF', color: '#0B5B73' };
+  if (key.includes('intermediate')) return { bg: '#73D3E8', color: '#0B4F63' };
   if (key.includes('advanced')) return { bg: '#0B5B73', color: '#FFFFFF' };
   if (key.includes('camp')) return { bg: '#FFBB91', color: '#0077A3' };
+  if (key.includes('league')) return { bg: '#F1ECFF', color: '#55438F', border: '1px solid #D8CCFF' };
   if (key.includes('lesson')) return { bg: '#FFFFFF', color: '#0B5B73', border: '1px solid #0B5B73' };
   return { bg: '#BDEEFF', color: '#0B5B73' };
 }
@@ -377,7 +452,7 @@ export function ProgramSubscribeButton({ city, sessionStart = '', programSummary
 }
 
 function siteSport(t) {
-  return (t.defaults && t.defaults.sport) || 'Badminton';
+  return (t.defaults && t.defaults.sport) || 'Basketball';
 }
 
 function sportBrand(t) {
@@ -651,10 +726,11 @@ function programMatchesAge(p, age) {
 }
 
 function filterPrograms(programs, filters) {
-  const q = norm(filters.search);
+  const q = normSearch(filters.search);
   return programs.filter((p) => {
     if (q) {
-      const haystack = norm([p.Title, p.City, p.LocationName, p.Day, p.Time].filter(Boolean).join(' '));
+      const fields = [p.Title, p.City, p.LocationName, p.Day, p.Time, ...citySearchSynonyms(p.City)];
+      const haystack = normSearch(fields.filter(Boolean).join(' '));
       if (!haystack.includes(q)) return false;
     }
     if (filters.level && norm(levelLabel(p)) !== filters.level) return false;
@@ -708,7 +784,7 @@ function LeagueHubFilters({ filters, setFilters, cities, options, isMobile }) {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)', fontSize: 15 }}>
             <FilterIcon /> Filter By:
           </span>
-          {show('leagueHubFilterLevel') && <SelectChip label="Skill Level" value={filters.level} onChange={update('level')} options={[{ value: 'beginner', label: 'Beginner' }, { value: 'advanced', label: 'Advanced' }]} />}
+          {show('leagueHubFilterLevel') && <SelectChip label="Skill Level" value={filters.level} onChange={update('level')} options={[{ value: 'beginner', label: 'Beginner' }, { value: 'experienced beginner', label: 'Experienced Beginner' }, { value: 'intermediate', label: 'Intermediate' }, { value: 'advanced', label: 'Advanced' }]} />}
           {show('leagueHubFilterType') && <SelectChip label="Program Type" value={filters.type} onChange={update('type')} options={[{ value: 'lessons', label: 'Lessons' }, { value: 'leagues', label: 'Leagues' }, { value: 'camps', label: 'Camps' }]} />}
           {show('leagueHubFilterAge') && <SelectChip label="Age" value={filters.age} onChange={update('age')} options={ageOptions} />}
           {show('leagueHubFilterTime') && <SelectChip label="Time" value={filters.time} onChange={update('time')} options={[{ value: 'morning', label: 'Mornings' }, { value: 'afternoon', label: 'Afternoons' }, { value: 'evening', label: 'Evenings' }]} />}
@@ -734,6 +810,7 @@ export default function LeagueHubPage() {
   const [subscribeLoc, setSubscribeLoc] = useState(null);
   const [filters, setFilters] = useState({ search: '', level: '', type: '', age: '', time: '', days: '', location: '' });
   const [view, setView] = useState('list');
+  const [visibleCount, setVisibleCount] = useState(LIST_BATCH_SIZE);
   const showMapView = !(t.options && t.options.leagueHubShowMapView === false);
   const showCalendarView = !(t.options && t.options.leagueHubShowCalendarView === false);
 
@@ -744,7 +821,23 @@ export default function LeagueHubPage() {
       : ['bad'];
   const programs = useMemo(() => normalizePrograms(rows || FALLBACK_PROGRAMS, selectedSports, userCoords), [rows, selectedSports, userCoords]);
   const filteredPrograms = useMemo(() => filterPrograms(programs, filters), [programs, filters]);
+  const visibleListPrograms = useMemo(() => filteredPrograms.slice(0, visibleCount), [filteredPrograms, visibleCount]);
+  const hasMoreListPrograms = view === 'list' && visibleCount < filteredPrograms.length;
+  const listRenderKey = [
+    filters.search,
+    filters.level,
+    filters.type,
+    filters.age,
+    filters.time,
+    filters.days,
+    filters.location,
+    userCoords ? 'near-me' : 'default-sort',
+  ].join('|');
   const cities = useMemo(() => [...new Set(programs.map((p) => String(p.City || '').trim()).filter(Boolean))].sort(), [programs]);
+
+  useEffect(() => {
+    setVisibleCount(LIST_BATCH_SIZE);
+  }, [listRenderKey, view]);
 
   const findNearMe = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -760,7 +853,7 @@ export default function LeagueHubPage() {
     );
   };
 
-  const backdrop = t.images.leagueHubBackdrop || t.asset('league-hub-backdrop.svg');
+  const backdrop = t.images.leagueHubBackdrop || '';
   const showSubheading = t.options.leagueHubShowSubheading === true;
 
   return (
@@ -820,13 +913,38 @@ export default function LeagueHubPage() {
           )}
 
           {view === 'list' && (
-            <div style={{ display: 'grid', gap: isMobile ? 10 : 12, marginTop: 12 }}>
-              {filteredPrograms.length ? filteredPrograms.map((program, index) => (
+            <div key={listRenderKey} style={{ display: 'grid', gap: isMobile ? 10 : 12, marginTop: 12 }}>
+              {filteredPrograms.length ? visibleListPrograms.map((program, index) => (
                 <ProgramCard key={`${program.Title || 'program'}-${program.City || 'city'}-${program['Start Date'] || index}`} program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
               )) : (
                 <div style={{ ...FB.card, textAlign: 'center' }}>
                   <strong>No programs match those filters.</strong>
                   <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)' }}>Try clearing one filter or searching a nearby city.</p>
+                </div>
+              )}
+              {hasMoreListPrograms && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: isMobile ? 8 : 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount((count) => count + LIST_BATCH_SIZE)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minHeight: 46,
+                      padding: '12px 24px',
+                      borderRadius: 8,
+                      border: '1px solid var(--ea-navy, #10414F)',
+                      background: '#fff',
+                      color: 'var(--ea-navy, #10414F)',
+                      fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+                      fontSize: 16,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Load More Programs
+                  </button>
                 </div>
               )}
             </div>

@@ -20,7 +20,12 @@
 import { useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
-import { resolveVenueCoords, venueKeyFor } from '../data/venueCoords.js';
+import {
+  resolveVenueCoords,
+  venueKeyFor,
+  needsRuntimeVenueLookup,
+  registerRuntimeVenueCoords,
+} from '../data/venueCoords.js';
 
 const LEAFLET_CSS_URL = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 const LEAFLET_JS_URL = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
@@ -488,6 +493,60 @@ export function LeagueHubMapView({ programs, SubscribeButton, onSubscribe, isMob
       s.syncMarkersAndList(window.L, false);
     }
   }, [programs]);
+
+  // Venues added to the feed after the last theme build have no baked
+  // coordinates, so without this they'd drop off the map entirely ("N programs
+  // aren't shown"). Ask the theme to resolve them (see ea/v1/venue-coords in
+  // functions.php - the browser can't ask Google directly, no CORS headers),
+  // then re-sync the pins.
+  //
+  // The endpoint answers with a slice plus a `pending` list rather than
+  // blocking on dozens of lookups, so this loops until nothing is left. Results
+  // persist per-browser in localStorage and per-site in transients, so only the
+  // very first visitor after a new venue appears waits on any of it, and no
+  // rebuild is ever needed.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async function resolveMissingVenues() {
+      const s = stateRef.current;
+      const apiUrl = (t && t.apiUrl) || '/wp-json/';
+
+      for (let round = 0; round < 6; round++) {
+        if (cancelled) return;
+
+        const links = [...new Set(
+          programs.filter(needsRuntimeVenueLookup).map((p) => p.LocationLink).filter(Boolean),
+        )];
+        if (!links.length) return;
+
+        let data;
+        try {
+          const res = await fetch(`${apiUrl}ea/v1/venue-coords`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ links }),
+          });
+          if (!res.ok) return;
+          data = await res.json();
+        } catch {
+          return; // offline, or an older theme without the endpoint - map still works
+        }
+        if (cancelled) return;
+
+        if (registerRuntimeVenueCoords(data && data.coords)) {
+          s.allPrograms = programs.map(adaptProgram);
+          if (s.map && s.syncMarkersAndList) s.syncMarkersAndList(window.L, false);
+        }
+
+        // Links the server neither resolved nor queued are cached failures;
+        // stop rather than re-asking for something that won't resolve.
+        if (!(data && Array.isArray(data.pending) && data.pending.length)) return;
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [programs, t]);
 
   useEffect(() => {
     const s = stateRef.current;

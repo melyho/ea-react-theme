@@ -57,18 +57,81 @@ export const VENUE_COORDS_BY_NAME = GENERATED_VENUE_COORDS_BY_NAME;
 export const CITY_COORDS = { ...GENERATED_CITY_COORDS, ...MANUAL_CITY_COORDS };
 
 /**
- * Stable identity for a venue. Link first, since several venues are spelled
- * differently across rows but share one link ("AFLC" / "Aurora Family Leisure
- * Centre"). Falls back to name, then city, so nothing is ever unkeyed.
+ * Coordinates resolved at runtime, for venues the generated table predates.
+ *
+ * venueCoords.generated.js is a build-time snapshot, so a venue added to the
+ * feed after the last build has no coordinates and drops off the map entirely.
+ * Regenerating fixes it only until the next new venue appears. Instead the map
+ * asks the theme's /ea/v1/venue-coords endpoint for anything it can't resolve
+ * locally (the browser can't ask Google directly - no CORS headers) and merges
+ * the answers here, so a new venue self-resolves on first view with no rebuild.
+ *
+ * Kept in localStorage as well as memory so a repeat visitor never re-asks.
+ */
+const RUNTIME_STORAGE_KEY = 'ea_venue_coords_v1';
+
+const runtimeCoords = (() => {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(RUNTIME_STORAGE_KEY) || 'null');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {}; // private mode, quota, or corrupt entry - memory-only is fine
+  }
+})();
+
+/**
+ * Merges endpoint results into the runtime table. Returns how many were new,
+ * so the caller can skip a re-render when nothing changed.
+ */
+export function registerRuntimeVenueCoords(entries) {
+  let added = 0;
+  Object.keys(entries || {}).forEach((link) => {
+    const c = entries[link];
+    const k = linkKey(link);
+    if (!k || runtimeCoords[k]) return;
+    if (!c || !Number.isFinite(c.lat) || !Number.isFinite(c.lng)) return;
+    runtimeCoords[k] = { lat: c.lat, lng: c.lng };
+    added++;
+  });
+  if (added) {
+    try {
+      window.localStorage.setItem(RUNTIME_STORAGE_KEY, JSON.stringify(runtimeCoords));
+    } catch {
+      // Storage unavailable - the in-memory copy still serves this page view.
+    }
+  }
+  return added;
+}
+
+/**
+ * True when asking the endpoint could actually improve this row's pin: it has a
+ * link we haven't resolved yet, and today it either has no coordinates at all
+ * or only a city centroid.
+ */
+export function needsRuntimeVenueLookup(p) {
+  const linkK = linkKey(p && p.LocationLink);
+  if (!linkK || runtimeCoords[linkK]) return false;
+  const resolved = resolveVenueCoords(p);
+  return !resolved || resolved.source === 'city';
+}
+
+/**
+ * Stable identity for a venue. Name first: the feed sometimes mints a
+ * distinct LocationLink per session/time-slot at the same physical venue
+ * (e.g. Trinity United Church has one link per basketball slot), and keying
+ * on that split what should be one map pin into several. LocationName is
+ * the actual venue identity and is consistent across those rows, so it only
+ * falls back to link when a row has no name at all - then city, so nothing
+ * is ever unkeyed.
  *
  * Deliberately not derived from the adapted program's `id`, which embeds an
  * array index and therefore changes whenever filters change.
  */
 export function venueKeyFor(p) {
-  const link = linkKey(p && p.LocationLink);
-  if (link) return `link:${link}`;
   const name = norm(p && p.LocationName);
   if (name) return `name:${name}`;
+  const link = linkKey(p && p.LocationLink);
+  if (link) return `link:${link}`;
   const city = norm(p && p.City);
   return city ? `city:${city}` : 'venue:unknown';
 }
@@ -97,6 +160,11 @@ export function resolveVenueCoords(p) {
   const mappedKey = nameK && VENUE_COORDS_BY_NAME[nameK];
   const byName = mappedKey && VENUE_COORDS[mappedKey];
   if (byName) return { lat: byName.lat, lng: byName.lng, source: 'venue-name' };
+
+  // Anything baked or hand-fixed wins; this only fills genuine gaps, and beats
+  // the city centroid below because it's the venue's real position.
+  const runtime = linkK && runtimeCoords[linkK];
+  if (runtime) return { lat: runtime.lat, lng: runtime.lng, source: 'venue' };
 
   const city = CITY_COORDS[norm(p.City)];
   if (city) return { lat: city.lat, lng: city.lng, source: 'city' };

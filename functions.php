@@ -175,6 +175,16 @@ function ea_react_image_fields() {
         'ea_img_community_left' => array( 'key' => 'communityLeft', 'label' => 'Community left image' ),
         'ea_img_community_right' => array( 'key' => 'communityRight', 'label' => 'Community right image' ),
         'ea_img_league_hub_backdrop' => array( 'key' => 'leagueHubBackdrop', 'label' => 'League Hub — subtle background' ),
+        'ea_img_guide_box_1' => array( 'key' => 'guideBox1', 'label' => 'Basketball Guide — Box 1 image' ),
+        'ea_img_guide_box_2' => array( 'key' => 'guideBox2', 'label' => 'Basketball Guide — Box 2 image' ),
+        'ea_img_guide_box_3' => array( 'key' => 'guideBox3', 'label' => 'Basketball Guide — Box 3 image' ),
+        'ea_img_guide_box_4' => array( 'key' => 'guideBox4', 'label' => 'Basketball Guide — Box 4 image' ),
+        'ea_img_guide_box_5' => array( 'key' => 'guideBox5', 'label' => 'Basketball Guide — Box 5 image' ),
+        'ea_img_guide_box_6' => array( 'key' => 'guideBox6', 'label' => 'Basketball Guide — Box 6 image' ),
+        'ea_img_rep_tryouts_photo_1' => array( 'key' => 'repTryoutsPhoto1', 'label' => 'Basketball Rep Tryouts — Photo 1' ),
+        'ea_img_rep_tryouts_photo_2' => array( 'key' => 'repTryoutsPhoto2', 'label' => 'Basketball Rep Tryouts — Photo 2' ),
+        'ea_img_rep_tryouts_photo_3' => array( 'key' => 'repTryoutsPhoto3', 'label' => 'Basketball Rep Tryouts — Photo 3' ),
+        'ea_img_rep_tryouts_photo_4' => array( 'key' => 'repTryoutsPhoto4', 'label' => 'Basketball Rep Tryouts — Photo 4' ),
     );
 }
 
@@ -348,6 +358,196 @@ function ea_react_text_fields() {
         'ea_txt_league_hub_location_button' => array(
             'key' => 'leagueHubLocationButton', 'label' => 'League Hub — Location button', 'type' => 'text',
             'default' => 'Use My Location',
+        ),
+
+        // ── Basketball Guide ────────────────────────────────────────────────
+        'ea_txt_basketball_guide_heading' => array(
+            'key' => 'basketballGuideHeading', 'label' => 'Basketball Guide — Heading', 'type' => 'text',
+            'default' => 'Basketball for Every Player',
+        ),
+        'ea_txt_basketball_guide_subheading' => array(
+            'key' => 'basketballGuideSubheading', 'label' => 'Basketball Guide — Subheading', 'type' => 'textarea',
+            'default' => 'Whether your child is picking up a basketball for the first time, looking for more opportunities to play, or preparing for competitive basketball, Elevation Athletics offers a program to support their development.',
+        ),
+        'ea_txt_basketball_guide_box_1_heading' => array(
+            'key' => 'guideBox1Heading', 'label' => 'Basketball Guide — Box 1 heading', 'type' => 'text',
+            'default' => 'EA Training Programs',
+        ),
+        'ea_txt_basketball_guide_box_1_subheading' => array(
+            'key' => 'guideBox1Subheading', 'label' => 'Basketball Guide — Box 1 subheading', 'type' => 'text',
+            'default' => 'Beginner Friendly · Ages 5 - 15',
+        ),
+        'ea_txt_basketball_guide_box_1_text' => array(
+            'key' => 'guideBox1Text', 'label' => 'Basketball Guide — Box 1 text', 'type' => 'textarea',
+            'default' => 'Our training programs are built for players who want to develop fundamentals, confidence, and game understanding in a supportive environment.',
+        ),
+        'ea_txt_basketball_guide_box_1_button' => array(
+            'key' => 'guideBox1Button', 'label' => 'Basketball Guide — Box 1 button', 'type' => 'text',
+            'default' => 'Learn More',
+        ),
+        'ea_txt_basketball_guide_box_2_heading' => array(
+            'key' => 'guideBox2Heading', 'label' => 'Basketball Guide — Box 2 heading', 'type' => 'text',
+            'default' => 'EA Development House League',
+        ),
+        'ea_txt_basketball_guide_box_2_subheading' => array(
+            'key' => 'guideBox2Subheading', 'label' => 'Basketball Guide — Box 2 subheading', 'type' => 'text',
+            'default' => 'Beginner to Intermediate · Ages 9 - 12',
+        ),
+        'ea_txt_basketball_guide_box_2_text' => array(
+            'key' => 'guideBox2Text', 'label' => 'Basketball Guide — Box 2 text', 'type' => 'textarea',
+            'default' => 'A development-first league for players who want structured games, coaching support, and a fun path to improve week by week.',
+        ),
+        'ea_txt_basketball_guide_box_2_button' => array(
+            'key' => 'guideBox2Button', 'label' => 'Basketball Guide — Box 2 button', 'type' => 'text',
+            'default' => 'Learn More',
+        ),
+        'ea_txt_basketball_guide_box_3_heading' => array(
+            'key' => 'guideBox3Heading', 'label' => 'Basketball Guide — Box 3 heading', 'type' => 'text',
+            'default' => 'EA Rep Development',
+        ),
+        'ea_txt_basketball_guide_box_3_subheading' => array(
+            'key' => 'guideBox3Subheading', 'label' => 'Basketball Guide — Box 3 subheading', 'type' => 'text',
+            'default' => 'Competitive Preparation · Ages 10 - 15',
+        ),
+        'ea_txt_basketball_guide_box_3_text' => array(
+            'key' => 'guideBox3Text', 'label' => 'Basketball Guide — Box 3 text', 'type' => 'textarea',
+            'default' => 'For motivated players looking for a higher level of training, skill development, and preparation for more competitive basketball.',
+        ),
+        'ea_txt_basketball_guide_box_3_button' => array(
+            'key' => 'guideBox3Button', 'label' => 'Basketball Guide — Box 3 button', 'type' => 'text',
+            'default' => 'Learn More',
+        ),
+        'ea_txt_basketball_guide_box_4_heading' => array(
+            'key' => 'guideBox4Heading', 'label' => 'Basketball Guide — Box 4 heading', 'type' => 'text',
+            'default' => 'EA Rep Teams',
+        ),
+        'ea_txt_basketball_guide_box_4_subheading' => array(
+            'key' => 'guideBox4Subheading', 'label' => 'Basketball Guide — Box 4 subheading', 'type' => 'text',
+            'default' => 'Advanced Team Play · Ages 12 - 17',
+        ),
+        'ea_txt_basketball_guide_box_4_text' => array(
+            'key' => 'guideBox4Text', 'label' => 'Basketball Guide — Box 4 text', 'type' => 'textarea',
+            'default' => 'Competitive team opportunities for athletes who are ready for advanced training, stronger competition, and a team-first environment.',
+        ),
+        'ea_txt_basketball_guide_box_4_button' => array(
+            'key' => 'guideBox4Button', 'label' => 'Basketball Guide — Box 4 button', 'type' => 'text',
+            'default' => 'Learn More',
+        ),
+        'ea_txt_basketball_guide_training_heading' => array(
+            'key' => 'basketballGuideTrainingHeading', 'label' => 'Basketball Guide — More ways heading', 'type' => 'text',
+            'default' => 'More Ways to Train',
+        ),
+        'ea_txt_basketball_guide_training_subheading' => array(
+            'key' => 'basketballGuideTrainingSubheading', 'label' => 'Basketball Guide — More ways subheading', 'type' => 'textarea',
+            'default' => 'Explore seasonal camps and focused training options designed to give athletes more time on the court.',
+        ),
+        'ea_txt_basketball_guide_box_5_heading' => array(
+            'key' => 'guideBox5Heading', 'label' => 'Basketball Guide — Box 5 heading', 'type' => 'text',
+            'default' => 'Camps',
+        ),
+        'ea_txt_basketball_guide_box_5_subheading' => array(
+            'key' => 'guideBox5Subheading', 'label' => 'Basketball Guide — Box 5 subheading', 'type' => 'text',
+            'default' => 'Seasonal Training · Ages vary',
+        ),
+        'ea_txt_basketball_guide_box_5_text' => array(
+            'key' => 'guideBox5Text', 'label' => 'Basketball Guide — Box 5 text', 'type' => 'textarea',
+            'default' => 'Seasonal camps give players focused time to build skills, stay active, and enjoy the game during school breaks.',
+        ),
+        'ea_txt_basketball_guide_box_5_button' => array(
+            'key' => 'guideBox5Button', 'label' => 'Basketball Guide — Box 5 button', 'type' => 'text',
+            'default' => 'Learn More',
+        ),
+        'ea_txt_basketball_guide_box_6_heading' => array(
+            'key' => 'guideBox6Heading', 'label' => 'Basketball Guide — Box 6 heading', 'type' => 'text',
+            'default' => '1-on-1 Training',
+        ),
+        'ea_txt_basketball_guide_box_6_subheading' => array(
+            'key' => 'guideBox6Subheading', 'label' => 'Basketball Guide — Box 6 subheading', 'type' => 'text',
+            'default' => 'Private Coaching · Custom ages',
+        ),
+        'ea_txt_basketball_guide_box_6_text' => array(
+            'key' => 'guideBox6Text', 'label' => 'Basketball Guide — Box 6 text', 'type' => 'textarea',
+            'default' => 'Individual and small-group training for athletes who want focused coaching, extra reps, and a personalized development plan.',
+        ),
+        'ea_txt_basketball_guide_box_6_button' => array(
+            'key' => 'guideBox6Button', 'label' => 'Basketball Guide — Box 6 button', 'type' => 'text',
+            'default' => 'Learn More',
+        ),
+
+        // ── Basketball Rep Tryouts ──────────────────────────────────────────
+        'ea_txt_basketball_rep_heading' => array(
+            'key' => 'basketballRepHeading', 'label' => 'Basketball Rep — Heading', 'type' => 'text',
+            'default' => 'EA Rep Basketball',
+        ),
+        'ea_txt_basketball_rep_subheading' => array(
+            'key' => 'basketballRepSubheading', 'label' => 'Basketball Rep — Subheading', 'type' => 'textarea',
+            'default' => 'High-performance teams for committed athletes in Grades 4-12.',
+        ),
+        'ea_txt_basketball_rep_hero_button' => array(
+            'key' => 'basketballRepHeroButton', 'label' => 'Basketball Rep — Hero button', 'type' => 'text',
+            'default' => 'Register Now',
+        ),
+        'ea_txt_basketball_rep_about_heading' => array(
+            'key' => 'basketballRepAboutHeading', 'label' => 'Basketball Rep — About heading', 'type' => 'text',
+            'default' => 'Our Competitive Pathway for Committed Athletes',
+        ),
+        'ea_txt_basketball_rep_about_body' => array(
+            'key' => 'basketballRepAboutBody', 'label' => 'Basketball Rep — About body', 'type' => 'textarea',
+            'default' => 'Our teams compete in leagues, tournaments, and showcases such as OBL, North Pole Hoops, CYBL, Coalition Basketball League, York Basketball League, and select AAU events in the U.S., giving athletes exposure to elite competition and development pathways.' . "\n\n" . 'Many EA athletes go on to compete at the college and university level across Ontario, equipped with the skills and mindset to succeed beyond youth basketball.' . "\n\n" . 'EA Rep teams are led by experienced, high-level coaches who prioritize both performance and personal growth. Our coaches are committed to building confident athletes, strong teammates, and leaders on and off the court.',
+        ),
+        'ea_txt_basketball_rep_tryouts_heading' => array(
+            'key' => 'basketballRepTryoutsHeading', 'label' => 'Basketball Rep — Tryouts heading', 'type' => 'text',
+            'default' => 'Tryouts & Registration',
+        ),
+        'ea_txt_basketball_rep_schedule_button' => array(
+            'key' => 'basketballRepScheduleButton', 'label' => 'Basketball Rep — Schedule button', 'type' => 'text',
+            'default' => 'See Schedule',
+        ),
+        'ea_txt_basketball_rep_tryouts_body' => array(
+            'key' => 'basketballRepTryoutsBody', 'label' => 'Basketball Rep — Tryouts body', 'type' => 'textarea',
+            'default' => 'Tryouts are free of charge, but registration is required.' . "\n\n" . 'All tryout updates and changes will be communicated via email.' . "\n\n" . 'A waiver must be completed prior to attending all EA Rep Team tryouts. Please bring a completed copy of the waiver to tryout, or email it to liam@elevationathletics.ca.',
+        ),
+        'ea_txt_basketball_rep_waiver_button' => array(
+            'key' => 'basketballRepWaiverButton', 'label' => 'Basketball Rep — Waiver button', 'type' => 'text',
+            'default' => 'Download Waiver',
+        ),
+        'ea_txt_basketball_rep_form_shortcode' => array(
+            'key' => 'basketballRepFormShortcode', 'label' => 'Basketball Rep — WPForms shortcode', 'type' => 'textarea',
+            'default' => '',
+        ),
+        'ea_txt_basketball_rep_schedule_heading' => array(
+            'key' => 'basketballRepScheduleHeading', 'label' => 'Basketball Rep — Schedule heading', 'type' => 'text',
+            'default' => 'Fall 2026 Schedule',
+        ),
+        'ea_txt_basketball_rep_schedule_rows' => array(
+            'key' => 'basketballRepScheduleRows', 'label' => 'Basketball Rep — Schedule rows', 'type' => 'textarea',
+            'default' => 'August 17 | 6:30-7:30 PM | U10 | Ross Family Complex (Mt. Albert)' . "\n" . 'August 17 | 7:30-8:30 PM | U12 | Ross Family Complex (Mt. Albert)' . "\n" . 'August 17 | 8:30-10:00 PM | U15/U16 | Ross Family Complex (Mt. Albert)' . "\n" . 'August 23 | 6:00-7:00 PM | U10 | Aurora Family Leisure Complex' . "\n" . 'August 23 | 7:00-8:30 PM | U12 | Aurora Family Leisure Complex' . "\n" . 'August 23 | 8:30-10:00 PM | U15/U16 | Aurora Family Leisure Complex' . "\n" . 'August 24 | 6:30-7:30 PM | U11 | Ross Family Complex (Mt. Albert)' . "\n" . 'August 24 | 7:30-8:30 PM | U13 | Ross Family Complex (Mt. Albert)' . "\n" . 'August 24 | 8:30-10:00 PM | U17/U19 | Ross Family Complex (Mt. Albert)' . "\n" . 'August 29 | 5:30-6:30 PM | U11 | Aurora Family Leisure Complex' . "\n" . 'August 29 | 6:30-8:00 PM | U14 | Aurora Family Leisure Complex' . "\n" . 'August 29 | 8:00-9:30 PM | U17/U19 | Aurora Family Leisure Complex' . "\n" . 'September 2 | 6:00-7:30 PM | U13 | Aurora Family Leisure Complex' . "\n" . 'September 2 | 7:30-9:00 PM | U14 | Aurora Family Leisure Complex',
+        ),
+        'ea_txt_basketball_rep_map_1_heading' => array(
+            'key' => 'basketballRepMap1Heading', 'label' => 'Basketball Rep — Map 1 heading', 'type' => 'text',
+            'default' => 'Ross Family Complex',
+        ),
+        'ea_txt_basketball_rep_map_1_embed' => array(
+            'key' => 'basketballRepMap1Embed', 'label' => 'Basketball Rep — Map 1 embed src URL', 'type' => 'textarea',
+            'default' => '',
+        ),
+        'ea_txt_basketball_rep_map_2_heading' => array(
+            'key' => 'basketballRepMap2Heading', 'label' => 'Basketball Rep — Map 2 heading', 'type' => 'text',
+            'default' => 'Aurora Family Leisure Complex',
+        ),
+        'ea_txt_basketball_rep_map_2_embed' => array(
+            'key' => 'basketballRepMap2Embed', 'label' => 'Basketball Rep — Map 2 embed src URL', 'type' => 'textarea',
+            'default' => '',
+        ),
+
+        // ── Coming Soon ─────────────────────────────────────────────────────
+        'ea_txt_coming_soon_heading' => array(
+            'key' => 'comingSoonHeading', 'label' => 'Coming Soon — Heading', 'type' => 'text',
+            'default' => 'Coming Soon',
+        ),
+        'ea_txt_coming_soon_subheading' => array(
+            'key' => 'comingSoonSubheading', 'label' => 'Coming Soon — Subtext', 'type' => 'textarea',
+            'default' => 'This page is currently under construction.',
         ),
 
         // ── Small Group Coaching ──────────────────────────────────────────────
@@ -596,6 +796,15 @@ function ea_button_link_fields() {
         'ea_link_coaching'       => array( 'key' => 'coachingCta',    'label' => 'Coaching — button',                'hideable' => true ),
         'ea_link_partnerships'   => array( 'key' => 'partnershipsCta', 'label' => 'Community — Partnerships button',  'hideable' => true ),
         'ea_link_leaders'        => array( 'key' => 'leadersCta',     'label' => 'Community — Leaders button',        'hideable' => true ),
+        'ea_link_guide_box_1'    => array( 'key' => 'guideBox1',      'label' => 'Basketball Guide — Box 1 button' ),
+        'ea_link_guide_box_2'    => array( 'key' => 'guideBox2',      'label' => 'Basketball Guide — Box 2 button' ),
+        'ea_link_guide_box_3'    => array( 'key' => 'guideBox3',      'label' => 'Basketball Guide — Box 3 button' ),
+        'ea_link_guide_box_4'    => array( 'key' => 'guideBox4',      'label' => 'Basketball Guide — Box 4 button' ),
+        'ea_link_guide_box_5'    => array( 'key' => 'guideBox5',      'label' => 'Basketball Guide — Box 5 button' ),
+        'ea_link_guide_box_6'    => array( 'key' => 'guideBox6',      'label' => 'Basketball Guide — Box 6 button' ),
+        'ea_link_rep_tryouts_hero'     => array( 'key' => 'repTryoutsHero',     'label' => 'Basketball Rep — Hero register button' ),
+        'ea_link_rep_tryouts_schedule' => array( 'key' => 'repTryoutsSchedule', 'label' => 'Basketball Rep — See schedule button' ),
+        'ea_link_rep_tryouts_waiver'   => array( 'key' => 'repTryoutsWaiver',   'label' => 'Basketball Rep — Waiver button' ),
     );
 }
 
@@ -609,6 +818,8 @@ function ea_section_choices() {
         'coaching'        => 'Coaching',
         'community'       => 'Community',
         'newsletter'      => 'Newsletter',
+        'rep-tryouts'     => 'Basketball Rep Tryouts form',
+        'rep-schedule'    => 'Basketball Rep Schedule',
     );
 }
 
@@ -785,6 +996,18 @@ function ea_customize_options( $wp_customize ) {
         'section'     => 'ea_options',
     ) );
 
+    $wp_customize->add_setting( 'ea_free_trial_notification_emails', array(
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_textarea_field',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'ea_free_trial_notification_emails', array(
+        'type'        => 'textarea',
+        'label'       => __( 'Free Trial — notification emails', 'ea-react-theme' ),
+        'description' => __( 'Comma- or line-separated emails that should receive Free Trial notifications. Leave blank to use the WordPress admin email.', 'ea-react-theme' ),
+        'section'     => 'ea_options',
+    ) );
+
     $wp_customize->add_setting( 'ea_sports', array(
         'default'           => ea_default_sports_selection(),
         'sanitize_callback' => 'ea_sanitize_sports',
@@ -811,6 +1034,23 @@ function ea_customize_options( $wp_customize ) {
 }
 add_action( 'customize_register', 'ea_customize_options' );
 
+function ea_sanitize_map_embed_field( $value ) {
+    $allowed = array(
+        'iframe' => array(
+            'src'            => true,
+            'width'          => true,
+            'height'         => true,
+            'style'          => true,
+            'allowfullscreen'=> true,
+            'loading'        => true,
+            'referrerpolicy' => true,
+            'title'          => true,
+        ),
+    );
+
+    return wp_kses( (string) $value, $allowed );
+}
+
 function ea_customize_texts( $wp_customize ) {
     $wp_customize->add_section( 'ea_text', array(
         'title'       => __( 'EA Text', 'ea-react-theme' ),
@@ -819,7 +1059,15 @@ function ea_customize_texts( $wp_customize ) {
     ) );
 
     foreach ( ea_react_text_fields() as $setting => $meta ) {
-        $sanitize = ( 'textarea' === $meta['type'] ) ? 'sanitize_textarea_field' : 'sanitize_text_field';
+        $map_embed_fields = array(
+            'ea_txt_basketball_rep_map_1_embed',
+            'ea_txt_basketball_rep_map_2_embed',
+        );
+        if ( in_array( $setting, $map_embed_fields, true ) ) {
+            $sanitize = 'ea_sanitize_map_embed_field';
+        } else {
+            $sanitize = ( 'textarea' === $meta['type'] ) ? 'sanitize_textarea_field' : 'sanitize_text_field';
+        }
         $wp_customize->add_setting( $setting, array(
             'default'           => $meta['default'],
             'sanitize_callback' => $sanitize,
@@ -956,6 +1204,7 @@ function ea_register_free_trial_route() {
         'args'                => array(
             'name'    => array( 'required' => true,  'type' => 'string' ),
             'email'   => array( 'required' => true,  'type' => 'string' ),
+            'ageRange' => array( 'required' => false, 'type' => 'string' ),
             'session' => array( 'required' => false, 'type' => 'string' ),
             // Honeypot: real users leave this empty; bots tend to fill every field.
             'website' => array( 'required' => false, 'type' => 'string' ),
@@ -972,12 +1221,13 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
 
     $name    = sanitize_text_field( wp_unslash( $request['name'] ) );
     $email   = sanitize_email( wp_unslash( $request['email'] ) );
+    $age_range = isset( $request['ageRange'] ) ? sanitize_text_field( wp_unslash( $request['ageRange'] ) ) : '';
     $session = sanitize_text_field( wp_unslash( $request['session'] ) );
 
-    if ( '' === $name || '' === $email || ! is_email( $email ) ) {
+    if ( '' === $name || '' === $email || ! is_email( $email ) || '' === $age_range || '' === $session ) {
         return new WP_Error(
             'ea_invalid',
-            'Please provide a valid name and email.',
+            'Please provide a valid name, email, age range, and session.',
             array( 'status' => 422 )
         );
     }
@@ -999,16 +1249,18 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     }
 
     update_post_meta( $entry_id, '_ea_email', $email );
+    update_post_meta( $entry_id, '_ea_age_range', $age_range );
     update_post_meta( $entry_id, '_ea_session', $session );
 
     // 2) Email the admin as a notification (best-effort — the entry is already
     //    saved, so a mail hiccup must not fail the submission). Locally this is
     //    caught by Local's Mailpit (Site → Tools → Open Mailpit).
-    $to      = get_option( 'admin_email' );
+    $to      = ea_free_trial_notification_emails();
     $subject = 'New free trial registration';
     $body    = "A new free trial registration was submitted:\n\n"
              . "Athlete's Name: {$name}\n"
              . "Email: {$email}\n"
+             . "Age Range: {$age_range}\n"
              . "Session: " . ( '' !== $session ? $session : '(not specified)' ) . "\n";
     $headers = array(
         'Content-Type: text/plain; charset=UTF-8',
@@ -1017,7 +1269,203 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     );
     wp_mail( $to, $subject, $body, $headers );
 
+    $sport = ea_default_sport_value();
+    $confirmation_subject = "We've received your EA {$sport} free trial request";
+    $confirmation_body    = "Hi {$name},\n\n"
+        . "Thanks for registering for a free trial with EA {$sport}. We received your request with the details below:\n\n"
+        . "Age Range: {$age_range}\n"
+        . "Session: {$session}\n\n"
+        . "Our team will follow up if anything changes before your selected session.\n\n"
+        . "Thanks,\n"
+        . "Elevation Athletics";
+    $confirmation_headers = array(
+        'Content-Type: text/plain; charset=UTF-8',
+        'Reply-To: ' . get_option( 'admin_email' ),
+    );
+    wp_mail( $email, $confirmation_subject, $confirmation_body, $confirmation_headers );
+
     return new WP_REST_Response( array( 'ok' => true, 'id' => (int) $entry_id ), 200 );
+}
+
+function ea_free_trial_notification_emails() {
+    $raw = (string) get_theme_mod( 'ea_free_trial_notification_emails', '' );
+    $emails = preg_split( '/[\s,;]+/', $raw );
+    $emails = array_filter( array_map( 'sanitize_email', (array) $emails ), 'is_email' );
+
+    if ( empty( $emails ) ) {
+        $admin_email = sanitize_email( get_option( 'admin_email' ) );
+        return is_email( $admin_email ) ? $admin_email : '';
+    }
+
+    return array_values( array_unique( $emails ) );
+}
+
+// ─── Venue coordinate resolver (map pins for venues not in the baked table) ───
+// src/data/venueCoords.generated.js is a build-time snapshot. Any venue added to
+// the programs feed after that snapshot has no coordinates, so it silently drops
+// off the map ("N programs aren't shown"). Re-running the generator and
+// re-uploading the theme fixes it only until the next new venue, so the gap
+// always comes back.
+//
+// The browser can't resolve the feed's maps.app.goo.gl links itself: Google
+// sends no Access-Control-Allow-Origin and marks the response same-site, so a
+// cross-origin fetch is blocked. This proxies the lookup server-side instead.
+//
+// The coordinates live in the redirect TARGET (!3d<lat>!4d<lng>), so this only
+// walks the redirect chain and reads Location headers - no API key, no
+// geocoding service, and no response body is ever parsed.
+//
+// Each result is cached in a transient effectively forever, since a venue's
+// coordinates don't change. Only the first visitor after a venue appears pays
+// the lookup; everyone after that is served from cache.
+define( 'EA_VENUE_COORD_TTL',       YEAR_IN_SECONDS );
+define( 'EA_VENUE_COORD_FAIL_TTL',  6 * HOUR_IN_SECONDS ); // retry broken links, but not on every view
+define( 'EA_VENUE_COORD_MAX_LINKS', 80 );  // per request, caps abuse
+define( 'EA_VENUE_COORD_MAX_FRESH', 12 );  // new lookups per request, keeps the response quick
+define( 'EA_VENUE_COORD_BUDGET',    8.0 ); // seconds spent on new lookups per request
+
+/**
+ * Only ever fetch Google's own map hosts. Without this the endpoint would be an
+ * open proxy: anyone could POST an internal address and have the server fetch it.
+ */
+function ea_venue_coord_allowed_host( $url ) {
+    $host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+    return in_array( $host, array(
+        'maps.app.goo.gl', 'goo.gl',
+        'maps.google.com', 'www.google.com', 'google.com',
+        'maps.google.ca',  'www.google.ca',  'google.ca',
+    ), true );
+}
+
+/** Port of extractCoords() in tools/build-venue-coords.mjs - keep the two in step. */
+function ea_venue_coord_extract( $text ) {
+    // !3d!4d is the authoritative place coordinate.
+    if ( preg_match( '/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/', $text, $m ) ) {
+        return array( 'lat' => (float) $m[1], 'lng' => (float) $m[2] );
+    }
+    // /@lat,lng is the viewport centre: usually identical, but drifts if the
+    // link was made from a panned view. Fallback only.
+    if ( preg_match( '/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/', $text, $m ) ) {
+        return array( 'lat' => (float) $m[1], 'lng' => (float) $m[2] );
+    }
+    if ( preg_match( '/[?&](?:q|ll|center)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/', $text, $m ) ) {
+        return array( 'lat' => (float) $m[1], 'lng' => (float) $m[2] );
+    }
+    return null;
+}
+
+/** Canada-wide gate. Catches a redirect that landed on a consent or generic page. */
+function ea_venue_coord_in_bbox( $c ) {
+    return $c
+        && $c['lat'] >= 41 && $c['lat'] <= 84
+        && $c['lng'] >= -142 && $c['lng'] <= -52;
+}
+
+function ea_venue_coord_resolve( $link ) {
+    $url = $link;
+
+    for ( $hop = 0; $hop < 5; $hop++ ) {
+        // Re-checked every hop: the chain must never walk off Google's hosts.
+        if ( ! ea_venue_coord_allowed_host( $url ) ) {
+            return null;
+        }
+
+        $res = wp_remote_get( $url, array(
+            'timeout'     => 6,
+            'redirection' => 0, // walk the chain by hand so each Location is readable
+            // Deliberately a bare UA. Google serves a JS app shell with no
+            // coordinates to anything resembling a real browser, and a plain
+            // 302 to simple clients. A full Chrome UA breaks every lookup.
+            'user-agent'  => 'Mozilla/5.0',
+            'headers'     => array( 'Accept-Language' => 'en-CA,en;q=0.9' ),
+        ) );
+        if ( is_wp_error( $res ) ) {
+            return null;
+        }
+
+        $next = wp_remote_retrieve_header( $res, 'location' );
+        if ( is_array( $next ) ) {
+            $next = reset( $next );
+        }
+
+        $candidate = $next ? $next : $url;
+        $coords    = ea_venue_coord_extract( $candidate );
+        if ( $coords ) {
+            return ea_venue_coord_in_bbox( $coords ) ? $coords : null;
+        }
+
+        if ( ! $next ) {
+            break;
+        }
+        // Resolve a relative Location against the URL that produced it.
+        $url = ( 0 === strpos( $next, 'http' ) )
+            ? $next
+            : ( 'https://' . wp_parse_url( $url, PHP_URL_HOST ) . '/' . ltrim( $next, '/' ) );
+    }
+
+    return null;
+}
+
+function ea_register_venue_coords_route() {
+    register_rest_route( 'ea/v1', '/venue-coords', array(
+        'methods'             => 'POST',
+        'permission_callback' => '__return_true', // public map data, no user data involved
+        'callback'            => 'ea_handle_venue_coords',
+    ) );
+}
+add_action( 'rest_api_init', 'ea_register_venue_coords_route' );
+
+function ea_handle_venue_coords( WP_REST_Request $request ) {
+    $links = $request->get_param( 'links' );
+    if ( ! is_array( $links ) ) {
+        return new WP_Error( 'ea_invalid', 'links must be an array.', array( 'status' => 422 ) );
+    }
+
+    $links   = array_slice( array_unique( array_filter( array_map( 'strval', $links ) ) ), 0, EA_VENUE_COORD_MAX_LINKS );
+    $out     = array();
+    $pending = array();
+    $fresh   = 0;
+    $deadline = microtime( true ) + EA_VENUE_COORD_BUDGET;
+
+    foreach ( $links as $link ) {
+        $link = trim( $link );
+        if ( '' === $link || ! ea_venue_coord_allowed_host( $link ) ) {
+            continue;
+        }
+
+        $key    = 'ea_vc_' . md5( strtolower( rtrim( $link, '/' ) ) );
+        $cached = get_transient( $key );
+
+        if ( is_array( $cached ) ) {
+            $out[ $link ] = $cached;
+            continue;
+        }
+        if ( 'fail' === $cached ) {
+            continue; // known bad, don't retry until the short TTL lapses
+        }
+
+        // Resolve a slice now and report the rest as pending, so the first view
+        // after a batch of new venues stays fast instead of blocking on dozens
+        // of sequential lookups. The client asks again for what's left.
+        if ( $fresh >= EA_VENUE_COORD_MAX_FRESH || microtime( true ) > $deadline ) {
+            $pending[] = $link;
+            continue;
+        }
+
+        $fresh++;
+        $coords = ea_venue_coord_resolve( $link );
+        if ( $coords ) {
+            set_transient( $key, $coords, EA_VENUE_COORD_TTL );
+            $out[ $link ] = $coords;
+        } else {
+            set_transient( $key, 'fail', EA_VENUE_COORD_FAIL_TTL );
+        }
+    }
+
+    return new WP_REST_Response( array(
+        'coords'  => (object) $out,
+        'pending' => $pending,
+    ), 200 );
 }
 
 // ─── "Free Trials" admin screen (stores + lists form submissions) ─────────────
@@ -1050,7 +1498,7 @@ add_action( 'init', 'ea_register_free_trial_cpt' );
 function ea_default_sport_value() {
     return defined( 'EA_CC_DEFAULT_SPORT' ) && '' !== trim( (string) EA_CC_DEFAULT_SPORT )
         ? sanitize_text_field( EA_CC_DEFAULT_SPORT )
-        : 'Badminton';
+        : 'Basketball';
 }
 
 function ea_default_region_value() {
@@ -1107,7 +1555,7 @@ function ea_newsletter_city_value( $locations ) {
 }
 
 // Columns for the Free Trials list table:
-// Athlete | Email | City | Sport | Session | Submitted.
+// Athlete | Email | City | Sport | Age Range | Session | Submitted.
 function ea_free_trial_columns( $columns ) {
     return array(
         'cb'         => isset( $columns['cb'] ) ? $columns['cb'] : '',
@@ -1115,6 +1563,7 @@ function ea_free_trial_columns( $columns ) {
         'ea_email'   => __( 'Email', 'ea-react-theme' ),
         'ea_city'    => __( 'City', 'ea-react-theme' ),
         'ea_sport'   => __( 'Sport', 'ea-react-theme' ),
+        'ea_age_range' => __( 'Age Range', 'ea-react-theme' ),
         'ea_session' => __( 'Session', 'ea-react-theme' ),
         'date'       => __( 'Submitted', 'ea-react-theme' ),
     );
@@ -1129,6 +1578,9 @@ function ea_free_trial_column_content( $column, $post_id ) {
         echo esc_html( ea_free_trial_city_value() );
     } elseif ( 'ea_sport' === $column ) {
         echo esc_html( ea_default_sport_value() );
+    } elseif ( 'ea_age_range' === $column ) {
+        $age_range = get_post_meta( $post_id, '_ea_age_range', true );
+        echo $age_range ? esc_html( $age_range ) : '—';
     } elseif ( 'ea_session' === $column ) {
         $session = get_post_meta( $post_id, '_ea_session', true );
         echo $session ? esc_html( $session ) : '—';
@@ -1200,7 +1652,7 @@ function ea_export_free_trials_csv() {
     ea_send_csv_headers( 'ea-free-trials-' . gmdate( 'Y-m-d' ) . '.csv' );
 
     $out = fopen( 'php://output', 'w' );
-    fputcsv( $out, array( 'Submission ID', 'Athlete', 'Email', 'City', 'Sport', 'Session', 'Submitted At' ) );
+    fputcsv( $out, array( 'Submission ID', 'Athlete', 'Email', 'City', 'Sport', 'Age Range', 'Session', 'Submitted At' ) );
 
     foreach ( ea_get_export_posts( 'ea_free_trial' ) as $entry ) {
         fputcsv( $out, array(
@@ -1209,6 +1661,7 @@ function ea_export_free_trials_csv() {
             get_post_meta( $entry->ID, '_ea_email', true ),
             ea_free_trial_city_value(),
             ea_default_sport_value(),
+            get_post_meta( $entry->ID, '_ea_age_range', true ),
             get_post_meta( $entry->ID, '_ea_session', true ),
             get_date_from_gmt( $entry->post_date_gmt, 'Y-m-d H:i:s' ),
         ) );
@@ -1259,13 +1712,6 @@ function ea_cc_config() {
         'client_id'       => ea_cc_config_value( 'EA_CC_CLIENT_ID' ),
         'client_secret'   => ea_cc_config_value( 'EA_CC_CLIENT_SECRET' ),
         'list_id'         => ea_cc_config_value( 'EA_CC_NEWSLETTER_LIST_ID' ),
-        'field_sport_id'  => ea_cc_config_value( 'EA_CC_FIELD_SPORT_ID' ),
-        'field_city_id'   => ea_cc_config_value( 'EA_CC_FIELD_CITY_ID' ),
-        'field_region_id' => ea_cc_config_value( 'EA_CC_FIELD_REGION_ID' ),
-        'field_season_id'            => ea_cc_config_value( 'EA_CC_FIELD_SEASON_ID' ),
-        'field_program_id'           => ea_cc_config_value( 'EA_CC_FIELD_PROGRAM_ID' ),
-        'field_program_start_id'     => ea_cc_config_value( 'EA_CC_FIELD_PROGRAM_START_ID' ),
-        'field_registration_date_id' => ea_cc_config_value( 'EA_CC_FIELD_REGISTRATION_DATE_ID' ),
     );
 }
 
@@ -1572,17 +2018,6 @@ function ea_cc_find_or_create_tag( &$tags_cache, $token, $tag_name ) {
     return false;
 }
 
-function ea_cc_optional_field( $field_id, $value ) {
-    if ( '' === $field_id || '' === (string) $value ) {
-        return null;
-    }
-
-    return array(
-        'custom_field_id' => $field_id,
-        'value'           => sanitize_text_field( (string) $value ),
-    );
-}
-
 function ea_cc_contact_id_for_email( $token, $email, $attempts = 3 ) {
     for ( $attempt = 1; $attempt <= $attempts; $attempt++ ) {
         $lookup = wp_remote_get(
@@ -1677,9 +2112,6 @@ function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0, $sessi
     $config = ea_cc_config();
     $city   = ea_newsletter_city_from_location( $location );
     list( $season, $year ) = ea_cc_season_from_date( $session_start );
-    $season_year = $season . ' ' . $year;
-    list( $reg_season, $reg_year ) = ea_cc_season_from_date( '' );
-    $registration_season_year = $reg_season . ' ' . $reg_year;
 
     $tag_names = array_unique( array_filter( array(
         ea_default_sport_value(),
@@ -1697,23 +2129,10 @@ function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0, $sessi
         }
     }
 
-    $custom_fields = array_filter( array(
-        ea_cc_optional_field( $config['field_sport_id'], ea_default_sport_value() ),
-        ea_cc_optional_field( $config['field_city_id'], $city ),
-        ea_cc_optional_field( $config['field_region_id'], ea_default_region_value() ),
-        ea_cc_optional_field( $config['field_season_id'], $season_year ),
-        ea_cc_optional_field( $config['field_program_id'], '' !== $program_summary ? $program_summary : 'General signup - Player' ),
-        ea_cc_optional_field( $config['field_program_start_id'], $session_start ),
-        ea_cc_optional_field( $config['field_registration_date_id'], $registration_season_year ),
-    ) );
-
     $payload = array(
         'email_address'    => $email,
         'list_memberships' => array( $config['list_id'] ),
     );
-    if ( ! empty( $custom_fields ) ) {
-        $payload['custom_fields'] = array_values( $custom_fields );
-    }
 
     $response = wp_remote_post(
         'https://api.cc.email/v3/contacts/sign_up_form',

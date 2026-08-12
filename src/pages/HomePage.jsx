@@ -359,7 +359,14 @@ function SessionSelect({ id, value, options, placeholder = 'Select Choice', onCh
   };
 
   return (
-    <div ref={rootRef} style={{ position: 'relative' }}>
+    // z-index only promoted while open: the popover list (below) is nested
+    // inside this positioned root with z-index:auto, so on its own it only
+    // out-stacks plain in-flow siblings - it does NOT reliably beat a later
+    // sibling (e.g. the Register button) if that sibling's own component
+    // establishes its own stacking context. Explicitly raising the WHOLE
+    // field above its siblings while open removes that ambiguity, without
+    // touching the Register button/DS Button component itself.
+    <div ref={rootRef} style={{ position: 'relative', zIndex: open ? 30 : 'auto' }}>
       <button
         type="button" id={id}
         role="combobox" aria-haspopup="listbox" aria-expanded={open}
@@ -418,23 +425,120 @@ function SessionSelect({ id, value, options, placeholder = 'Select Choice', onCh
   );
 }
 
+function isTrialProgram(p) {
+  const value = norm(p.Trial ?? p.trial ?? p.FreeTrial ?? p.free_trial);
+  return value === 'y' || value === 'yes' || value === 'true' || value === '1';
+}
+
+function ageRangeFromProgram(p) {
+  const min = p.MinAge ?? p.min_age ?? p.minAge;
+  const max = p.MaxAge ?? p.max_age ?? p.maxAge;
+  if (min !== undefined && min !== null && min !== '' && max !== undefined && max !== null && max !== '') {
+    return String(min) === String(max) ? `Age ${min}` : `${min} - ${max}`;
+  }
+
+  const title = String(p.Title || '');
+  const parenMatch = title.match(/\(([^)]*)\)/);
+  const ageText = parenMatch ? parenMatch[1] : title;
+  const skMatch = ageText.match(/SK\s*[-–]\s*(?:GR|Grade)\s*(\d+)/i);
+  if (skMatch) return `SK - Grade ${skMatch[1]}`;
+
+  const gradeRangeMatch = ageText.match(/(?:GR|Grade)\s*(\d+)\s*[-–]\s*(\d+)(?:\s*\/\s*([A-Z]+))?/i);
+  if (gradeRangeMatch) {
+    return `Grades ${gradeRangeMatch[1]} - ${gradeRangeMatch[2]}${gradeRangeMatch[3] ? `/${gradeRangeMatch[3].toUpperCase()}` : ''}`;
+  }
+
+  const gradeMatch = ageText.match(/(?:GR|Grade)\s*(\d+)/i);
+  if (gradeMatch) return `Grade ${gradeMatch[1]}`;
+
+  const ageRangeMatch = ageText.match(/(\d+)\s*[-–]\s*(\d+)\s*(?:yrs?|years?|ages?)?/i);
+  if (ageRangeMatch) return `${ageRangeMatch[1]} - ${ageRangeMatch[2]}`;
+
+  return 'All Ages';
+}
+
+function weekdayLabel(date) {
+  return date.toLocaleDateString('en-US', { weekday: 'long' });
+}
+
+function trialSessionLabel(p, date) {
+  const dateLabel = date
+    ? `${weekdayLabel(date)}, ${formatProgramDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`)}`
+    : [p.Day, formatDateRange(p)].filter(Boolean).join(' · ');
+  return [dateLabel, p.Time, p.LocationName || p.City]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+function ageRangeSortValue(label) {
+  const text = String(label || '').toLowerCase();
+  if (text.includes('sk')) return 0;
+  const match = text.match(/\d+/);
+  return match ? Number(match[0]) : 999;
+}
+
+function buildTrialSessionChoices(rows, sports) {
+  const allow = new Set(sports && sports.length ? sports : ['bask']);
+  const seen = new Set();
+  const today0 = todayStart();
+  const choices = [];
+
+  (rows || [])
+    .filter((p) => {
+      const sportKey = rowSportKey(p) || (norm(p.Title).includes('basketball') ? 'bask' : null);
+      return p && sportKey && allow.has(sportKey) && isEAorTS(p) && !p.is_cancelled && isTrialProgram(p);
+    })
+    .forEach((program) => {
+    const ageRange = ageRangeFromProgram(program);
+    const sessionDates = String(program.SessionDates || '')
+      .split(',')
+      .map((s) => parseLocalDate(s.trim()))
+      .filter((date) => date instanceof Date && !isNaN(date) && date >= today0);
+    const dates = sessionDates.length ? sessionDates : [getStartDate(program)].filter((date) => date instanceof Date && !isNaN(date) && date >= today0);
+
+    dates.forEach((date) => {
+      const label = trialSessionLabel(program, date);
+      if (!label) return;
+      const key = `${ageRange}|${date.getTime()}|${program.Time}|${program.LocationName || program.City}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      choices.push({ ageRange, label, date: date.getTime() });
+    });
+  });
+
+  return choices.sort((a, b) => a.date - b.date || a.label.localeCompare(b.label));
+}
+
 // Free Trial registration form. Shown in place of the carousel when the
 // Customizer toggle "Show photo carousel" is unchecked (options.useCarousel = false).
 function FreeTrialSection({ DS, isMobile, t }) {
   const { Button, SectionHeading } = DS;
-  const [form, setForm] = useState({ name: '', email: '', session: '', website: '' });
+  const [form, setForm] = useState({ name: '', email: '', ageRange: '', session: '', website: '' });
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const rows = useProgramsFeed();
+  const trialChoices = buildTrialSessionChoices(rows || [], ['bask']);
+  const ageRanges = Array.from(new Set(trialChoices.map((choice) => choice.ageRange)))
+    .sort((a, b) => ageRangeSortValue(a) - ageRangeSortValue(b) || a.localeCompare(b));
+  const ageRangeKey = ageRanges.join('|');
+  const hasTrialChoices = trialChoices.length > 0;
+  const isTrialFeedLoading = rows === null && !hasTrialChoices;
+
+  useEffect(() => {
+    if (form.ageRange && ageRanges.length && !ageRanges.includes(form.ageRange)) {
+      setForm((f) => ({ ...f, ageRange: '', session: '' }));
+    }
+  }, [ageRangeKey, form.ageRange]);
 
   const handleSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     setError('');
 
     // Client-side validation before hitting the server.
-    if (!form.name.trim() || !form.email.trim()) {
-      setError('Please enter the athlete’s name and email.');
+    if (!form.name.trim() || !form.email.trim() || !form.ageRange.trim() || !form.session.trim()) {
+      setError('Please enter the athlete’s name, email, age range, and session.');
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
@@ -454,7 +558,7 @@ function FreeTrialSection({ DS, isMobile, t }) {
         throw new Error(data && data.message ? data.message : 'Something went wrong. Please try again.');
       }
       setSubmitted(true);
-      setForm({ name: '', email: '', session: '', website: '' });
+      setForm({ name: '', email: '', ageRange: '', session: '', website: '' });
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -473,11 +577,11 @@ function FreeTrialSection({ DS, isMobile, t }) {
     color: 'var(--ea-ink, #1E526E)', background: '#fff',
   };
 
-  // Session options for the dropdown — editable in Appearance → Customize → EA Options
-  // ("Free Trial — session choices", one per line). Falls back to the location list.
-  const sessionOptions = ((t.options && t.options.freeTrialSessions) || '')
-    .split('\n').map((s) => s.trim()).filter(Boolean);
-  const sessions = sessionOptions.length ? sessionOptions : LOCATIONS(isMobile).map((l) => l.city);
+  // Trial sessions come from programs.json rows marked Trial = y. If the feed is
+  // unavailable, fall back to the old Customizer textarea so the form still works.
+  const sessions = hasTrialChoices
+    ? trialChoices.filter((choice) => choice.ageRange === form.ageRange).slice(0, 3).map((choice) => choice.label)
+    : [];
 
   // Heading text. On mobile it matches the other section headers (SectionHeading "lg");
   // on desktop it's overlaid on top of the illustration in the left column.
@@ -497,11 +601,22 @@ function FreeTrialSection({ DS, isMobile, t }) {
         <input id="ft-email" type="email" style={inputStyle} placeholder="Email" value={form.email} onChange={update('email')} />
       </div>
       <div style={{ marginTop: 20 }}>
+        <label style={labelStyle} htmlFor="ft-age-range">Age Range</label>
+        <SessionSelect
+          id="ft-age-range"
+          value={form.ageRange}
+          options={hasTrialChoices ? ageRanges : []}
+          placeholder={isTrialFeedLoading ? 'Loading ages...' : 'Select Age Range'}
+          onChange={(val) => setForm((f) => ({ ...f, ageRange: val, session: '' }))}
+        />
+      </div>
+      <div style={{ marginTop: 20 }}>
         <label style={labelStyle} htmlFor="ft-session">{t.texts.freeTrialSessionLabel || 'Choose Session'}</label>
         <SessionSelect
           id="ft-session"
           value={form.session}
           options={sessions}
+          placeholder={hasTrialChoices && !form.ageRange ? 'Select an age range first' : 'Select Session'}
           onChange={(val) => setForm((f) => ({ ...f, session: val }))}
         />
       </div>
@@ -706,7 +821,7 @@ function ProgramSubscribeButton({ city, sessionStart = '', programSummary = '', 
 }
 
 function siteSport(t) {
-  return (t.defaults && t.defaults.sport) || 'Badminton';
+  return (t.defaults && t.defaults.sport) || 'Basketball';
 }
 
 function generalNewsletterLocation(t) {
@@ -885,6 +1000,28 @@ function sortPrograms(programs, userCoords) {
   });
 }
 
+function rawProgramPrice(p) {
+  return p.updated_price ?? p.StaticPriceText ?? p.TotalPrice;
+}
+
+function hasRealProgramPrice(p) {
+  const raw = rawProgramPrice(p);
+  if (raw === undefined || raw === null) return false;
+  const text = String(raw).trim();
+  if (!text || /^tbd$/i.test(text)) return false;
+  const normalized = text.replace(/[$,\s]/g, '');
+  return normalized !== '' && !Number.isNaN(Number(normalized));
+}
+
+function hasRegistrationLink(p) {
+  const link = String(p.RegisterLink || p.URL || '').trim();
+  return Boolean(link) && !/^tbd$/i.test(link);
+}
+
+function isRegistrableProgram(p) {
+  return hasRegistrationLink(p) && hasRealProgramPrice(p);
+}
+
 // Keep individual program rows whose sport is selected. When `userCoords` is
 // provided, nearest city sorts first; otherwise use the registration priority.
 function buildProgramList(programs, sports, userCoords) {
@@ -893,7 +1030,7 @@ function buildProgramList(programs, sports, userCoords) {
     programs
       .filter((p) => {
         const sportKey = rowSportKey(p);
-        return p && sportKey && allow.has(sportKey) && isEAorTS(p) && p.City && !p.is_cancelled;
+        return p && sportKey && allow.has(sportKey) && isEAorTS(p) && p.City && !p.is_cancelled && isRegistrableProgram(p);
       })
       .map((p) => ({ ...p, coords: CITY_COORDS[norm(p.City)] || null })),
     userCoords
@@ -937,19 +1074,38 @@ function sessionCount(p) {
 }
 
 function displayPrice(p) {
-  const raw = p.updated_price || p.StaticPriceText || p.TotalPrice;
+  const raw = rawProgramPrice(p);
   if (raw === undefined || raw === null || raw === '') return '';
-  const num = Number(raw);
+  const num = Number(String(raw).replace(/[$,\s]/g, ''));
   if (!Number.isNaN(num)) return `$${num % 1 === 0 ? num.toFixed(0) : num.toFixed(2)}`;
   return `$${String(raw).replace(/^\$/, '')}`;
 }
 
-function inferLevelLabel(p) {
-  const text = `${p.Title || ''} ${p.level || ''}`.toLowerCase();
-  if (text.includes('advanced') || text.includes('level 3') || text.match(/\b3\b/)) return 'Advanced';
-  if (text.includes('intermediate') || text.includes('level 2') || text.match(/\b2\b/)) return 'Intermediate';
-  if (text.includes('beginner') || text.includes('level 1') || text.match(/\b1\b/)) return 'Beginner';
+function numericLevel(p) {
+  const raw = p.level ?? p.Level ?? p.LEVEL;
+  if (raw === undefined || raw === null || raw === '') return null;
+  const match = String(raw).match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+function levelLabelFromNumber(level) {
+  if (level === null) return null;
+  if (level <= 1) return 'Beginner';
+  if (level === 2) return 'Experienced Beginner';
+  if (level === 3) return 'Intermediate';
+  if (level >= 4) return 'Advanced';
   return null;
+}
+
+function inferLevelLabel(p) {
+  const fromJson = levelLabelFromNumber(numericLevel(p));
+  if (fromJson) return fromJson;
+
+  const text = String(p.Title || '').toLowerCase();
+  if (text.includes('advanced')) return 'Advanced';
+  if (text.includes('intermediate')) return 'Intermediate';
+  if (text.includes('experienced beginner')) return 'Experienced Beginner';
+  return 'Beginner';
 }
 
 function inferProgramTypeLabel(p) {
@@ -977,8 +1133,12 @@ function chipStyle(label) {
   if (key.includes('closed') || key === 'full') return { bg: '#ECEFF1', color: '#66757B' };
   if (key.includes('starting')) return { bg: '#FFE9AF', color: '#8A640F' };
   if (key.includes('progress')) return { bg: '#D7F1FF', color: '#206A87' };
+  if (key.includes('experienced beginner')) return { bg: '#A0E4F2', color: '#0B5364' };
+  if (key.includes('beginner')) return { bg: '#BDEEFF', color: '#0B5B73' };
+  if (key.includes('intermediate')) return { bg: '#73D3E8', color: '#0B4F63' };
   if (key.includes('advanced')) return { bg: '#0B5B73', color: '#FFFFFF' };
   if (key.includes('camp')) return { bg: '#FFBB91', color: '#0077A3' };
+  if (key.includes('league')) return { bg: '#F1ECFF', color: '#55438F', border: '1px solid #D8CCFF' };
   if (key.includes('lesson')) return { bg: '#FFFFFF', color: '#0B5B73', border: '1px solid #0B5B73' };
   return { bg: '#BDEEFF', color: '#0B5B73' };
 }

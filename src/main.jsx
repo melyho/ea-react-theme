@@ -13,12 +13,18 @@ import HomePage from './pages/HomePage.jsx';
 import FAQPage  from './pages/FAQ.jsx';
 import BlankContentPage from './pages/BlankContentPage.jsx';
 import LeagueHubPage from './pages/LeagueHubPage.jsx';
+import BasketballGuidePage from './pages/BasketballGuidePage.jsx';
+import BasketballRepTryoutsPage from './pages/BasketballRepTryoutsPage.jsx';
+import ComingSoonPage from './pages/ComingSoonPage.jsx';
 
 const PAGES = {
   home:      HomePage,
   faq:       FAQPage,
   blank:     BlankContentPage,
   leagueHub: LeagueHubPage,
+  basketballGuide: BasketballGuidePage,
+  basketballRepTryouts: BasketballRepTryoutsPage,
+  comingSoon: ComingSoonPage,
 };
 
 const el = document.getElementById('ea-react-root');
