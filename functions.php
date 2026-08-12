@@ -304,6 +304,10 @@ function ea_react_text_fields() {
             'key' => 'freeTrialHeading', 'label' => 'Free Trial — Heading', 'type' => 'text',
             'default' => 'Register for your free trial!',
         ),
+        'ea_txt_free_trial_subheading' => array(
+            'key' => 'freeTrialSubheading', 'label' => 'Free Trial — Subtitle', 'type' => 'textarea',
+            'default' => 'Try a beginner-friendly basketball session at Trinity United Church. Select your athlete’s age range to see the next available trial dates.',
+        ),
         'ea_txt_free_trial_name_label' => array(
             'key' => 'freeTrialNameLabel', 'label' => 'Free Trial — Name field label', 'type' => 'text',
             'default' => 'Athlete\'s Name',

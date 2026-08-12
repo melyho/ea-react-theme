@@ -586,9 +586,22 @@ function FreeTrialSection({ DS, isMobile, t }) {
   // Heading text. On mobile it matches the other section headers (SectionHeading "lg");
   // on desktop it's overlaid on top of the illustration in the left column.
   const headingText = t.texts.freeTrialHeading || 'Register for your free trial!';
+  const subheadingText = t.texts.freeTrialSubheading || '';
   const mobileHeading = SectionHeading
     ? <SectionHeading level="lg" align="center">{headingText}</SectionHeading>
     : <h2 style={{ ...FB.h(28), textAlign: 'center' }}>{headingText}</h2>;
+  const subheading = subheadingText ? (
+    <p style={{
+      margin: isMobile ? '10px auto 0' : '12px 0 0',
+      maxWidth: isMobile ? 520 : 430,
+      fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+      fontSize: isMobile ? 15 : 16,
+      lineHeight: 1.4,
+      color: 'var(--ea-ink, #1E526E)',
+    }}>
+      {subheadingText}
+    </p>
+  ) : null;
 
   const formInner = (
     <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 440 }}>
@@ -670,7 +683,10 @@ function FreeTrialSection({ DS, isMobile, t }) {
     return (
       <section id="new-programs" style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: 0, scrollMarginTop: SCROLL_OFFSET }}>
         <div style={{ padding: '16px 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ textAlign: 'center', width: '75%' }}>{mobileHeading}</div>
+          <div style={{ textAlign: 'center', width: '75%' }}>
+            {mobileHeading}
+            {subheading}
+          </div>
           <div style={{
             background: '#fff', marginTop: 12,
             display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -708,10 +724,11 @@ function FreeTrialSection({ DS, isMobile, t }) {
               ? <SectionHeading level="md" align="left">{headingText}</SectionHeading>
               : <h2 style={{ ...FB.h(32), fontWeight: 'var(--fw-regular, 400)', margin: 0 }}>{headingText}</h2>
             }
+            {subheading}
           </div>
         </div>
         <div style={{
-          flex: '1 1 0', minWidth: '35%', background: '#F9FDFF',
+          flex: '1 1 0', minWidth: '35%', background: 'transparent',
           display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start',
           padding: '48px 40px',
         }}>
