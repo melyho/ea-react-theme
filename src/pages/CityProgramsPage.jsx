@@ -222,7 +222,11 @@ export default function CityProgramsPage() {
 
           {nearbySummaries.length > 0 && (
             <section style={{ marginTop: isMobile ? 52 : 72 }}>
-              <h2 style={FB.h(isMobile ? 36 : 42)}>Nearby Programs</h2>
+              <h2 style={{
+                ...FB.h(isMobile ? 30 : 34),
+                fontWeight: 'var(--fw-regular, 400)',
+                letterSpacing: '0.01em',
+              }}>Nearby Programs</h2>
               <p style={{
                 margin: '8px 0 28px',
                 fontFamily: 'var(--font-body)',
