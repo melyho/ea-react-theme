@@ -3,7 +3,7 @@ Theme Name:     Elevation Athletics React
 Theme URI:      https://elevationathletics.ca
 Description:    React-powered WordPress theme scaffold for Elevation Athletics.
 Author:         Elevation Athletics
-Version:        1.0.8
+Version:        1.0.9
 Text Domain:    ea-react-theme
 Tags:           react, javascript, wordpress, theme
 */
@@ -227,6 +227,189 @@ body {
 
 .ea-waiver-content .wpforms-container :where(input, select, textarea) {
   max-width: 100%;
+}
+
+.ea-built-waiver {
+  color: var(--text-body, var(--ea-ink, #1E526E));
+}
+
+.ea-built-waiver__header {
+  max-width: 980px;
+  margin-bottom: 28px;
+}
+
+.ea-built-waiver__eyebrow {
+  margin: 0 0 10px;
+  color: var(--ea-blue, #0092DB);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ea-built-waiver__header h1 {
+  margin: 0 0 16px;
+}
+
+.ea-built-waiver__header p:last-child {
+  max-width: 760px;
+  margin-bottom: 0;
+  font-size: 18px;
+}
+
+.ea-built-waiver__success {
+  margin: 0 0 28px;
+  padding: 16px 18px;
+  border: 1px solid #BDEFCB;
+  border-radius: 8px;
+  background: #E7FBEA;
+  color: #1B6B32;
+  font-family: var(--font-body, "Inclusive Sans", sans-serif);
+}
+
+.ea-waiver-form {
+  display: grid;
+  gap: 24px;
+}
+
+.ea-waiver-form__section {
+  padding: 24px;
+  border: 1px solid var(--border-card, #E5E5E5);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(16, 65, 79, 0.05);
+}
+
+.ea-waiver-form__section h2 {
+  margin: 0 0 16px;
+  font-size: clamp(28px, 3.8vw, 40px);
+}
+
+.ea-waiver-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.ea-waiver-form__field {
+  display: grid;
+  gap: 8px;
+  color: var(--text-heading, var(--ea-navy, #10414F));
+  font-family: var(--font-body, "Inclusive Sans", sans-serif);
+  font-weight: 700;
+}
+
+.ea-waiver-form__field em,
+.ea-waiver-form__radios em {
+  color: #D64A3A;
+  font-style: normal;
+}
+
+.ea-waiver-form__field input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  border: 1px solid #DADDE1;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text-body, var(--ea-ink, #1E526E));
+  font: 400 16px/1.4 var(--font-body, "Inclusive Sans", sans-serif);
+}
+
+.ea-waiver-form__legal {
+  display: grid;
+  gap: 14px;
+}
+
+.ea-waiver-form__clause {
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  background: #F8FBFC;
+  overflow: hidden;
+}
+
+.ea-waiver-form__clause summary {
+  cursor: pointer;
+  padding: 14px 16px;
+  color: var(--text-heading, var(--ea-navy, #10414F));
+  font-family: var(--font-body, "Inclusive Sans", sans-serif);
+  font-weight: 800;
+}
+
+.ea-waiver-form__clause p {
+  padding: 0 16px;
+}
+
+.ea-waiver-form__checkbox,
+.ea-waiver-form__radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  align-items: center;
+  margin: 14px 16px 16px;
+  color: var(--text-body, var(--ea-ink, #1E526E));
+  font-family: var(--font-body, "Inclusive Sans", sans-serif);
+}
+
+.ea-waiver-form__checkbox {
+  flex-wrap: nowrap;
+}
+
+.ea-waiver-form__checkbox input,
+.ea-waiver-form__radios input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.ea-waiver-form__radios {
+  border: 0;
+  padding: 0;
+}
+
+.ea-waiver-form__radios legend {
+  width: 100%;
+  margin-bottom: 4px;
+  font-weight: 800;
+}
+
+.ea-waiver-form__website {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.ea-waiver-form__submit {
+  justify-self: start;
+  border: 0;
+  border-radius: 8px;
+  padding: 16px 28px;
+  background: var(--ea-blue, #0092DB);
+  color: #fff;
+  cursor: pointer;
+  font: 800 18px/1 var(--font-body, "Inclusive Sans", sans-serif);
+}
+
+.ea-waiver-form__submit:hover,
+.ea-waiver-form__submit:focus-visible {
+  background: var(--ea-navy, #10414F);
+}
+
+@media (max-width: 767px) {
+  .ea-waiver-content__article {
+    width: min(100% - 32px, 1080px);
+    padding: 40px 0 72px;
+  }
+
+  .ea-waiver-form__section {
+    padding: 18px;
+  }
+
+  .ea-waiver-form__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 767px) {

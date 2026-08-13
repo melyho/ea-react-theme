@@ -203,6 +203,338 @@ function ea_register_wpforms_form_shortcode_alias() {
 }
 add_action( 'init', 'ea_register_wpforms_form_shortcode_alias', 20 );
 
+// ─── Pickleball waiver forms ─────────────────────────────────────────────────
+// First-party waiver forms. Submissions are saved in wp-admin → Waivers.
+function ea_waiver_legal_sections() {
+    return array(
+        1 => array(
+            'title' => 'Release of Liability, Waiver of Claims and Indemnity Agreement - Paragraph 1',
+            'body'  => 'This is a binding legal agreement. Clarify any questions or concerns before signing.',
+        ),
+        2 => array(
+            'title' => 'Activities - Paragraph 2',
+            'body'  => 'As a participant in the sport of pickleball and the activities, programs, classes, services provided and events sponsored or organized by Elevation Athletics Association including but not limited to games, tournaments, practices, training, personal training, dry land training, use of strength training and fitness conditioning equipment, machines and facilities, nutritional and dietary programs, orientational or instructional sessions or lessons, aerobic and anaerobic conditioning programs (collectively the “Activities”), the undersigned acknowledges and agrees to the terms outlined in this agreement.',
+        ),
+        3 => array(
+            'title' => 'Disclaimer - Paragraph 3',
+            'body'  => 'Elevation Athletics Association and their respective Directors, Officers, committee members, members, employees, coaches, volunteers, officials, participants, agents, sponsors, owners/operators of the facilities in which the Activities take place, and representatives (collectively the “Organization”) are not responsible for any injury, personal injury, damage, property damage, expense, loss of income or loss of any kind suffered by a Participant during, or as a result of, the Activities, caused in any manner whatsoever including, but not limited to, the negligence of the Organization.',
+        ),
+        4 => array(
+            'title' => 'Description and Acknowledgement of Risks - Paragraph 4',
+            'body'  => 'I understand and acknowledge that the Activities have foreseeable and unforeseeable inherent risks, hazards and dangers that no amount of care, caution or expertise can eliminate, including the potential for serious bodily injury, permanent disability, paralysis and loss of life. Risks include, but are not limited to, transmission of communicable disease including COVID-19, collision with persons or objects, being struck by a paddle or ball, stroke, heart attack or other life-threatening conditions caused by physical exertion, strains, sprains, fractures, brain injury, spinal cord injury, loss of balance or control, slips, trips and falls, negligent first aid, failure to act safely or within one’s own ability, negligence of other persons, and negligence on the part of the Organization. The Organization may be unaware of fitness or abilities, may misjudge conditions, may give incomplete warnings or instructions, and equipment may malfunction. COVID-19 has been declared a worldwide pandemic and is contagious; the Organization cannot guarantee that participation will not increase the risk of exposure or infection.',
+        ),
+        5 => array(
+            'title' => 'Description and Acknowledgement of Risks - Paragraph 5',
+            'body'  => 'I am participating voluntarily in the Activities. In consideration of participation, I acknowledge that I am aware of the risks, dangers and hazards associated with the Activities, including health risks, premises risks, equipment risks, contact with paddles, nets, court dividers, balls, equipment, vehicles or other persons, negligent advice, failure to act safely or within ability, inherent pickleball risks including running, sliding, slipping, serving, returning, stepping onto or over court surfaces or dividers, cyber/privacy risks, conduct of other persons, travel to and from the Activities, and negligence of myself, other persons, and the Organization.',
+        ),
+        6 => array(
+            'title' => 'Terms - Paragraph 6',
+            'body'  => 'In consideration of the Organization allowing participation in the Activities, I agree that when I practice or train in my own space I am responsible for my surroundings and equipment; that my mental and physical condition is appropriate and I assume related risks; to comply with rules and regulations for participation and facility/equipment use; to remove myself and notify a representative if I observe a significant hazard or risk; not to participate if impaired; to assess whether any Activities are too difficult; to be responsible for my choice and fit of safety or protective equipment; and that COVID-19 exposure may result in personal injury, illness, permanent disability, or death.',
+        ),
+        7 => array(
+            'title' => 'Release of Liability and Disclaimer - Paragraph 7',
+            'body'  => 'In consideration of the Organization allowing participation, I agree that the sole responsibility for safety remains with me; to assume all risks arising out of, associated with or related to participation; that I am not relying on oral or written statements made by the Organization or its agents; to waive any and all claims I may have now or in the future against the Organization; to freely accept and fully assume all risks and possibility of personal injury, death, property damage, expense and related loss; to forever release and indemnify the Organization from any and all liability for claims, demands, actions, damages, losses, judgments and costs that might arise out of or relate to participation, even if caused by negligence, gross negligence, negligent rescue, omissions, carelessness, breach of contract or statutory duty of care; to release and indemnify the Organization from any action related to exposure to or infection by COVID-19; that the Organization is not responsible for damage to vehicle, property or equipment; and that this release, waiver and indemnity is intended to be as broad and inclusive as permitted by law.',
+        ),
+        8 => array(
+            'title' => 'Jurisdiction - Paragraph 8',
+            'body'  => 'I agree that in the event that I file a lawsuit against the Organization, I will do so solely in the Province of Ontario and further agree that the substantive law of the Province of Ontario will apply without regard to conflict of law rules.',
+        ),
+        9 => array(
+            'title' => 'Photo Release - Paragraph 9',
+            'body'  => 'Do you give permission for Elevation Athletics Association to take photographs of the participant during program sessions for use in future promotional materials?',
+        ),
+        10 => array(
+            'title' => 'Participant Safety Agreement - Paragraph 10',
+            'body'  => 'In addition to the foregoing, the undersigned acknowledges and agrees to abide by Elevation Athletics Association’s 5 Golden Rules: participants shall not run backwards on the court; play must stop immediately if a ball rolls onto the court; the coach/coordinator shall inspect the court and surrounding area for hazards before activities begin; the court area must remain free of items including water bottles, personal belongings, benches, tables and similar objects; and participants must wear appropriate gym clothing and indoor athletic shoes while on the court. EA reserves the right to deny participation to anyone not adhering to this standard.',
+        ),
+        11 => array(
+            'title' => 'Acknowledgement - Paragraph 11',
+            'body'  => 'I acknowledge that I have read and understand this agreement, that I have executed this agreement voluntarily, and that this agreement is to be binding upon myself, my heirs, spouse, children, parents, guardians, next of kin, executors, administrators and legal or personal representatives. I further acknowledge that by submitting this agreement electronically, I have waived my right to maintain a lawsuit against the Organization on the basis of any claims from which I have released herein. By typing my name and submitting this form, I have agreed to all the Terms and Conditions of this Elevation Athletics Association Release of Liability, Waiver of Claims and Indemnity Agreement on the date and time recorded at the time of submission.',
+        ),
+    );
+}
+
+function ea_waiver_field( $name, $label, $type = 'text', $required = true, $placeholder = '' ) {
+    $required_attr = $required ? ' required' : '';
+    $placeholder_attr = '' !== $placeholder ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
+    echo '<label class="ea-waiver-form__field">';
+    echo '<span>' . esc_html( $label ) . ( $required ? ' <em>*</em>' : '' ) . '</span>';
+    echo '<input type="' . esc_attr( $type ) . '" name="' . esc_attr( $name ) . '"' . $required_attr . $placeholder_attr . '>';
+    echo '</label>';
+}
+
+function ea_render_waiver_form( $type = 'adult' ) {
+    $type     = 'minor' === $type ? 'minor' : 'adult';
+    $is_minor = 'minor' === $type;
+    $sections = ea_waiver_legal_sections();
+    $success  = isset( $_GET['ea_waiver_submitted'] ) && '1' === $_GET['ea_waiver_submitted']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $title    = $is_minor
+        ? 'EA Pickleball Informed Consent and Assumption of Risk Agreement'
+        : 'EA Pickleball Release of Liability, Waiver of Claims and Indemnity Agreement';
+    $intro    = $is_minor
+        ? 'To be completed by the parent or guardian of participants under 18 years of age. Please read carefully before submitting.'
+        : 'To be executed by participants over the Age of Majority. (18 years of age and older.) WARNING! Please read carefully. By submitting this form accepting the conditions, you will waive certain legal rights, including the right to sue.';
+    ?>
+    <section class="ea-built-waiver">
+        <header class="ea-built-waiver__header">
+            <p class="ea-built-waiver__eyebrow"><?php echo esc_html( $is_minor ? 'Minor waiver' : 'Adult waiver' ); ?></p>
+            <h1><?php echo esc_html( $title ); ?></h1>
+            <p><?php echo esc_html( $intro ); ?></p>
+        </header>
+
+        <?php if ( $success ) : ?>
+            <div class="ea-built-waiver__success" role="status">
+                <strong><?php esc_html_e( 'Thank you.', 'ea-react-theme' ); ?></strong>
+                <?php esc_html_e( 'Your waiver has been submitted successfully.', 'ea-react-theme' ); ?>
+            </div>
+        <?php endif; ?>
+
+        <form class="ea-waiver-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <input type="hidden" name="action" value="ea_submit_waiver">
+            <input type="hidden" name="waiver_type" value="<?php echo esc_attr( $type ); ?>">
+            <input class="ea-waiver-form__website" type="text" name="website" tabindex="-1" autocomplete="off">
+            <?php wp_nonce_field( 'ea_submit_waiver', 'ea_waiver_nonce' ); ?>
+
+            <section class="ea-waiver-form__section">
+                <h2><?php esc_html_e( 'Participant Information', 'ea-react-theme' ); ?></h2>
+                <div class="ea-waiver-form__grid">
+                    <?php
+                    ea_waiver_field( 'athlete_first_name', "Athlete's First Name" );
+                    ea_waiver_field( 'athlete_last_name', "Athlete's Last Name" );
+                    if ( $is_minor ) {
+                        ea_waiver_field( 'guardian_first_name', 'Parent / Guardian First Name' );
+                        ea_waiver_field( 'guardian_last_name', 'Parent / Guardian Last Name' );
+                    }
+                    ea_waiver_field( 'email', $is_minor ? 'Parent / Guardian Email' : 'Email', 'email' );
+                    ea_waiver_field( 'phone', 'Phone Number', 'tel' );
+                    ?>
+                </div>
+            </section>
+
+            <section class="ea-waiver-form__section">
+                <h2><?php esc_html_e( 'Program Information', 'ea-react-theme' ); ?></h2>
+                <p><?php esc_html_e( 'Please select the location where your pickleball league is taking place, not your home address.', 'ea-react-theme' ); ?></p>
+                <div class="ea-waiver-form__grid">
+                    <?php
+                    ea_waiver_field( 'province', 'Province' );
+                    ea_waiver_field( 'city', 'City' );
+                    ea_waiver_field( 'program_type', 'Program Type', 'text', true, 'Ex. Learn to Play, Beginners League' );
+                    ea_waiver_field( 'program_start_date', 'Program Start Date', 'date' );
+                    ea_waiver_field( 'program_start_time', 'Program Start Time', 'text', true, 'Ex. 8:00 PM' );
+                    ?>
+                </div>
+            </section>
+
+            <section class="ea-waiver-form__section ea-waiver-form__legal">
+                <h2><?php esc_html_e( 'Agreement', 'ea-react-theme' ); ?></h2>
+                <?php foreach ( $sections as $number => $section ) : ?>
+                    <details class="ea-waiver-form__clause" <?php echo $number <= 2 ? 'open' : ''; ?>>
+                        <summary><?php echo esc_html( $section['title'] ); ?></summary>
+                        <p><?php echo esc_html( $section['body'] ); ?></p>
+                        <?php if ( 9 === (int) $number ) : ?>
+                            <fieldset class="ea-waiver-form__radios">
+                                <legend><?php esc_html_e( 'Photo permission', 'ea-react-theme' ); ?> <em>*</em></legend>
+                                <label><input type="radio" name="photo_release" value="yes" required> <?php esc_html_e( 'Yes', 'ea-react-theme' ); ?></label>
+                                <label><input type="radio" name="photo_release" value="no" required> <?php esc_html_e( 'No', 'ea-react-theme' ); ?></label>
+                            </fieldset>
+                        <?php else : ?>
+                            <label class="ea-waiver-form__checkbox">
+                                <input type="checkbox" name="agreement_<?php echo esc_attr( $number ); ?>" value="1" required>
+                                <span><?php echo esc_html( sprintf( 'I have read and agree to be bound by paragraph %d.', $number ) ); ?></span>
+                            </label>
+                        <?php endif; ?>
+                    </details>
+                <?php endforeach; ?>
+            </section>
+
+            <section class="ea-waiver-form__section">
+                <h2><?php esc_html_e( 'Electronic Signature', 'ea-react-theme' ); ?></h2>
+                <p><?php echo esc_html( $is_minor ? 'By typing your name below, you confirm that you are the parent or guardian and agree on behalf of the participant.' : 'By typing your name below, you agree to all Terms and Conditions of this agreement.' ); ?></p>
+                <?php ea_waiver_field( 'signature', $is_minor ? 'Parent / Guardian Signature' : 'Participant Signature' ); ?>
+            </section>
+
+            <button class="ea-waiver-form__submit" type="submit"><?php esc_html_e( 'Submit Waiver', 'ea-react-theme' ); ?></button>
+        </form>
+    </section>
+    <?php
+}
+
+function ea_register_waiver_cpt() {
+    register_post_type( 'ea_waiver', array(
+        'labels' => array(
+            'name'          => __( 'Waivers', 'ea-react-theme' ),
+            'singular_name' => __( 'Waiver', 'ea-react-theme' ),
+            'menu_name'     => __( 'Waivers', 'ea-react-theme' ),
+            'all_items'     => __( 'All Waivers', 'ea-react-theme' ),
+            'search_items'  => __( 'Search Waivers', 'ea-react-theme' ),
+        ),
+        'public'              => false,
+        'show_ui'             => true,
+        'show_in_menu'        => true,
+        'menu_icon'           => 'dashicons-media-text',
+        'menu_position'       => 27,
+        'supports'            => array( 'title' ),
+        'capability_type'     => 'post',
+        'map_meta_cap'        => true,
+        'capabilities'        => array( 'create_posts' => 'do_not_allow' ),
+        'exclude_from_search' => true,
+    ) );
+}
+add_action( 'init', 'ea_register_waiver_cpt' );
+
+function ea_handle_waiver_submission() {
+    if ( ! empty( $_POST['website'] ) ) {
+        wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url( '/' ) );
+        exit;
+    }
+
+    if (
+        empty( $_POST['ea_waiver_nonce'] )
+        || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ea_waiver_nonce'] ) ), 'ea_submit_waiver' )
+    ) {
+        wp_die( esc_html__( 'Sorry, this waiver could not be verified. Please go back and try again.', 'ea-react-theme' ) );
+    }
+
+    $type = isset( $_POST['waiver_type'] ) && 'minor' === sanitize_text_field( wp_unslash( $_POST['waiver_type'] ) ) ? 'minor' : 'adult';
+    $fields = array(
+        'athlete_first_name',
+        'athlete_last_name',
+        'guardian_first_name',
+        'guardian_last_name',
+        'email',
+        'phone',
+        'province',
+        'city',
+        'program_type',
+        'program_start_date',
+        'program_start_time',
+        'photo_release',
+        'signature',
+    );
+
+    $data = array();
+    foreach ( $fields as $field ) {
+        $raw = isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : '';
+        $data[ $field ] = 'email' === $field ? sanitize_email( $raw ) : sanitize_text_field( $raw );
+    }
+
+    $required = array( 'athlete_first_name', 'athlete_last_name', 'email', 'phone', 'province', 'city', 'program_type', 'program_start_date', 'program_start_time', 'photo_release', 'signature' );
+    if ( 'minor' === $type ) {
+        $required[] = 'guardian_first_name';
+        $required[] = 'guardian_last_name';
+    }
+
+    foreach ( $required as $field ) {
+        if ( '' === $data[ $field ] ) {
+            wp_die( esc_html__( 'Please complete all required waiver fields.', 'ea-react-theme' ) );
+        }
+    }
+
+    if ( ! is_email( $data['email'] ) ) {
+        wp_die( esc_html__( 'Please provide a valid email address.', 'ea-react-theme' ) );
+    }
+
+    for ( $i = 1; $i <= 11; $i++ ) {
+        if ( 9 === $i ) {
+            continue;
+        }
+        if ( empty( $_POST[ 'agreement_' . $i ] ) ) {
+            wp_die( esc_html__( 'Please confirm each waiver paragraph before submitting.', 'ea-react-theme' ) );
+        }
+    }
+
+    $athlete = trim( $data['athlete_first_name'] . ' ' . $data['athlete_last_name'] );
+    $entry_id = wp_insert_post( array(
+        'post_type'   => 'ea_waiver',
+        'post_status' => 'publish',
+        'post_title'  => ( 'minor' === $type ? 'Minor' : 'Adult' ) . ' waiver - ' . $athlete,
+    ), true );
+
+    if ( is_wp_error( $entry_id ) || ! $entry_id ) {
+        wp_die( esc_html__( 'Sorry, something went wrong saving your waiver. Please try again.', 'ea-react-theme' ) );
+    }
+
+    update_post_meta( $entry_id, '_ea_waiver_type', $type );
+    foreach ( $data as $field => $value ) {
+        update_post_meta( $entry_id, '_ea_' . $field, $value );
+    }
+    update_post_meta( $entry_id, '_ea_signed_at', current_time( 'mysql' ) );
+
+    $redirect = wp_get_referer() ? wp_get_referer() : home_url( '/' );
+    wp_safe_redirect( add_query_arg( 'ea_waiver_submitted', '1', $redirect ) );
+    exit;
+}
+add_action( 'admin_post_nopriv_ea_submit_waiver', 'ea_handle_waiver_submission' );
+add_action( 'admin_post_ea_submit_waiver', 'ea_handle_waiver_submission' );
+
+function ea_waiver_columns( $columns ) {
+    return array(
+        'cb'         => isset( $columns['cb'] ) ? $columns['cb'] : '',
+        'title'      => __( 'Waiver', 'ea-react-theme' ),
+        'ea_type'    => __( 'Type', 'ea-react-theme' ),
+        'ea_email'   => __( 'Email', 'ea-react-theme' ),
+        'ea_city'    => __( 'City', 'ea-react-theme' ),
+        'ea_program' => __( 'Program', 'ea-react-theme' ),
+        'date'       => __( 'Submitted', 'ea-react-theme' ),
+    );
+}
+add_filter( 'manage_ea_waiver_posts_columns', 'ea_waiver_columns' );
+
+function ea_waiver_column_content( $column, $post_id ) {
+    if ( 'ea_type' === $column ) {
+        echo esc_html( ucfirst( get_post_meta( $post_id, '_ea_waiver_type', true ) ) );
+    } elseif ( 'ea_email' === $column ) {
+        $email = get_post_meta( $post_id, '_ea_email', true );
+        echo $email ? '<a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a>' : '—';
+    } elseif ( 'ea_city' === $column ) {
+        echo esc_html( get_post_meta( $post_id, '_ea_city', true ) );
+    } elseif ( 'ea_program' === $column ) {
+        echo esc_html( get_post_meta( $post_id, '_ea_program_type', true ) );
+    }
+}
+add_action( 'manage_ea_waiver_posts_custom_column', 'ea_waiver_column_content', 10, 2 );
+
+function ea_waiver_meta_boxes() {
+    add_meta_box(
+        'ea_waiver_details',
+        __( 'Waiver Details', 'ea-react-theme' ),
+        'ea_render_waiver_meta_box',
+        'ea_waiver',
+        'normal',
+        'high'
+    );
+}
+add_action( 'add_meta_boxes_ea_waiver', 'ea_waiver_meta_boxes' );
+
+function ea_render_waiver_meta_box( $post ) {
+    $rows = array(
+        'Type'                => ucfirst( get_post_meta( $post->ID, '_ea_waiver_type', true ) ),
+        'Athlete First Name'  => get_post_meta( $post->ID, '_ea_athlete_first_name', true ),
+        'Athlete Last Name'   => get_post_meta( $post->ID, '_ea_athlete_last_name', true ),
+        'Guardian First Name' => get_post_meta( $post->ID, '_ea_guardian_first_name', true ),
+        'Guardian Last Name'  => get_post_meta( $post->ID, '_ea_guardian_last_name', true ),
+        'Email'               => get_post_meta( $post->ID, '_ea_email', true ),
+        'Phone'               => get_post_meta( $post->ID, '_ea_phone', true ),
+        'Province'            => get_post_meta( $post->ID, '_ea_province', true ),
+        'City'                => get_post_meta( $post->ID, '_ea_city', true ),
+        'Program Type'        => get_post_meta( $post->ID, '_ea_program_type', true ),
+        'Program Start Date'  => get_post_meta( $post->ID, '_ea_program_start_date', true ),
+        'Program Start Time'  => get_post_meta( $post->ID, '_ea_program_start_time', true ),
+        'Photo Release'       => get_post_meta( $post->ID, '_ea_photo_release', true ),
+        'Signature'           => get_post_meta( $post->ID, '_ea_signature', true ),
+        'Signed At'           => get_post_meta( $post->ID, '_ea_signed_at', true ),
+    );
+
+    echo '<table class="widefat striped"><tbody>';
+    foreach ( $rows as $label => $value ) {
+        if ( '' === (string) $value ) {
+            $value = '—';
+        }
+        echo '<tr><th style="width:220px;">' . esc_html( $label ) . '</th><td>' . esc_html( $value ) . '</td></tr>';
+    }
+    echo '</tbody></table>';
+}
+
 // ─── Swappable images via the Customizer (Appearance → Customize → EA Images) ──
 // Each control stores an image URL as a theme_mod. ea_react_images() collects them
 // for wp_localize_script so the React app can read them from window.eaReactData.images.
@@ -1415,6 +1747,10 @@ function ea_admin_export_button( $which ) {
             'action' => 'ea_export_newsletter',
             'label'  => __( 'Export Newsletter CSV', 'ea-react-theme' ),
         ),
+        'ea_waiver' => array(
+            'action' => 'ea_export_waivers',
+            'label'  => __( 'Export Waivers CSV', 'ea-react-theme' ),
+        ),
     );
 
     if ( empty( $exports[ $typenow ] ) ) {
@@ -1506,6 +1842,62 @@ function ea_export_newsletter_csv() {
     exit;
 }
 add_action( 'admin_post_ea_export_newsletter', 'ea_export_newsletter_csv' );
+
+function ea_export_waivers_csv() {
+    if ( ! current_user_can( 'edit_posts' ) ) {
+        wp_die( esc_html__( 'You do not have permission to export this data.', 'ea-react-theme' ) );
+    }
+    check_admin_referer( 'ea_export_waivers' );
+
+    ea_send_csv_headers( 'ea-waivers-' . gmdate( 'Y-m-d' ) . '.csv' );
+
+    $out = fopen( 'php://output', 'w' );
+    fputcsv( $out, array(
+        'Waiver ID',
+        'Type',
+        'Athlete First Name',
+        'Athlete Last Name',
+        'Guardian First Name',
+        'Guardian Last Name',
+        'Email',
+        'Phone',
+        'Province',
+        'City',
+        'Program Type',
+        'Program Start Date',
+        'Program Start Time',
+        'Photo Release',
+        'Signature',
+        'Signed At',
+        'Submitted At',
+    ) );
+
+    foreach ( ea_get_export_posts( 'ea_waiver' ) as $entry ) {
+        fputcsv( $out, array(
+            $entry->ID,
+            get_post_meta( $entry->ID, '_ea_waiver_type', true ),
+            get_post_meta( $entry->ID, '_ea_athlete_first_name', true ),
+            get_post_meta( $entry->ID, '_ea_athlete_last_name', true ),
+            get_post_meta( $entry->ID, '_ea_guardian_first_name', true ),
+            get_post_meta( $entry->ID, '_ea_guardian_last_name', true ),
+            get_post_meta( $entry->ID, '_ea_email', true ),
+            get_post_meta( $entry->ID, '_ea_phone', true ),
+            get_post_meta( $entry->ID, '_ea_province', true ),
+            get_post_meta( $entry->ID, '_ea_city', true ),
+            get_post_meta( $entry->ID, '_ea_program_type', true ),
+            get_post_meta( $entry->ID, '_ea_program_start_date', true ),
+            get_post_meta( $entry->ID, '_ea_program_start_time', true ),
+            get_post_meta( $entry->ID, '_ea_photo_release', true ),
+            get_post_meta( $entry->ID, '_ea_signature', true ),
+            get_post_meta( $entry->ID, '_ea_signed_at', true ),
+            get_date_from_gmt( $entry->post_date_gmt, 'Y-m-d H:i:s' ),
+        ) );
+    }
+
+    fclose( $out );
+    exit;
+}
+add_action( 'admin_post_ea_export_waivers', 'ea_export_waivers_csv' );
 
 // ─── Constant Contact newsletter sync ────────────────────────────────────────
 // Secrets and account-specific IDs are intentionally read from wp-config.php
