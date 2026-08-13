@@ -664,6 +664,13 @@ export function cityDisplayName(city, province) {
   return [city, province].filter(Boolean).join(', ');
 }
 
+function cityRecordCoords(city) {
+  if (!city) return null;
+  const lat = Number(city.lat ?? city.Lat ?? city.latitude ?? city.Latitude);
+  const lng = Number(city.lng ?? city.Lng ?? city.longitude ?? city.Longitude);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : null;
+}
+
 function cityTypeCounts(programs) {
   return programs.reduce((acc, program) => {
     const type = norm(typeLabel(program));
@@ -697,7 +704,7 @@ export function cityStatusChips(summary) {
   return chips;
 }
 
-export function buildCitySummaries(programs, userCoords, includeInactive = false) {
+export function buildCitySummaries(programs, userCoords, includeInactive = false, cityCoords = null) {
   const byCity = new Map();
   programs.forEach((program) => {
     const city = String(program.City || '').trim();
@@ -709,13 +716,13 @@ export function buildCitySummaries(programs, userCoords, includeInactive = false
         slug: citySlug(city),
         city,
         province: programProvince(program),
-        coords: program._coords || null,
+        coords: cityCoords?.get(key) || program.coords || null,
         programs: [],
       });
     }
     const summary = byCity.get(key);
     if (!summary.province) summary.province = programProvince(program);
-    if (!summary.coords && program._coords) summary.coords = program._coords;
+    if (!summary.coords) summary.coords = cityCoords?.get(key) || program.coords || null;
     summary.programs.push(program);
   });
 
@@ -1187,6 +1194,15 @@ export default function LeagueHubPage() {
     () => (showComingSoon ? allPrograms : allPrograms.filter((program) => !program._comingSoon)),
     [allPrograms, showComingSoon]
   );
+  const cityCoords = useMemo(() => {
+    const byKey = new Map();
+    cityRecords.forEach((city) => {
+      const key = norm(city?.City || city?.city);
+      const coords = cityRecordCoords(city);
+      if (key && coords) byKey.set(key, coords);
+    });
+    return byKey;
+  }, [cityRecords]);
   const citySourcePrograms = showInactiveCities ? allPrograms : programs;
   const filteredPrograms = useMemo(() => (
     locationFilter
@@ -1194,10 +1210,10 @@ export default function LeagueHubPage() {
       : filterPrograms(citySourcePrograms, filters)
   ), [citySourcePrograms, filters, locationFilter]);
   const filteredCitySummaries = useMemo(
-    () => buildCitySummaries(filteredPrograms, userCoords, showInactiveCities).filter((summary) => (
+    () => buildCitySummaries(filteredPrograms, userCoords, showInactiveCities, cityCoords).filter((summary) => (
       !provinceFilter || norm(summary.province) === provinceFilter
     )),
-    [filteredPrograms, userCoords, showInactiveCities, provinceFilter]
+    [filteredPrograms, userCoords, showInactiveCities, provinceFilter, cityCoords]
   );
   const visibleCitySummaries = useMemo(
     () => filteredCitySummaries.slice(0, visibleCount),
