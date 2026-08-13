@@ -1097,32 +1097,36 @@ function LeagueHubFilters({
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)', fontSize: 15 }}>
             <FilterIcon /> Filter By:
           </span>
-          <SelectChip filterKey="province" label="Province" value={provinceFilter} onChange={(value) => {
-            onProvinceChange(value);
-            if (onFilterChange) onFilterChange('province', value);
-          }} options={provinces.map((province) => ({ value: norm(province), label: province }))} />
-          <label style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 7,
-            minHeight: 28,
-            padding: '5px 9px',
-            borderRadius: 7,
-            background: '#F1F4FA',
-            color: '#405C66',
-            fontFamily: 'var(--font-body)',
-            fontSize: 14,
-            fontWeight: 'var(--fw-medium)',
-            cursor: 'pointer',
-          }}>
-            <input
-              type="checkbox"
-              checked={showInactiveCities}
-              onChange={(event) => onShowInactiveCitiesChange(event.currentTarget.checked)}
-              style={{ margin: 0 }}
-            />
-            Show inactive cities
-          </label>
+          {show('leagueHubFilterProvince') && (
+            <SelectChip filterKey="province" label="Province" value={provinceFilter} onChange={(value) => {
+              onProvinceChange(value);
+              if (onFilterChange) onFilterChange('province', value);
+            }} options={provinces.map((province) => ({ value: norm(province), label: province }))} />
+          )}
+          {show('leagueHubShowInactiveToggle') && (
+            <label style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
+              minHeight: 28,
+              padding: '5px 9px',
+              borderRadius: 7,
+              background: '#F1F4FA',
+              color: '#405C66',
+              fontFamily: 'var(--font-body)',
+              fontSize: 14,
+              fontWeight: 'var(--fw-medium)',
+              cursor: 'pointer',
+            }}>
+              <input
+                type="checkbox"
+                checked={showInactiveCities}
+                onChange={(event) => onShowInactiveCitiesChange(event.currentTarget.checked)}
+                style={{ margin: 0 }}
+              />
+              Show inactive cities
+            </label>
+          )}
         </div>
         <button type="button" onClick={clear} style={{ flex: '0 0 auto', alignSelf: isMobile ? 'flex-end' : 'center', border: 'none', background: 'transparent', color: '#2E91C8', fontFamily: 'var(--font-body)', fontSize: 14, cursor: 'pointer', padding: isMobile ? '6px 0 0' : 0 }}>
           Clear Filters
@@ -1184,7 +1188,13 @@ export default function LeagueHubPage() {
     if (t.options && t.options.leagueHubFilterLocation === false && locationFilter) {
       setLocationFilter('');
     }
-  }, [t.options]);
+    if (t.options && t.options.leagueHubFilterProvince === false && provinceFilter) {
+      setProvinceFilter('');
+    }
+    if (t.options && t.options.leagueHubShowInactiveToggle === false && showInactiveCities) {
+      setShowInactiveCities(false);
+    }
+  }, [t.options, locationFilter, provinceFilter, showInactiveCities]);
 
   const allPrograms = useMemo(
     () => normalizePrograms(rows || FALLBACK_PROGRAMS, selectedSports, userCoords),
