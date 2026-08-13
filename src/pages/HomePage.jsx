@@ -5,7 +5,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Layout, useDSComponents, useViewport, getThemeData, FB, MediaSlot, ActionButton, sectionLinkAttrs } from '../lib/shared.jsx';
 import { summaryCityHref, useCitiesFeed } from '../data/cities.js';
-import { resolveVenueCoords, CITY_COORDS as FEED_CITY_COORDS } from '../data/venueCoords.js';
 
 // Scroll offset so a smooth-scrolled section isn't hidden under the sticky nav.
 const SCROLL_OFFSET = 100;
@@ -722,9 +721,10 @@ function sportBrand(t) {
 // cards instead of collapsing them into city pages.
 const PROGRAMS_DATA_URL = 'https://sleep-status.github.io/ea-programs-json/data/programs.json';
 
-// Fallback coordinates for older feed rows. Runtime sorting prefers the same
-// venue/city resolver used by the League Hub so newer cities keep working.
-const FALLBACK_CITY_COORDS = {
+// Approximate coordinates for the cities that appear in the feed, keyed by the
+// normalized city name. Used to sort cards by distance from the visitor when they
+// tap "Programs near me". A city missing here just sorts last (never breaks).
+const CITY_COORDS = {
   'aurora':           [44.0065, -79.4504],
   'newmarket':        [44.0592, -79.4613],
   'newmarket/aurora': [44.0330, -79.4560],
@@ -744,22 +744,6 @@ const FALLBACK_CITY_COORDS = {
   'terrace':          [54.5182, -128.6032],
   'okotoks':          [50.7256, -113.9749],
 };
-
-function coordsPair(coords) {
-  if (!coords) return null;
-  if (Array.isArray(coords) && coords.length >= 2) return [coords[0], coords[1]];
-  if (Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) return [coords.lat, coords.lng];
-  return null;
-}
-
-function programCoords(program) {
-  const venue = resolveVenueCoords(program);
-  if (venue && Number.isFinite(venue.lat) && Number.isFinite(venue.lng)) {
-    return [venue.lat, venue.lng];
-  }
-  return coordsPair(FEED_CITY_COORDS[norm(program.City)])
-    || coordsPair(FALLBACK_CITY_COORDS[norm(program.City)]);
-}
 
 // Great-circle distance (km) between two [lat, lng] points.
 function haversineKm(a, b) {
@@ -922,7 +906,7 @@ function buildProgramList(programs, sports, userCoords) {
         const sportKey = rowSportKey(p);
         return p && sportKey && allow.has(sportKey) && isEAorTS(p) && p.City && !p.is_cancelled;
       })
-      .map((p) => ({ ...p, coords: programCoords(p) })),
+      .map((p) => ({ ...p, coords: CITY_COORDS[norm(p.City)] || null })),
     userCoords
   );
 }
