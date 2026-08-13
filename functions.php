@@ -328,8 +328,8 @@ function ea_render_waiver_form( $type = 'adult' ) {
             <section class="ea-waiver-form__section ea-waiver-form__legal">
                 <h2><?php esc_html_e( 'Agreement', 'ea-react-theme' ); ?></h2>
                 <?php foreach ( $sections as $number => $section ) : ?>
-                    <details class="ea-waiver-form__clause" <?php echo $number <= 2 ? 'open' : ''; ?>>
-                        <summary><?php echo esc_html( $section['title'] ); ?></summary>
+                    <div class="ea-waiver-form__clause">
+                        <h3><?php echo esc_html( $section['title'] ); ?></h3>
                         <p><?php echo esc_html( $section['body'] ); ?></p>
                         <?php if ( 9 === (int) $number ) : ?>
                             <fieldset class="ea-waiver-form__radios">
@@ -343,7 +343,7 @@ function ea_render_waiver_form( $type = 'adult' ) {
                                 <span><?php echo esc_html( sprintf( 'I have read and agree to be bound by paragraph %d.', $number ) ); ?></span>
                             </label>
                         <?php endif; ?>
-                    </details>
+                    </div>
                 <?php endforeach; ?>
             </section>
 

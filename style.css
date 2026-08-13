@@ -3,7 +3,7 @@ Theme Name:     Elevation Athletics React
 Theme URI:      https://elevationathletics.ca
 Description:    React-powered WordPress theme scaffold for Elevation Athletics.
 Author:         Elevation Athletics
-Version:        1.0.9
+Version:        1.0.10
 Text Domain:    ea-react-theme
 Tags:           react, javascript, wordpress, theme
 */
@@ -328,16 +328,21 @@ body {
   overflow: hidden;
 }
 
-.ea-waiver-form__clause summary {
-  cursor: pointer;
+.ea-waiver-form__clause h3 {
+  margin: 0;
   padding: 14px 16px;
   color: var(--text-heading, var(--ea-navy, #10414F));
   font-family: var(--font-body, "Inclusive Sans", sans-serif);
+  font-size: 18px;
+  line-height: 1.25;
   font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .ea-waiver-form__clause p {
   padding: 0 16px;
+  margin-bottom: 0.75em;
 }
 
 .ea-waiver-form__checkbox,
