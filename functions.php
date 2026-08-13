@@ -166,6 +166,43 @@ add_action( 'wp_enqueue_scripts', 'ea_react_enqueue_assets' );
 
 // NOTE: No script_loader_tag filter needed — IIFE is a plain script tag.
 
+// Allow waiver pages to use the shorthand [form id="123"] for WPForms.
+function ea_wpforms_form_shortcode_alias( $atts ) {
+    if ( ! shortcode_exists( 'wpforms' ) ) {
+        return '';
+    }
+
+    $atts = shortcode_atts(
+        array(
+            'id'          => '',
+            'title'       => 'false',
+            'description' => 'false',
+        ),
+        $atts,
+        'form'
+    );
+
+    if ( empty( $atts['id'] ) ) {
+        return '';
+    }
+
+    return do_shortcode(
+        sprintf(
+            '[wpforms id="%s" title="%s" description="%s"]',
+            esc_attr( $atts['id'] ),
+            esc_attr( $atts['title'] ),
+            esc_attr( $atts['description'] )
+        )
+    );
+}
+
+function ea_register_wpforms_form_shortcode_alias() {
+    if ( ! shortcode_exists( 'form' ) ) {
+        add_shortcode( 'form', 'ea_wpforms_form_shortcode_alias' );
+    }
+}
+add_action( 'init', 'ea_register_wpforms_form_shortcode_alias', 20 );
+
 // ─── Swappable images via the Customizer (Appearance → Customize → EA Images) ──
 // Each control stores an image URL as a theme_mod. ea_react_images() collects them
 // for wp_localize_script so the React app can read them from window.eaReactData.images.
