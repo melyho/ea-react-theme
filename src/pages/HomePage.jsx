@@ -797,7 +797,7 @@ function bodyButtonStyle(variant = 'primary', isMobile = false, extra = {}) {
   };
 }
 
-function ProgramSubscribeButton({ city, sessionStart = '', programSummary = '', isMobile = false, onSubscribe }) {
+function ProgramSubscribeButton({ city, province = '', sessionStart = '', programSummary = '', isMobile = false, onSubscribe }) {
   const [hover, setHover] = useState(false);
   return (
     <button
@@ -807,7 +807,7 @@ function ProgramSubscribeButton({ city, sessionStart = '', programSummary = '', 
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (onSubscribe) onSubscribe({ city, sessionStart, programSummary });
+        if (onSubscribe) onSubscribe({ city, province, sessionStart, programSummary });
       }}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -1206,6 +1206,7 @@ function programSummaryLine(p) {
 function ActiveProgramCard({ program, isMobile = false, onSubscribe, t }) {
   const sport = siteSport(t);
   const city = String(program.City || '').trim() || `General ${sport}`;
+  const province = String(program.Province || '').trim();
   const sessionStart = firstSessionDate(program);
   const programSummary = programSummaryLine(program);
   const full = isFullProgram(program);
@@ -1263,7 +1264,7 @@ function ActiveProgramCard({ program, isMobile = false, onSubscribe, t }) {
           </p>
         )}
         <div style={{ marginTop: 10 }}>
-          <ProgramSubscribeButton city={city} sessionStart={sessionStart} programSummary={programSummary} isMobile={isMobile} onSubscribe={onSubscribe} />
+          <ProgramSubscribeButton city={city} province={province} sessionStart={sessionStart} programSummary={programSummary} isMobile={isMobile} onSubscribe={onSubscribe} />
         </div>
       </div>
       <div style={{
@@ -1314,6 +1315,7 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(startSubmitted);
   const city = location && typeof location === 'object' ? location.city : location;
+  const province = location && typeof location === 'object' ? location.province : '';
   const sessionStart = location && typeof location === 'object' ? location.sessionStart : '';
   const programSummary = location && typeof location === 'object' ? location.programSummary : '';
   const brand = sportBrand(t);
@@ -1336,7 +1338,7 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
       const res = await fetch(`${t.apiUrl}ea/v1/newsletter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': t.nonce },
-        body: JSON.stringify({ email, location: city, sessionStart, programSummary, website }),
+        body: JSON.stringify({ email, location: city, province, sessionStart, programSummary, website }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data && data.message ? data.message : 'Something went wrong. Please try again.');
