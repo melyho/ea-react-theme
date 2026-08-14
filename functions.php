@@ -1830,7 +1830,7 @@ function ea_cc_apply_tags( $token, $contact_id, $tag_ids, $email = '' ) {
     return $body['activity_id'] ?? true;
 }
 
-function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0, $session_start = '', $program_summary = '' ) {
+function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0, $session_start = '', $program_summary = '', $province = '' ) {
     if ( ! ea_cc_is_configured() ) {
         ea_cc_log( 'Skipped sync because configuration is incomplete.' );
         return false;
@@ -1852,6 +1852,7 @@ function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0, $sessi
     $tag_names = array_unique( array_filter( array(
         ea_default_sport_value(),
         $city,
+        $province,
         'Youth',
         $season,
         $year,
@@ -1965,6 +1966,7 @@ function ea_handle_newsletter( WP_REST_Request $request ) {
 
     $email           = sanitize_email( wp_unslash( $request['email'] ) );
     $location        = isset( $request['location'] ) ? sanitize_text_field( wp_unslash( $request['location'] ) ) : '';
+    $province        = isset( $request['province'] ) ? sanitize_text_field( wp_unslash( $request['province'] ) ) : '';
     $session_start   = isset( $request['sessionStart'] ) ? sanitize_text_field( wp_unslash( $request['sessionStart'] ) ) : '';
     $program_summary = isset( $request['programSummary'] ) ? sanitize_text_field( wp_unslash( $request['programSummary'] ) ) : '';
 
@@ -2020,7 +2022,7 @@ function ea_handle_newsletter( WP_REST_Request $request ) {
 
     // Sync newsletter signups to Constant Contact after local storage succeeds.
     // Best-effort: a Constant Contact outage must not break the front-end form.
-    ea_cc_sync_newsletter_contact( $email, $location, (int) $entry_id, $session_start, $program_summary );
+    ea_cc_sync_newsletter_contact( $email, $location, (int) $entry_id, $session_start, $program_summary, $province );
 
     // Notify the admin (best-effort — the entry is already saved). Locally this is
     // caught by Local's Mailpit (Site → Tools → Open Mailpit).
