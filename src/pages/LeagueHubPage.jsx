@@ -1384,27 +1384,29 @@ export default function LeagueHubPage() {
                 {t.texts.leagueHubSubheading || `Find ${siteSport(t).toLowerCase()} lessons, leagues, and camps that are currently open for registration.`}
               </p>
             )}
-            <button type="button" onClick={findNearMe} disabled={locating} style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginTop: showSubheading ? 10 : 12,
-              minWidth: isMobile ? 190 : 280,
-              minHeight: isMobile ? 48 : 44,
-              padding: isMobile ? '11px 24px' : '10px 28px',
-              borderRadius: 7,
-              border: '1px solid var(--border-card, #E5E5E5)',
-              background: '#fff',
-              color: 'var(--ea-navy, #10414F)',
-              fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
-              fontSize: isMobile ? 16 : 17,
-              fontWeight: 700,
-              cursor: locating ? 'default' : 'pointer',
-              opacity: locating ? 0.7 : 1,
-              boxShadow: 'none',
-            }}>
-              {locating ? 'Locating...' : userCoords ? 'Nearest to You' : (t.texts.leagueHubLocationButton || 'Use My Location')}
-            </button>
+            {t.options?.leagueHubShowLocationButton && (
+              <button type="button" onClick={findNearMe} disabled={locating} style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: showSubheading ? 10 : 12,
+                minWidth: isMobile ? 190 : 280,
+                minHeight: isMobile ? 48 : 44,
+                padding: isMobile ? '11px 24px' : '10px 28px',
+                borderRadius: 7,
+                border: '1px solid var(--border-card, #E5E5E5)',
+                background: '#fff',
+                color: 'var(--ea-navy, #10414F)',
+                fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+                fontSize: isMobile ? 16 : 17,
+                fontWeight: 700,
+                cursor: locating ? 'default' : 'pointer',
+                opacity: locating ? 0.7 : 1,
+                boxShadow: 'none',
+              }}>
+                {locating ? 'Locating...' : userCoords ? 'Nearest to You' : (t.texts.leagueHubLocationButton || 'Use My Location')}
+              </button>
+            )}
             {geoError && <p role="alert" style={{ margin: '10px 0 0', color: 'var(--ea-error, #C0392B)', fontFamily: 'var(--font-body)', fontSize: 14 }}>{geoError}</p>}
           </div>
 
