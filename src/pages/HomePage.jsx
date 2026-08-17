@@ -4,6 +4,13 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { Layout, useDSComponents, useViewport, getThemeData, FB, MediaSlot, ActionButton } from '../lib/shared.jsx';
+import { summaryCityHref, useCitiesFeed } from '../data/cities.js';
+import {
+  LeagueCityCard,
+  buildCitySummaries,
+  normalizePrograms as normalizeLeaguePrograms,
+  useProgramsFeed as useLeagueProgramsFeed,
+} from './LeagueHubPage.jsx';
 
 // Scroll offset so a smooth-scrolled section isn't hidden under the sticky nav.
 const SCROLL_OFFSET = 100;
@@ -17,7 +24,7 @@ const sectionPadX = (isMobile) => (isMobile ? '0 16px' : '0 32px'); // horizonta
 // Fallback cards used before the live programs feed loads / if it fails.
 const PROGRAM_FALLBACKS = [
   {
-    Title: 'Richmond Hill - Jr. Badminton (8 - 10 yrs)',
+    Title: 'Georgina - Jr Basketball (5 - 7 yrs)',
     TotalPrice: 134,
     StaticPriceText: '134',
     Day: 'Mondays',
@@ -26,17 +33,17 @@ const PROGRAM_FALLBACKS = [
     'End Date': '2026-08-20',
     SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
     LocationName: 'Langstaff CC',
-    RegisterLink: 'https://eabadminton.com/signup/',
-    City: 'Richmond Hill',
+    RegisterLink: 'https://elevationathletics.ca/register/',
+    City: 'Georgina',
     Category: 'TS',
-    sport: 'bad',
+    sport: 'bask',
     is_full: false,
     level: '1',
     MinAge: '8',
     MaxAge: '10',
   },
   {
-    Title: 'Richmond Hill - Jr. Badminton (11 - 13 yrs)',
+    Title: 'Georgina - Jr Basketball (8 - 11 yrs)',
     TotalPrice: 134,
     StaticPriceText: '134',
     Day: 'Mondays',
@@ -45,17 +52,17 @@ const PROGRAM_FALLBACKS = [
     'End Date': '2026-08-20',
     SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
     LocationName: 'Langstaff CC',
-    RegisterLink: 'https://eabadminton.com/signup/',
-    City: 'Richmond Hill',
+    RegisterLink: 'https://elevationathletics.ca/register/',
+    City: 'Georgina',
     Category: 'TS',
-    sport: 'bad',
+    sport: 'bask',
     is_full: false,
     level: '1',
     MinAge: '11',
     MaxAge: '13',
   },
   {
-    Title: 'Newmarket - Advanced Jr. Badminton (9 - 18 yrs)',
+    Title: 'Newmarket - Basketball Development Program',
     TotalPrice: 240,
     StaticPriceText: '240',
     Day: 'Mondays',
@@ -64,10 +71,10 @@ const PROGRAM_FALLBACKS = [
     'End Date': '2026-08-20',
     SessionDates: '2026-07-08,2026-07-15,2026-07-22,2026-07-29,2026-08-05,2026-08-12,2026-08-20',
     LocationName: 'Dr J.M. Dennison',
-    RegisterLink: 'https://eabadminton.com/signup/',
+    RegisterLink: 'https://elevationathletics.ca/register/',
     City: 'Newmarket',
     Category: 'TS',
-    sport: 'bad',
+    sport: 'bask',
     is_full: false,
     level: '3',
     MinAge: '9',
@@ -77,9 +84,9 @@ const PROGRAM_FALLBACKS = [
 
 function HeroSection({ DS, isMobile, t }) {
   const { SectionHeading, Button } = DS;
-  const heading = t.texts.heroHeading || 'Play pickleball in Ontario';
+  const heading = t.texts.heroHeading || 'Basketball Starts Here';
   const primaryCta = t.texts.heroBtnPrimary || 'Find a League Near You';
-  const secondaryCta = t.texts.heroBtnSecondary || 'New to Pickleball? Start Here';
+  const secondaryCta = t.texts.heroBtnSecondary || 'Find Training Programs';
   return (
     <section id="hero" style={{ textAlign: 'center', padding: isMobile ? '40px 20px 40px' : '60px 24px 36px', maxWidth: 1000, margin: '0 auto', scrollMarginTop: SCROLL_OFFSET }}>
       {SectionHeading
@@ -87,7 +94,7 @@ function HeroSection({ DS, isMobile, t }) {
         : <h1 style={FB.h(isMobile ? 36 : 56)}>{heading}</h1>
       }
       <p style={{ fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: isMobile ? 16 : 18, color: 'var(--ea-ink, #1E526E)', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 650 }}>
-        {t.texts.heroDesc || 'Join Canada’s most exciting and fastest-growing pickleball community! We welcome players of all skill levels onto the court.'}
+        {t.texts.heroDesc || 'Join basketball programs built for young athletes to learn, compete, and grow with confidence.'}
       </p>
       {/* Outer wrapper centres the button group (works for inline-grid too). */}
       <div style={{ marginTop: isMobile ? 24 : 28, textAlign: 'center' }}>
@@ -1068,7 +1075,7 @@ function useProgramsFeed() {
   return rows;
 }
 
-const PROGRAMS_LIMIT = 3;
+const PROGRAMS_LIMIT = 4;
 
 function formatProgramDate(dateStr, opts = {}) {
   const d = parseLocalDate(dateStr);
@@ -1178,7 +1185,7 @@ function ProgramChip({ label }) {
 }
 
 function cleanProgramTitle(p) {
-  const title = String(p.Title || 'Badminton Program').trim();
+  const title = String(p.Title || 'Basketball Program').trim();
   return title
     .replace(/\s*-\s*/g, ' – ')
     .replace(/\((\d+\s*[-–]\s*\d+)\)/g, '($1 yrs)')
@@ -1406,6 +1413,7 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
 function ProgramsSection({ DS, isMobile, t }) {
   const { SectionHeading, Button } = DS;
   const programsHref = `${t.siteUrl || ''}/programs/`;
+  const cityRecords = useCitiesFeed();
   const configuredViewAllLink = t.links && t.links.programsViewAll;
   const viewAllLink = configuredViewAllLink && (configuredViewAllLink.section || configuredViewAllLink.url)
     ? configuredViewAllLink
@@ -1422,9 +1430,9 @@ function ProgramsSection({ DS, isMobile, t }) {
       target.scrollIntoView({ behavior: 'smooth' });
     }
   };
-  // Sports to include come from the Customizer (EA Options -> Active Programs sports).
-  const selectedSports = (t.options && Array.isArray(t.options.sports) && t.options.sports.length)
-    ? t.options.sports : ['bad'];
+  // Basketball home now previews active cities. Individual program rows live on
+  // each city page, keeping the homepage cleaner and reducing decision fatigue.
+  const selectedSports = ['bask'];
   // Visitor location for nearest-first sorting (null until they opt in).
   const [userCoords, setUserCoords] = useState(null);
   const [locating, setLocating] = useState(false);
@@ -1445,9 +1453,16 @@ function ProgramsSection({ DS, isMobile, t }) {
   };
 
   // Live feed when available, otherwise bundled fallback programs.
-  const rows = useProgramsFeed();
-  const feed = rows ? buildProgramList(rows, selectedSports, userCoords) : null;
-  const cards = ((feed && feed.length ? feed : buildProgramList(PROGRAM_FALLBACKS, selectedSports, userCoords)) || []).slice(0, PROGRAMS_LIMIT);
+  const feedState = useLeagueProgramsFeed();
+  const rows = feedState.rows;
+  const programs = normalizeLeaguePrograms(rows || PROGRAM_FALLBACKS, selectedSports, userCoords);
+  const cards = buildCitySummaries(programs, userCoords, false)
+    .sort((a, b) => {
+      if (b.availableCount !== a.availableCount) return b.availableCount - a.availableCount;
+      if (b.programCount !== a.programCount) return b.programCount - a.programCount;
+      return a.displayName.localeCompare(b.displayName);
+    })
+    .slice(0, PROGRAMS_LIMIT);
   // Which location's newsletter popup is open (null = closed).
   const [subscribeLoc, setSubscribeLoc] = useState(null);
   return (
@@ -1491,10 +1506,16 @@ function ProgramsSection({ DS, isMobile, t }) {
       {geoError && (
         <p role="alert" style={{ marginTop: 10, marginBottom: 0, fontFamily: 'var(--font-body, sans-serif)', fontSize: 14, color: 'var(--ea-error, #C0392B)' }}>{geoError}</p>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: isMobile ? 10 : 12, marginTop: isMobile ? 18 : 16 }}>
-        {cards.map((program, index) => (
-          <CardHover key={`${program.Title || 'program'}-${program.City || 'city'}-${program['Start Date'] || index}`}>
-            <ActiveProgramCard program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: isMobile ? 10 : 12, marginTop: isMobile ? 18 : 16 }}>
+        {cards.map((summary) => (
+          <CardHover key={summary.key}>
+            <LeagueCityCard
+              summary={summary}
+              isMobile={isMobile}
+              onSubscribe={setSubscribeLoc}
+              t={t}
+              href={summaryCityHref(summary, cityRecords, t)}
+            />
           </CardHover>
         ))}
       </div>
@@ -1678,7 +1699,7 @@ function NewsletterSection({ DS, isMobile, t }) {
             : <h2 style={{ ...FB.h(isMobile ? 28 : 44), textAlign: 'center' }}>{t.texts.newsletterHeading || 'Join Our Newsletter!'}</h2>
           }
           <p style={{ fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: isMobile ? 14 : 20, color: 'var(--ea-ink, #1E526E)', lineHeight: 1.6, marginTop: 12 }}>
-            {t.texts.newsletterDesc || 'Stay updated on upcoming training sessions, leagues, and tournaments for pickleball in your area.'}
+            {t.texts.newsletterDesc || 'Stay updated on upcoming training sessions, leagues, and tournaments for basketball in your area.'}
           </p>
           <form onSubmit={handleSubmit}>
             {/* Input + Subscribe joined into one pill (container clips the square button corners). */}

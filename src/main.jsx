@@ -13,6 +13,7 @@ import HomePage from './pages/HomePage.jsx';
 import FAQPage  from './pages/FAQ.jsx';
 import BlankContentPage from './pages/BlankContentPage.jsx';
 import LeagueHubPage from './pages/LeagueHubPage.jsx';
+import CityProgramsPage from './pages/CityProgramsPage.jsx';
 import BasketballGuidePage from './pages/BasketballGuidePage.jsx';
 import BasketballRepTryoutsPage from './pages/BasketballRepTryoutsPage.jsx';
 import ComingSoonPage from './pages/ComingSoonPage.jsx';
@@ -22,6 +23,7 @@ const PAGES = {
   faq:       FAQPage,
   blank:     BlankContentPage,
   leagueHub: LeagueHubPage,
+  cityPrograms: CityProgramsPage,
   basketballGuide: BasketballGuidePage,
   basketballRepTryouts: BasketballRepTryoutsPage,
   comingSoon: ComingSoonPage,

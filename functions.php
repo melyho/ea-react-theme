@@ -268,11 +268,11 @@ function ea_react_text_fields() {
         // ── Hero ──────────────────────────────────────────────────────────────
         'ea_txt_hero_heading' => array(
             'key' => 'heroHeading', 'label' => 'Hero — Heading', 'type' => 'text',
-            'default' => 'Play pickleball in Ontario',
+            'default' => 'Basketball Starts Here',
         ),
         'ea_txt_hero_desc' => array(
             'key' => 'heroDesc', 'label' => 'Hero — Subtext', 'type' => 'textarea',
-            'default' => 'Join Canada’s most exciting and fastest-growing pickleball community! We welcome players of all skill levels onto the court.',
+            'default' => 'Join basketball programs built for young athletes to learn, compete, and grow with confidence.',
         ),
         'ea_txt_hero_btn_primary' => array(
             'key' => 'heroBtnPrimary', 'label' => 'Hero — Primary button', 'type' => 'text',
@@ -280,7 +280,7 @@ function ea_react_text_fields() {
         ),
         'ea_txt_hero_btn_secondary' => array(
             'key' => 'heroBtnSecondary', 'label' => 'Hero — Secondary button', 'type' => 'text',
-            'default' => 'New to Pickleball? Start Here',
+            'default' => 'Find Training Programs',
         ),
 
         // ── Navigation ────────────────────────────────────────────────────────
@@ -720,8 +720,11 @@ function ea_react_options() {
         'leagueHubFilterTime'     => (bool) get_theme_mod( 'ea_league_hub_filter_time', true ),
         'leagueHubFilterDays'     => (bool) get_theme_mod( 'ea_league_hub_filter_days', true ),
         'leagueHubFilterLocation' => (bool) get_theme_mod( 'ea_league_hub_filter_location', true ),
+        'leagueHubFilterProvince' => (bool) get_theme_mod( 'ea_league_hub_filter_province', true ),
+        'leagueHubShowInactiveToggle' => (bool) get_theme_mod( 'ea_league_hub_show_inactive_toggle', true ),
         'leagueHubShowMapView'      => (bool) get_theme_mod( 'ea_league_hub_show_map_view', true ),
         'leagueHubShowCalendarView' => (bool) get_theme_mod( 'ea_league_hub_show_calendar_view', true ),
+        'leagueHubShowComingSoon' => (bool) get_theme_mod( 'ea_league_hub_show_coming_soon', false ),
         // Free Trial form session dropdown choices (one per line).
         'freeTrialSessions' => (string) get_theme_mod( 'ea_free_trial_sessions', EA_FREE_TRIAL_SESSIONS_DEFAULT ),
     );
@@ -1059,8 +1062,11 @@ function ea_customize_options( $wp_customize ) {
         'ea_league_hub_filter_time'     => array( 'default' => true, 'label' => __( 'League Hub — show time filter', 'ea-react-theme' ) ),
         'ea_league_hub_filter_days'     => array( 'default' => true, 'label' => __( 'League Hub — show days filter', 'ea-react-theme' ) ),
         'ea_league_hub_filter_location' => array( 'default' => true, 'label' => __( 'League Hub — show location filter', 'ea-react-theme' ) ),
+        'ea_league_hub_filter_province' => array( 'default' => true, 'label' => __( 'League Hub — show province filter', 'ea-react-theme' ) ),
+        'ea_league_hub_show_inactive_toggle' => array( 'default' => true, 'label' => __( 'League Hub — show inactive cities toggle', 'ea-react-theme' ) ),
         'ea_league_hub_show_map_view'    => array( 'default' => true, 'label' => __( 'League Hub — show map view', 'ea-react-theme' ) ),
         'ea_league_hub_show_calendar_view' => array( 'default' => true, 'label' => __( 'League Hub — show calendar view', 'ea-react-theme' ) ),
+        'ea_league_hub_show_coming_soon' => array( 'default' => false, 'label' => __( 'League Hub — show Coming Soon programs', 'ea-react-theme' ) ),
     );
     foreach ( $league_hub_toggles as $setting => $meta ) {
         $wp_customize->add_setting( $setting, array(
@@ -2293,6 +2299,8 @@ function ea_register_newsletter_route() {
             'sessionStart'   => array( 'required' => false, 'type' => 'string' ),
             // Human-readable source program details for optional CC mapping.
             'programSummary' => array( 'required' => false, 'type' => 'string' ),
+            // Province/state from the clicked city card; used for Constant Contact tags.
+            'province'       => array( 'required' => false, 'type' => 'string' ),
             // Honeypot: real users leave this empty; bots tend to fill every field.
             'website'        => array( 'required' => false, 'type' => 'string' ),
         ),
