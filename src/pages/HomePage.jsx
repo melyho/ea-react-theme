@@ -4,6 +4,13 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { Layout, useDSComponents, useViewport, getThemeData, FB, MediaSlot, ActionButton } from '../lib/shared.jsx';
+import { summaryCityHref, useCitiesFeed } from '../data/cities.js';
+import {
+  LeagueCityCard,
+  buildCitySummaries,
+  normalizePrograms as normalizeLeaguePrograms,
+  useProgramsFeed as useLeagueProgramsFeed,
+} from './LeagueHubPage.jsx';
 
 // Scroll offset so a smooth-scrolled section isn't hidden under the sticky nav.
 const SCROLL_OFFSET = 100;
@@ -914,7 +921,7 @@ function useProgramsFeed() {
   return rows;
 }
 
-const PROGRAMS_LIMIT = 3;
+const PROGRAMS_LIMIT = 4;
 
 function formatProgramDate(dateStr, opts = {}) {
   const d = parseLocalDate(dateStr);
@@ -1229,6 +1236,7 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
 function ProgramsSection({ DS, isMobile, t }) {
   const { SectionHeading, Button } = DS;
   const programsHref = `${t.siteUrl || ''}/programs/`;
+  const cityRecords = useCitiesFeed();
   const configuredViewAllLink = t.links && t.links.programsViewAll;
   const viewAllLink = configuredViewAllLink && (configuredViewAllLink.section || configuredViewAllLink.url)
     ? configuredViewAllLink
@@ -1245,9 +1253,9 @@ function ProgramsSection({ DS, isMobile, t }) {
       target.scrollIntoView({ behavior: 'smooth' });
     }
   };
-  // Sports to include come from the Customizer (EA Options -> Active Programs sports).
-  const selectedSports = (t.options && Array.isArray(t.options.sports) && t.options.sports.length)
-    ? t.options.sports : ['bad'];
+  // Badminton home now previews active cities. Individual program rows live on
+  // each city page, keeping the homepage cleaner and reducing decision fatigue.
+  const selectedSports = ['bad'];
   // Visitor location for nearest-first sorting (null until they opt in).
   const [userCoords, setUserCoords] = useState(null);
   const [locating, setLocating] = useState(false);
@@ -1268,11 +1276,19 @@ function ProgramsSection({ DS, isMobile, t }) {
   };
 
   // Live feed when available, otherwise bundled fallback programs.
-  const rows = useProgramsFeed();
-  const feed = rows ? buildProgramList(rows, selectedSports, userCoords) : null;
-  const cards = ((feed && feed.length ? feed : buildProgramList(PROGRAM_FALLBACKS, selectedSports, userCoords)) || []).slice(0, PROGRAMS_LIMIT);
+  const feedState = useLeagueProgramsFeed();
+  const rows = feedState.rows;
+  const programs = normalizeLeaguePrograms(rows || PROGRAM_FALLBACKS, selectedSports, userCoords);
+  const cards = buildCitySummaries(programs, userCoords, false)
+    .sort((a, b) => {
+      if (b.availableCount !== a.availableCount) return b.availableCount - a.availableCount;
+      if (b.programCount !== a.programCount) return b.programCount - a.programCount;
+      return a.displayName.localeCompare(b.displayName);
+    })
+    .slice(0, PROGRAMS_LIMIT);
   // Which location's newsletter popup is open (null = closed).
   const [subscribeLoc, setSubscribeLoc] = useState(null);
+  const showNearMeButton = t.options.programsShowLocationButton && !t.options.hideNearMe;
   return (
     <section id="active-programs" style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: sectionPadX(isMobile), scrollMarginTop: SCROLL_OFFSET }}>
       {SectionHeading
@@ -1292,10 +1308,10 @@ function ProgramsSection({ DS, isMobile, t }) {
         </p>
       )}
       {/* Action buttons — each can be hidden via Customizer (EA Options). */}
-      {!(t.options.hideNearMe && t.options.hideViewAll) && (
+      {(showNearMeButton || !t.options.hideViewAll) && (
         <div style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Left of "View All Programs": sort the cards nearest-first. */}
-          {!t.options.hideNearMe && (
+          {showNearMeButton && (
             <button onClick={findNearMe} disabled={locating} style={{ ...bodyButtonStyle('secondary', isMobile), opacity: locating ? 0.7 : 1, cursor: locating ? 'default' : 'pointer' }}>{locating ? 'Locating…' : userCoords ? 'Nearest to You' : (t.texts.programsNearMe || 'Programs Near Me')}</button>
           )}
           {!t.options.hideViewAll && (
@@ -1314,10 +1330,16 @@ function ProgramsSection({ DS, isMobile, t }) {
       {geoError && (
         <p role="alert" style={{ marginTop: 10, marginBottom: 0, fontFamily: 'var(--font-body, sans-serif)', fontSize: 14, color: 'var(--ea-error, #C0392B)' }}>{geoError}</p>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: isMobile ? 10 : 12, marginTop: isMobile ? 18 : 16 }}>
-        {cards.map((program, index) => (
-          <CardHover key={`${program.Title || 'program'}-${program.City || 'city'}-${program['Start Date'] || index}`}>
-            <ActiveProgramCard program={program} isMobile={isMobile} onSubscribe={setSubscribeLoc} t={t} />
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: isMobile ? 10 : 12, marginTop: isMobile ? 18 : 16 }}>
+        {cards.map((summary) => (
+          <CardHover key={summary.key}>
+            <LeagueCityCard
+              summary={summary}
+              isMobile={isMobile}
+              onSubscribe={setSubscribeLoc}
+              t={t}
+              href={summaryCityHref(summary, cityRecords, t)}
+            />
           </CardHover>
         ))}
       </div>

@@ -503,20 +503,25 @@ function ea_react_options() {
         'sports'      => $active_program_sports,
         // Hide the Active Programs action buttons (both shown by default).
         'hideNearMe'  => (bool) get_theme_mod( 'ea_hide_near_me', false ),
+        'programsShowLocationButton' => (bool) get_theme_mod( 'ea_programs_show_location_button', false ),
         'hideViewAll' => (bool) get_theme_mod( 'ea_hide_view_all', false ),
         'programsShowDescription' => (bool) get_theme_mod( 'ea_programs_show_description', false ),
         // League Hub template controls.
         'leagueHubSports'        => ea_sanitize_sports( get_theme_mod( 'ea_league_hub_sports', $active_program_sports ) ),
         'leagueHubShowSubheading' => (bool) get_theme_mod( 'ea_league_hub_show_subheading', false ),
-        'leagueHubFilterSearch'   => (bool) get_theme_mod( 'ea_league_hub_filter_search', true ),
-        'leagueHubFilterLevel'    => (bool) get_theme_mod( 'ea_league_hub_filter_level', true ),
-        'leagueHubFilterType'     => (bool) get_theme_mod( 'ea_league_hub_filter_type', true ),
-        'leagueHubFilterAge'      => (bool) get_theme_mod( 'ea_league_hub_filter_age', true ),
-        'leagueHubFilterTime'     => (bool) get_theme_mod( 'ea_league_hub_filter_time', true ),
-        'leagueHubFilterDays'     => (bool) get_theme_mod( 'ea_league_hub_filter_days', true ),
-        'leagueHubFilterLocation' => (bool) get_theme_mod( 'ea_league_hub_filter_location', true ),
+        'leagueHubFilterSearch'   => false,
+        'leagueHubFilterLevel'    => false,
+        'leagueHubFilterType'     => false,
+        'leagueHubFilterAge'      => false,
+        'leagueHubFilterTime'     => false,
+        'leagueHubFilterDays'     => false,
+        'leagueHubFilterLocation' => false,
+        'leagueHubFilterProvince' => false,
+        'leagueHubShowLocationButton' => (bool) get_theme_mod( 'ea_league_hub_show_location_button', false ),
+        'leagueHubShowInactiveToggle' => false,
         'leagueHubShowMapView'      => (bool) get_theme_mod( 'ea_league_hub_show_map_view', true ),
         'leagueHubShowCalendarView' => (bool) get_theme_mod( 'ea_league_hub_show_calendar_view', true ),
+        'leagueHubShowComingSoon' => (bool) get_theme_mod( 'ea_league_hub_show_coming_soon', false ),
         // Free Trial form session dropdown choices (one per line).
         'freeTrialSessions' => (string) get_theme_mod( 'ea_free_trial_sessions', EA_FREE_TRIAL_SESSIONS_DEFAULT ),
     );
@@ -725,6 +730,18 @@ function ea_customize_options( $wp_customize ) {
         'section' => 'ea_options',
     ) );
 
+    $wp_customize->add_setting( 'ea_programs_show_location_button', array(
+        'default'           => false,
+        'sanitize_callback' => 'wp_validate_boolean',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'ea_programs_show_location_button', array(
+        'type'        => 'checkbox',
+        'label'       => __( 'Active Programs — show location button', 'ea-react-theme' ),
+        'description' => __( 'Shows the "Programs Near Me" sorting button on the homepage Active Programs section.', 'ea-react-theme' ),
+        'section'     => 'ea_options',
+    ) );
+
     $wp_customize->add_setting( 'ea_hide_view_all', array(
         'default'           => false,
         'sanitize_callback' => 'wp_validate_boolean',
@@ -757,8 +774,11 @@ function ea_customize_options( $wp_customize ) {
         'ea_league_hub_filter_time'     => array( 'default' => true, 'label' => __( 'League Hub — show time filter', 'ea-react-theme' ) ),
         'ea_league_hub_filter_days'     => array( 'default' => true, 'label' => __( 'League Hub — show days filter', 'ea-react-theme' ) ),
         'ea_league_hub_filter_location' => array( 'default' => true, 'label' => __( 'League Hub — show location filter', 'ea-react-theme' ) ),
+        'ea_league_hub_filter_province' => array( 'default' => false, 'label' => __( 'League Hub — show province filter', 'ea-react-theme' ) ),
+        'ea_league_hub_show_location_button' => array( 'default' => false, 'label' => __( 'League Hub — show location button', 'ea-react-theme' ) ),
         'ea_league_hub_show_map_view'    => array( 'default' => true, 'label' => __( 'League Hub — show map view', 'ea-react-theme' ) ),
         'ea_league_hub_show_calendar_view' => array( 'default' => true, 'label' => __( 'League Hub — show calendar view', 'ea-react-theme' ) ),
+        'ea_league_hub_show_coming_soon' => array( 'default' => false, 'label' => __( 'League Hub — show Coming Soon programs', 'ea-react-theme' ) ),
     );
     foreach ( $league_hub_toggles as $setting => $meta ) {
         $wp_customize->add_setting( $setting, array(
@@ -1245,6 +1265,9 @@ function ea_newsletter_city_from_location( $location ) {
     }
 
     $normalized = strtolower( $location );
+    if ( 'rh' === $normalized ) {
+        return 'Richmond Hill';
+    }
     if ( false !== strpos( $normalized, 'richmond' ) ) {
         return 'Richmond Hill';
     }
@@ -1255,7 +1278,12 @@ function ea_newsletter_city_from_location( $location ) {
         return 'Aurora';
     }
 
-    return ea_default_city_value();
+    $city = preg_replace( '/\s+newsletter$/i', '', $location );
+    $city = preg_replace( '/^ea\s+(badminton|basketball|pickleball)\s+/i', '', $city );
+    $city = preg_replace( '/,\s*(on|ontario|bc|british columbia|ab|alberta)\s*$/i', '', $city );
+    $city = trim( preg_replace( '/\s+/', ' ', $city ) );
+
+    return '' !== $city ? sanitize_text_field( $city ) : ea_default_city_value();
 }
 
 function ea_newsletter_city_value( $locations ) {

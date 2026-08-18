@@ -13,12 +13,14 @@ import HomePage from './pages/HomePage.jsx';
 import FAQPage  from './pages/FAQ.jsx';
 import BlankContentPage from './pages/BlankContentPage.jsx';
 import LeagueHubPage from './pages/LeagueHubPage.jsx';
+import CityProgramsPage from './pages/CityProgramsPage.jsx';
 
 const PAGES = {
   home:      HomePage,
   faq:       FAQPage,
   blank:     BlankContentPage,
   leagueHub: LeagueHubPage,
+  cityPrograms: CityProgramsPage,
 };
 
 const el = document.getElementById('ea-react-root');
