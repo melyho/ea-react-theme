@@ -275,11 +275,17 @@ function ea_react_directory_link_fields() {
         3 => array( 'label' => 'Badminton', 'url' => 'https://eabadminton.com/' ),
         4 => array( 'label' => 'Annual Membership', 'url' => 'https://elevationathletics.ca/annual-membership/' ),
         5 => array( 'label' => 'Become a Coach', 'url' => 'https://elevationathletics.ca/join-our-team/' ),
-        6 => array( 'label' => 'Community Partnerships', 'url' => 'https://elevationathletics.ca/community-partnerships/' ),
+        6 => array( 'label' => 'Become a Community Leader', 'url' => 'https://elevationathletics.ca/become-a-community-leader/' ),
     );
 
     foreach ( $cards as $index => $card ) {
-        $setting_base = ( 4 === $index ) ? 'ea_directory_annual_membership' : "ea_directory_card_{$index}";
+        if ( 4 === $index ) {
+            $setting_base = 'ea_directory_annual_membership';
+        } elseif ( 6 === $index ) {
+            $setting_base = 'ea_directory_community_leader';
+        } else {
+            $setting_base = "ea_directory_card_{$index}";
+        }
 
         $fields[ "{$setting_base}_url" ] = array(
             'key'     => "card{$index}Url",
@@ -663,9 +669,9 @@ function ea_react_text_fields() {
             'key' => 'directoryCard5Label', 'label' => 'EA Directory — Card 5 label', 'type' => 'text',
             'default' => 'Become a Coach',
         ),
-        'ea_txt_directory_card_6_label' => array(
+        'ea_txt_directory_community_leader_label' => array(
             'key' => 'directoryCard6Label', 'label' => 'EA Directory — Card 6 label', 'type' => 'text',
-            'default' => 'Community Partnerships',
+            'default' => 'Become a Community Leader',
         ),
 
         // ── Coming Soon ─────────────────────────────────────────────────────

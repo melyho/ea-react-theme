@@ -16,6 +16,7 @@ const PROGRAM_CARDS = [
 
 const TEAM_CARDS = [
   { index: 5, label: 'Become a Coach', fallbackUrl: 'https://elevationathletics.ca/join-our-team/' },
+  { index: 6, label: 'Become a Community Leader', fallbackUrl: 'https://elevationathletics.ca/become-a-community-leader/' },
 ];
 
 function text(t, key, fallback) {
