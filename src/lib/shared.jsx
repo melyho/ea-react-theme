@@ -279,6 +279,7 @@ function NavSection({ DS, t, isMobile }) {
   const { Button } = DS;
   const links = navLinks(t);
   const logoUrl = t.images.logo;            // custom logo from the Customizer, if set
+  const logoHref = 'https://elevationathletics.ca/';
   const logoHeight = isMobile ? 40 : 52;
 
   const [openIdx, setOpenIdx] = useState(null);          // desktop dropdown index
@@ -311,7 +312,7 @@ function NavSection({ DS, t, isMobile }) {
       padding: isMobile ? '0 18px' : '0 40px',
       background: 'var(--ea-white, #fff)', borderBottom: '1px solid var(--border-card, #E5E5E5)',
     }}>
-      <a href={t.siteUrl || '/'} style={{ display: 'flex', flex: 'none' }}>
+      <a href={logoHref} style={{ display: 'flex', flex: 'none' }}>
         <img
           src={logoUrl || t.asset('ea-logo.svg')}
           alt="Elevation Athletics"
@@ -447,6 +448,7 @@ function flatMenu(items) {
 
 function PageFooter({ isMobile, t }) {
   const logoSrc = t.images.logo || t.asset('ea-logo.svg');   // same logo as the nav bar
+  const logoHref = 'https://elevationathletics.ca/';
 
   // Display-scale heading, matching the section titles used across the site.
   const heading = {
@@ -517,7 +519,7 @@ function PageFooter({ isMobile, t }) {
       }}>
         {/* Left block: logo, contact, socials, copyright */}
         <div style={{ gridColumn: isMobile ? '1 / -1' : undefined }}>
-          <a href={t.siteUrl || '/'} style={{ display: 'inline-flex' }}>
+          <a href={logoHref} style={{ display: 'inline-flex' }}>
             <img src={logoSrc} alt="Elevation Athletics" style={{ display: 'block', height: isMobile ? 56 : 80, width: 'auto' }} />
           </a>
 
