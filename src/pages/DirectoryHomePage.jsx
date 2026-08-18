@@ -192,17 +192,35 @@ export default function DirectoryHomePage() {
           </p>
         </section>
 
-        <section style={{ marginTop: isMobile ? 56 : 72 }}>
-          <SectionIntro heading={programsHeading} subheading={programsSubheading} isMobile={isMobile} compact />
+        <section style={{
+          position: 'relative',
+          marginTop: isMobile ? 48 : 64,
+          marginLeft: 'calc(50% - 50vw)',
+          width: '100vw',
+          backgroundImage: `url(${t.asset('directory-programs-water.png')})`,
+          backgroundSize: '100% 100%',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          overflow: 'hidden',
+        }}>
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: isMobile ? '22px 10px' : '32px 44px',
-            alignItems: 'start',
+            width: 'min(100% - 32px, 980px)',
+            margin: '0 auto',
+            padding: isMobile ? '54px 0 62px' : '68px 0 82px',
+            position: 'relative',
+            zIndex: 1,
           }}>
-            {PROGRAM_CARDS.map((card) => (
-              <DirectoryCard key={card.index} card={card} t={t} isMobile={isMobile} kind="program" />
-            ))}
+            <SectionIntro heading={programsHeading} subheading={programsSubheading} isMobile={isMobile} compact />
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gap: isMobile ? '22px 10px' : '32px 44px',
+              alignItems: 'start',
+            }}>
+              {PROGRAM_CARDS.map((card) => (
+                <DirectoryCard key={card.index} card={card} t={t} isMobile={isMobile} kind="program" />
+              ))}
+            </div>
           </div>
         </section>
 
