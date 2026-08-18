@@ -209,7 +209,10 @@ export default function DirectoryHomePage() {
           <SectionIntro heading={joinHeading} subheading={joinSubheading} isMobile={isMobile} />
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gridTemplateColumns: TEAM_CARDS.length === 1
+              ? (isMobile ? 'minmax(0, 150px)' : 'minmax(0, 420px)')
+              : 'repeat(2, minmax(0, 1fr))',
+            justifyContent: 'center',
             gap: isMobile ? 10 : 18,
             maxWidth: isMobile ? 'none' : 820,
             margin: '0 auto',
