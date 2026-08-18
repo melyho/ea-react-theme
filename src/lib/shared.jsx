@@ -64,6 +64,7 @@ export function getThemeData() {
     nonce:   d.nonce   || '',                 // X-WP-Nonce for authenticated REST calls
     images:  d.images  || {},                // { hero, heroMobile, spotlight1, ... } from the Customizer
     carouselLinks: d.carouselLinks || {},     // { carousel1, carousel2, carousel3 } optional slide links
+    directoryLinks: d.directoryLinks || {},   // standalone EA directory card/social links
     texts:   d.texts   || {},                // { heroDesc, programsDesc, ... } editable copy from the Customizer
     options: d.options || {},                // { useCarousel, ... } layout toggles from the Customizer
     defaults: d.defaults || {},              // { sport, region, city } site-level defaults from wp-config.php

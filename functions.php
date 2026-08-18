@@ -134,6 +134,8 @@ function ea_react_enqueue_assets() {
             'images'   => ea_react_images(),
             // Optional links for each image in the New Programs carousel.
             'carouselLinks' => ea_react_carousel_links(),
+            // Card and social destinations for the standalone EA directory page.
+            'directoryLinks' => ea_react_directory_links(),
             // Admin-editable marketing copy (Appearance → Customize → EA Text).
             'texts'    => ea_react_texts(),
             // Layout toggles (Appearance → Customize → EA Options).
@@ -186,6 +188,12 @@ function ea_react_image_fields() {
         'ea_img_rep_tryouts_photo_2' => array( 'key' => 'repTryoutsPhoto2', 'label' => 'Basketball Rep Tryouts — Photo 2' ),
         'ea_img_rep_tryouts_photo_3' => array( 'key' => 'repTryoutsPhoto3', 'label' => 'Basketball Rep Tryouts — Photo 3' ),
         'ea_img_rep_tryouts_photo_4' => array( 'key' => 'repTryoutsPhoto4', 'label' => 'Basketball Rep Tryouts — Photo 4' ),
+        'ea_img_directory_card_1' => array( 'key' => 'directoryCard1', 'label' => 'EA Directory — Card 1 image' ),
+        'ea_img_directory_card_2' => array( 'key' => 'directoryCard2', 'label' => 'EA Directory — Card 2 image' ),
+        'ea_img_directory_card_3' => array( 'key' => 'directoryCard3', 'label' => 'EA Directory — Card 3 image' ),
+        'ea_img_directory_card_4' => array( 'key' => 'directoryCard4', 'label' => 'EA Directory — Card 4 image' ),
+        'ea_img_directory_card_5' => array( 'key' => 'directoryCard5', 'label' => 'EA Directory — Card 5 image' ),
+        'ea_img_directory_card_6' => array( 'key' => 'directoryCard6', 'label' => 'EA Directory — Card 6 image' ),
     );
 }
 
@@ -257,6 +265,69 @@ function ea_customize_carousel_links( $wp_customize ) {
     }
 }
 add_action( 'customize_register', 'ea_customize_carousel_links' );
+
+// ─── Directory page card + social links (Appearance → Customize → EA Directory Links) ─
+function ea_react_directory_link_fields() {
+    $fields = array();
+    $cards = array(
+        1 => array( 'label' => 'Basketball', 'url' => 'https://elevationathletics.ca/home/' ),
+        2 => array( 'label' => 'Pickleball', 'url' => 'https://eapickleball.com/' ),
+        3 => array( 'label' => 'Badminton', 'url' => 'https://eabadminton.com/' ),
+        4 => array( 'label' => 'Youth Camps', 'url' => 'https://elevationathletics.ca/camps/' ),
+        5 => array( 'label' => 'Become a Coach', 'url' => 'https://elevationathletics.ca/join-our-team/' ),
+        6 => array( 'label' => 'Community Partnerships', 'url' => 'https://elevationathletics.ca/community-partnerships/' ),
+    );
+
+    foreach ( $cards as $index => $card ) {
+        $fields[ "ea_directory_card_{$index}_url" ] = array(
+            'key'     => "card{$index}Url",
+            'label'   => sprintf( 'EA Directory — %s image link', $card['label'] ),
+            'default' => $card['url'],
+        );
+        $fields[ "ea_directory_card_{$index}_instagram" ] = array(
+            'key'     => "card{$index}Instagram",
+            'label'   => sprintf( 'EA Directory — %s Instagram link', $card['label'] ),
+            'default' => '',
+        );
+        $fields[ "ea_directory_card_{$index}_facebook" ] = array(
+            'key'     => "card{$index}Facebook",
+            'label'   => sprintf( 'EA Directory — %s Facebook link', $card['label'] ),
+            'default' => '',
+        );
+    }
+
+    return $fields;
+}
+
+function ea_react_directory_links() {
+    $links = array();
+    foreach ( ea_react_directory_link_fields() as $setting => $meta ) {
+        $links[ $meta['key'] ] = esc_url( get_theme_mod( $setting, $meta['default'] ) );
+    }
+    return $links;
+}
+
+function ea_customize_directory_links( $wp_customize ) {
+    $wp_customize->add_section( 'ea_directory_links', array(
+        'title'       => __( 'EA Directory Links', 'ea-react-theme' ),
+        'description' => __( 'Card, image, Instagram, and Facebook links for the standalone Elevation Athletics directory page.', 'ea-react-theme' ),
+        'priority'    => 36,
+    ) );
+
+    foreach ( ea_react_directory_link_fields() as $setting => $meta ) {
+        $wp_customize->add_setting( $setting, array(
+            'default'           => $meta['default'],
+            'sanitize_callback' => 'esc_url_raw',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( $setting, array(
+            'type'    => 'url',
+            'label'   => $meta['label'],
+            'section' => 'ea_directory_links',
+        ) );
+    }
+}
+add_action( 'customize_register', 'ea_customize_directory_links' );
 
 // ─── Swappable copy via the Customizer (Appearance → Customize → EA Text) ──────
 // Each control stores a string as a theme_mod. ea_react_texts() collects them for
@@ -543,6 +614,56 @@ function ea_react_text_fields() {
         'ea_txt_basketball_rep_map_2_embed' => array(
             'key' => 'basketballRepMap2Embed', 'label' => 'Basketball Rep — Map 2 embed src URL', 'type' => 'textarea',
             'default' => '',
+        ),
+
+        // ── Elevation Athletics Directory ───────────────────────────────────
+        'ea_txt_directory_heading' => array(
+            'key' => 'directoryHeading', 'label' => 'EA Directory — Heading', 'type' => 'text',
+            'default' => 'Elevation Athletics',
+        ),
+        'ea_txt_directory_subheading' => array(
+            'key' => 'directorySubheading', 'label' => 'EA Directory — Subheading', 'type' => 'textarea',
+            'default' => 'Inclusive, high-quality sport programming helping athletes grow with confidence across Canada.',
+        ),
+        'ea_txt_directory_programs_heading' => array(
+            'key' => 'directoryProgramsHeading', 'label' => 'EA Directory — Programs heading', 'type' => 'text',
+            'default' => 'Our Programs',
+        ),
+        'ea_txt_directory_programs_subheading' => array(
+            'key' => 'directoryProgramsSubheading', 'label' => 'EA Directory — Programs subheading', 'type' => 'textarea',
+            'default' => 'Serving 5,000+ players with 200+ sports programs across Canada.',
+        ),
+        'ea_txt_directory_card_1_label' => array(
+            'key' => 'directoryCard1Label', 'label' => 'EA Directory — Card 1 label', 'type' => 'text',
+            'default' => 'Basketball',
+        ),
+        'ea_txt_directory_card_2_label' => array(
+            'key' => 'directoryCard2Label', 'label' => 'EA Directory — Card 2 label', 'type' => 'text',
+            'default' => 'Pickleball',
+        ),
+        'ea_txt_directory_card_3_label' => array(
+            'key' => 'directoryCard3Label', 'label' => 'EA Directory — Card 3 label', 'type' => 'text',
+            'default' => 'Badminton',
+        ),
+        'ea_txt_directory_card_4_label' => array(
+            'key' => 'directoryCard4Label', 'label' => 'EA Directory — Card 4 label', 'type' => 'text',
+            'default' => 'Youth Camps',
+        ),
+        'ea_txt_directory_join_heading' => array(
+            'key' => 'directoryJoinHeading', 'label' => 'EA Directory — Join section heading', 'type' => 'text',
+            'default' => 'Join our Team',
+        ),
+        'ea_txt_directory_join_subheading' => array(
+            'key' => 'directoryJoinSubheading', 'label' => 'EA Directory — Join section subheading', 'type' => 'textarea',
+            'default' => 'We’re looking for coaches and members of our internal teams. We also work directly with townships and municipalities to bring sports programming to a community near you.',
+        ),
+        'ea_txt_directory_card_5_label' => array(
+            'key' => 'directoryCard5Label', 'label' => 'EA Directory — Card 5 label', 'type' => 'text',
+            'default' => 'Become a Coach',
+        ),
+        'ea_txt_directory_card_6_label' => array(
+            'key' => 'directoryCard6Label', 'label' => 'EA Directory — Card 6 label', 'type' => 'text',
+            'default' => 'Community Partnerships',
         ),
 
         // ── Coming Soon ─────────────────────────────────────────────────────
