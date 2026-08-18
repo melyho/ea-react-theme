@@ -1623,6 +1623,9 @@ function ea_newsletter_city_from_location( $location ) {
     }
 
     $normalized = strtolower( $location );
+    if ( 'rh' === $normalized ) {
+        return 'Richmond Hill';
+    }
     if ( false !== strpos( $normalized, 'richmond' ) ) {
         return 'Richmond Hill';
     }
@@ -1633,7 +1636,12 @@ function ea_newsletter_city_from_location( $location ) {
         return 'Aurora';
     }
 
-    return ea_default_city_value();
+    $city = preg_replace( '/\s+newsletter$/i', '', $location );
+    $city = preg_replace( '/^ea\s+(badminton|basketball|pickleball)\s+/i', '', $city );
+    $city = preg_replace( '/,\s*(on|ontario|bc|british columbia|ab|alberta)\s*$/i', '', $city );
+    $city = trim( preg_replace( '/\s+/', ' ', $city ) );
+
+    return '' !== $city ? sanitize_text_field( $city ) : ea_default_city_value();
 }
 
 function ea_newsletter_city_value( $locations ) {
