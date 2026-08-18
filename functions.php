@@ -273,23 +273,25 @@ function ea_react_directory_link_fields() {
         1 => array( 'label' => 'Basketball', 'url' => 'https://elevationathletics.ca/home/' ),
         2 => array( 'label' => 'Pickleball', 'url' => 'https://eapickleball.com/' ),
         3 => array( 'label' => 'Badminton', 'url' => 'https://eabadminton.com/' ),
-        4 => array( 'label' => 'Youth Camps', 'url' => 'https://elevationathletics.ca/camps/' ),
+        4 => array( 'label' => 'Annual Membership', 'url' => 'https://elevationathletics.ca/annual-membership/' ),
         5 => array( 'label' => 'Become a Coach', 'url' => 'https://elevationathletics.ca/join-our-team/' ),
         6 => array( 'label' => 'Community Partnerships', 'url' => 'https://elevationathletics.ca/community-partnerships/' ),
     );
 
     foreach ( $cards as $index => $card ) {
-        $fields[ "ea_directory_card_{$index}_url" ] = array(
+        $setting_base = ( 4 === $index ) ? 'ea_directory_annual_membership' : "ea_directory_card_{$index}";
+
+        $fields[ "{$setting_base}_url" ] = array(
             'key'     => "card{$index}Url",
             'label'   => sprintf( 'EA Directory — %s image link', $card['label'] ),
             'default' => $card['url'],
         );
-        $fields[ "ea_directory_card_{$index}_instagram" ] = array(
+        $fields[ "{$setting_base}_instagram" ] = array(
             'key'     => "card{$index}Instagram",
             'label'   => sprintf( 'EA Directory — %s Instagram link', $card['label'] ),
             'default' => '',
         );
-        $fields[ "ea_directory_card_{$index}_facebook" ] = array(
+        $fields[ "{$setting_base}_facebook" ] = array(
             'key'     => "card{$index}Facebook",
             'label'   => sprintf( 'EA Directory — %s Facebook link', $card['label'] ),
             'default' => '',
@@ -645,9 +647,9 @@ function ea_react_text_fields() {
             'key' => 'directoryCard3Label', 'label' => 'EA Directory — Card 3 label', 'type' => 'text',
             'default' => 'Badminton',
         ),
-        'ea_txt_directory_card_4_label' => array(
+        'ea_txt_directory_annual_membership_label' => array(
             'key' => 'directoryCard4Label', 'label' => 'EA Directory — Card 4 label', 'type' => 'text',
-            'default' => 'Youth Camps',
+            'default' => 'Annual Membership',
         ),
         'ea_txt_directory_join_heading' => array(
             'key' => 'directoryJoinHeading', 'label' => 'EA Directory — Join section heading', 'type' => 'text',

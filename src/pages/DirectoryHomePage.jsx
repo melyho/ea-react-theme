@@ -11,11 +11,11 @@ const PROGRAM_CARDS = [
   { index: 1, label: 'Basketball', fallbackUrl: 'https://elevationathletics.ca/home/' },
   { index: 2, label: 'Pickleball', fallbackUrl: 'https://eapickleball.com/' },
   { index: 3, label: 'Badminton', fallbackUrl: 'https://eabadminton.com/' },
+  { index: 4, label: 'Annual Membership', fallbackUrl: 'https://elevationathletics.ca/annual-membership/' },
 ];
 
 const TEAM_CARDS = [
   { index: 5, label: 'Become a Coach', fallbackUrl: 'https://elevationathletics.ca/join-our-team/' },
-  { index: 6, label: 'Community Partnerships', fallbackUrl: 'https://elevationathletics.ca/community-partnerships/' },
 ];
 
 function text(t, key, fallback) {
@@ -195,7 +195,7 @@ export default function DirectoryHomePage() {
           <SectionIntro heading={programsHeading} subheading={programsSubheading} isMobile={isMobile} compact />
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
             gap: isMobile ? '22px 10px' : '32px 44px',
             alignItems: 'start',
           }}>
