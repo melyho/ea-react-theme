@@ -2,20 +2,13 @@
 /**
  * Front page template — used for the site's home page.
  *
- * WordPress gives front-page.php priority over a selected page template when a
- * page is assigned as the static homepage. Honor the selected template here so
- * a homepage can still use special React views like the EA Directory.
+ * The root elevationathletics.ca page is the standalone EA Directory. The full
+ * basketball landing page still lives at /home through page.php, where the
+ * WordPress slug hands React data-page="home".
  */
-$ea_page = 'home';
-$ea_template = get_page_template_slug( get_queried_object_id() );
-
-if ( 'template-directory-home.php' === $ea_template ) {
-    $ea_page = 'directoryHome';
-}
-
 get_header(); ?>
 
-<main id="ea-react-root" class="ea-react-root" data-page="<?php echo esc_attr( $ea_page ); ?>">
+<main id="ea-react-root" class="ea-react-root" data-page="directoryHome">
     <noscript>
         <p><?php esc_html_e( 'This site requires JavaScript to display. Please enable JavaScript in your browser.', 'ea-react-theme' ); ?></p>
     </noscript>
