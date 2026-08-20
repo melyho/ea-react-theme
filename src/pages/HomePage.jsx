@@ -425,23 +425,112 @@ function SessionSelect({ id, value, options, placeholder = 'Select Choice', onCh
   );
 }
 
+function isTrialProgram(p) {
+  const value = norm(p.Trial ?? p.trial ?? p.FreeTrial ?? p.free_trial);
+  return value === 'y' || value === 'yes' || value === 'true' || value === '1';
+}
+
+function skillLevelFromProgram(p) {
+  const raw = p.level ?? p.Level ?? p.LEVEL;
+  const match = String(raw ?? '').match(/\d+/);
+  const level = match ? Number(match[0]) : null;
+  if (level !== null) return level > 1 ? 'Advanced' : 'Beginner';
+
+  const title = norm(p.Title);
+  if (title.includes('advanced') || title.includes('level 2')) return 'Advanced';
+  return 'Beginner';
+}
+
+function weekdayLabel(date) {
+  return date.toLocaleDateString('en-US', { weekday: 'long' });
+}
+
+function trialSessionLabel(p, date) {
+  const dateLabel = date
+    ? `${weekdayLabel(date)}, ${formatProgramDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`)}`
+    : [p.Day, formatDateRange(p)].filter(Boolean).join(' · ');
+  return [dateLabel, p.Time, p.LocationName || p.City]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+function skillLevelSortValue(label) {
+  const text = norm(label);
+  if (text === 'beginner') return 0;
+  if (text === 'advanced') return 1;
+  return 99;
+}
+
+function addDays(date, days) {
+  const out = new Date(date);
+  out.setDate(out.getDate() + days);
+  return out;
+}
+
+function buildTrialSessionChoices(rows, sports) {
+  const allow = new Set(sports && sports.length ? sports : ['bad']);
+  const seen = new Set();
+  const earliest = addDays(todayStart(), 7);
+  const choices = [];
+
+  (rows || [])
+    .filter((p) => {
+      const sportKey = rowSportKey(p) || (norm(p.Title).includes('badminton') ? 'bad' : null);
+      return p && sportKey && allow.has(sportKey) && isEAorTS(p) && !p.is_cancelled && isTrialProgram(p);
+    })
+    .forEach((program) => {
+      const skillLevel = skillLevelFromProgram(program);
+      const sessionDates = String(program.SessionDates || '')
+        .split(',')
+        .map((s) => parseLocalDate(s.trim()))
+        .filter((date) => date instanceof Date && !isNaN(date) && date >= earliest);
+      const dates = sessionDates.length
+        ? sessionDates
+        : [getStartDate(program)].filter((date) => date instanceof Date && !isNaN(date) && date >= earliest);
+
+      dates.forEach((date) => {
+        const label = trialSessionLabel(program, date);
+        if (!label) return;
+        const key = `${skillLevel}|${date.getTime()}|${program.Time}|${program.LocationName || program.City}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        choices.push({ skillLevel, label, date: date.getTime() });
+      });
+    });
+
+  return choices.sort((a, b) => a.date - b.date || a.label.localeCompare(b.label));
+}
+
 // Free Trial registration form. Shown in place of the carousel when the
 // Customizer toggle "Show photo carousel" is unchecked (options.useCarousel = false).
 function FreeTrialSection({ DS, isMobile, t }) {
   const { Button, SectionHeading } = DS;
-  const [form, setForm] = useState({ name: '', email: '', session: '', website: '' });
+  const [form, setForm] = useState({ name: '', email: '', skillLevel: '', session: '', website: '' });
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const rows = useProgramsFeed();
+  const trialChoices = buildTrialSessionChoices(rows || [], ['bad']);
+  const skillLevels = Array.from(new Set(trialChoices.map((choice) => choice.skillLevel)))
+    .sort((a, b) => skillLevelSortValue(a) - skillLevelSortValue(b) || a.localeCompare(b));
+  const skillLevelKey = skillLevels.join('|');
+  const hasTrialChoices = trialChoices.length > 0;
+  const isTrialFeedLoading = rows === null && !hasTrialChoices;
+
+  useEffect(() => {
+    if (form.skillLevel && skillLevels.length && !skillLevels.includes(form.skillLevel)) {
+      setForm((f) => ({ ...f, skillLevel: '', session: '' }));
+    }
+  }, [skillLevelKey, form.skillLevel]);
 
   const handleSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     setError('');
 
     // Client-side validation before hitting the server.
-    if (!form.name.trim() || !form.email.trim()) {
-      setError('Please enter the athlete’s name and email.');
+    if (!form.name.trim() || !form.email.trim() || !form.skillLevel.trim() || !form.session.trim()) {
+      setError('Please enter the athlete’s name, email, skill level, and session.');
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
@@ -461,7 +550,7 @@ function FreeTrialSection({ DS, isMobile, t }) {
         throw new Error(data && data.message ? data.message : 'Something went wrong. Please try again.');
       }
       setSubmitted(true);
-      setForm({ name: '', email: '', session: '', website: '' });
+      setForm({ name: '', email: '', skillLevel: '', session: '', website: '' });
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -480,18 +569,29 @@ function FreeTrialSection({ DS, isMobile, t }) {
     color: 'var(--ea-ink, #1E526E)', background: '#fff',
   };
 
-  // Session options for the dropdown — editable in Appearance → Customize → EA Options
-  // ("Free Trial — session choices", one per line). Falls back to the location list.
-  const sessionOptions = ((t.options && t.options.freeTrialSessions) || '')
-    .split('\n').map((s) => s.trim()).filter(Boolean);
-  const sessions = sessionOptions.length ? sessionOptions : LOCATIONS(isMobile).map((l) => l.city);
+  const sessions = hasTrialChoices
+    ? trialChoices.filter((choice) => choice.skillLevel === form.skillLevel).slice(0, 3).map((choice) => choice.label)
+    : [];
 
   // Heading text. On mobile it matches the other section headers (SectionHeading "lg");
   // on desktop it's overlaid on top of the illustration in the left column.
   const headingText = t.texts.freeTrialHeading || 'Register for your free trial!';
+  const subheadingText = t.texts.freeTrialSubheading || '';
   const mobileHeading = SectionHeading
     ? <SectionHeading level="lg" align="center">{headingText}</SectionHeading>
     : <h2 style={{ ...FB.h(28), textAlign: 'center' }}>{headingText}</h2>;
+  const subheading = subheadingText ? (
+    <p style={{
+      margin: isMobile ? '10px auto 0' : '12px 0 0',
+      maxWidth: isMobile ? 520 : 430,
+      fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+      fontSize: isMobile ? 15 : 16,
+      lineHeight: 1.4,
+      color: 'var(--ea-ink, #1E526E)',
+    }}>
+      {subheadingText}
+    </p>
+  ) : null;
 
   const formInner = (
     <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 440 }}>
@@ -504,11 +604,22 @@ function FreeTrialSection({ DS, isMobile, t }) {
         <input id="ft-email" type="email" style={inputStyle} placeholder="Email" value={form.email} onChange={update('email')} />
       </div>
       <div style={{ marginTop: 20 }}>
+        <label style={labelStyle} htmlFor="ft-skill-level">{t.texts.freeTrialSkillLabel || 'Skill Level'}</label>
+        <SessionSelect
+          id="ft-skill-level"
+          value={form.skillLevel}
+          options={hasTrialChoices ? skillLevels : []}
+          placeholder={isTrialFeedLoading ? 'Loading skill levels...' : 'Select Skill Level'}
+          onChange={(val) => setForm((f) => ({ ...f, skillLevel: val, session: '' }))}
+        />
+      </div>
+      <div style={{ marginTop: 20 }}>
         <label style={labelStyle} htmlFor="ft-session">{t.texts.freeTrialSessionLabel || 'Choose Session'}</label>
         <SessionSelect
           id="ft-session"
           value={form.session}
           options={sessions}
+          placeholder={hasTrialChoices && !form.skillLevel ? 'Select a skill level first' : 'Select Session'}
           onChange={(val) => setForm((f) => ({ ...f, session: val }))}
         />
       </div>
@@ -562,7 +673,10 @@ function FreeTrialSection({ DS, isMobile, t }) {
     return (
       <section id="new-programs" style={{ maxWidth: SECTION_MAX, margin: `${sectionGap(isMobile)}px auto 0`, padding: 0, scrollMarginTop: SCROLL_OFFSET }}>
         <div style={{ padding: '16px 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ textAlign: 'center', width: '75%' }}>{mobileHeading}</div>
+          <div style={{ textAlign: 'center', width: '75%' }}>
+            {mobileHeading}
+            {subheading}
+          </div>
           <div style={{
             background: '#fff', marginTop: 12,
             display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -600,6 +714,7 @@ function FreeTrialSection({ DS, isMobile, t }) {
               ? <SectionHeading level="md" align="left">{headingText}</SectionHeading>
               : <h2 style={{ ...FB.h(32), fontWeight: 'var(--fw-regular, 400)', margin: 0 }}>{headingText}</h2>
             }
+            {subheading}
           </div>
         </div>
         <div style={{

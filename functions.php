@@ -293,6 +293,10 @@ function ea_react_text_fields() {
             'key' => 'freeTrialHeading', 'label' => 'Free Trial — Heading', 'type' => 'text',
             'default' => 'Register for your free trial!',
         ),
+        'ea_txt_free_trial_subheading' => array(
+            'key' => 'freeTrialSubheading', 'label' => 'Free Trial — Subtitle', 'type' => 'textarea',
+            'default' => '',
+        ),
         'ea_txt_free_trial_name_label' => array(
             'key' => 'freeTrialNameLabel', 'label' => 'Free Trial — Name field label', 'type' => 'text',
             'default' => 'Athlete\'s Name',
@@ -300,6 +304,10 @@ function ea_react_text_fields() {
         'ea_txt_free_trial_email_label' => array(
             'key' => 'freeTrialEmailLabel', 'label' => 'Free Trial — Email field label', 'type' => 'text',
             'default' => 'Email',
+        ),
+        'ea_txt_free_trial_skill_label' => array(
+            'key' => 'freeTrialSkillLabel', 'label' => 'Free Trial — Skill level field label', 'type' => 'text',
+            'default' => 'Skill Level',
         ),
         'ea_txt_free_trial_session_label' => array(
             'key' => 'freeTrialSessionLabel', 'label' => 'Free Trial — Session field label', 'type' => 'text',
@@ -805,6 +813,18 @@ function ea_customize_options( $wp_customize ) {
         'section'     => 'ea_options',
     ) );
 
+    $wp_customize->add_setting( 'ea_free_trial_notification_emails', array(
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_textarea_field',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'ea_free_trial_notification_emails', array(
+        'type'        => 'textarea',
+        'label'       => __( 'Free Trial — notification emails', 'ea-react-theme' ),
+        'description' => __( 'Comma- or line-separated emails that should receive Free Trial notifications. Leave blank to use the WordPress admin email.', 'ea-react-theme' ),
+        'section'     => 'ea_options',
+    ) );
+
     $wp_customize->add_setting( 'ea_sports', array(
         'default'           => ea_default_sports_selection(),
         'sanitize_callback' => 'ea_sanitize_sports',
@@ -976,6 +996,7 @@ function ea_register_free_trial_route() {
         'args'                => array(
             'name'    => array( 'required' => true,  'type' => 'string' ),
             'email'   => array( 'required' => true,  'type' => 'string' ),
+            'skillLevel' => array( 'required' => false, 'type' => 'string' ),
             'session' => array( 'required' => false, 'type' => 'string' ),
             // Honeypot: real users leave this empty; bots tend to fill every field.
             'website' => array( 'required' => false, 'type' => 'string' ),
@@ -992,12 +1013,13 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
 
     $name    = sanitize_text_field( wp_unslash( $request['name'] ) );
     $email   = sanitize_email( wp_unslash( $request['email'] ) );
+    $skill_level = isset( $request['skillLevel'] ) ? sanitize_text_field( wp_unslash( $request['skillLevel'] ) ) : '';
     $session = sanitize_text_field( wp_unslash( $request['session'] ) );
 
-    if ( '' === $name || '' === $email || ! is_email( $email ) ) {
+    if ( '' === $name || '' === $email || ! is_email( $email ) || '' === $skill_level || '' === $session ) {
         return new WP_Error(
             'ea_invalid',
-            'Please provide a valid name and email.',
+            'Please provide a valid name, email, skill level, and session.',
             array( 'status' => 422 )
         );
     }
@@ -1019,16 +1041,18 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     }
 
     update_post_meta( $entry_id, '_ea_email', $email );
+    update_post_meta( $entry_id, '_ea_skill_level', $skill_level );
     update_post_meta( $entry_id, '_ea_session', $session );
 
     // 2) Email the admin as a notification (best-effort — the entry is already
     //    saved, so a mail hiccup must not fail the submission). Locally this is
     //    caught by Local's Mailpit (Site → Tools → Open Mailpit).
-    $to      = get_option( 'admin_email' );
+    $to      = ea_free_trial_notification_emails();
     $subject = 'New free trial registration';
     $body    = "A new free trial registration was submitted:\n\n"
              . "Athlete's Name: {$name}\n"
              . "Email: {$email}\n"
+             . "Skill Level: {$skill_level}\n"
              . "Session: " . ( '' !== $session ? $session : '(not specified)' ) . "\n";
     $headers = array(
         'Content-Type: text/plain; charset=UTF-8',
@@ -1037,7 +1061,35 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     );
     wp_mail( $to, $subject, $body, $headers );
 
+    $sport = ea_default_sport_value();
+    $confirmation_subject = "We've received your EA {$sport} free trial request";
+    $confirmation_body    = "Hi {$name},\n\n"
+        . "Thanks for registering for a free trial with EA {$sport}. We received your request with the details below:\n\n"
+        . "Skill Level: {$skill_level}\n"
+        . "Session: {$session}\n\n"
+        . "Our team will follow up if anything changes before your selected session.\n\n"
+        . "Thanks,\n"
+        . "Elevation Athletics";
+    $confirmation_headers = array(
+        'Content-Type: text/plain; charset=UTF-8',
+        'Reply-To: ' . get_option( 'admin_email' ),
+    );
+    wp_mail( $email, $confirmation_subject, $confirmation_body, $confirmation_headers );
+
     return new WP_REST_Response( array( 'ok' => true, 'id' => (int) $entry_id ), 200 );
+}
+
+function ea_free_trial_notification_emails() {
+    $raw = (string) get_theme_mod( 'ea_free_trial_notification_emails', '' );
+    $emails = preg_split( '/[\s,;]+/', $raw );
+    $emails = array_filter( array_map( 'sanitize_email', (array) $emails ), 'is_email' );
+
+    if ( empty( $emails ) ) {
+        $admin_email = sanitize_email( get_option( 'admin_email' ) );
+        return is_email( $admin_email ) ? $admin_email : '';
+    }
+
+    return array_values( array_unique( $emails ) );
 }
 
 // ─── Venue coordinate resolver (map pins for venues not in the baked table) ───
@@ -1303,16 +1355,17 @@ function ea_newsletter_city_value( $locations ) {
 }
 
 // Columns for the Free Trials list table:
-// Athlete | Email | City | Sport | Session | Submitted.
+// Athlete | Email | City | Sport | Skill Level | Session | Submitted.
 function ea_free_trial_columns( $columns ) {
     return array(
-        'cb'         => isset( $columns['cb'] ) ? $columns['cb'] : '',
-        'title'      => __( 'Athlete', 'ea-react-theme' ),
-        'ea_email'   => __( 'Email', 'ea-react-theme' ),
-        'ea_city'    => __( 'City', 'ea-react-theme' ),
-        'ea_sport'   => __( 'Sport', 'ea-react-theme' ),
-        'ea_session' => __( 'Session', 'ea-react-theme' ),
-        'date'       => __( 'Submitted', 'ea-react-theme' ),
+        'cb'             => isset( $columns['cb'] ) ? $columns['cb'] : '',
+        'title'          => __( 'Athlete', 'ea-react-theme' ),
+        'ea_email'       => __( 'Email', 'ea-react-theme' ),
+        'ea_city'        => __( 'City', 'ea-react-theme' ),
+        'ea_sport'       => __( 'Sport', 'ea-react-theme' ),
+        'ea_skill_level' => __( 'Skill Level', 'ea-react-theme' ),
+        'ea_session'     => __( 'Session', 'ea-react-theme' ),
+        'date'           => __( 'Submitted', 'ea-react-theme' ),
     );
 }
 add_filter( 'manage_ea_free_trial_posts_columns', 'ea_free_trial_columns' );
@@ -1325,6 +1378,9 @@ function ea_free_trial_column_content( $column, $post_id ) {
         echo esc_html( ea_free_trial_city_value() );
     } elseif ( 'ea_sport' === $column ) {
         echo esc_html( ea_default_sport_value() );
+    } elseif ( 'ea_skill_level' === $column ) {
+        $skill_level = get_post_meta( $post_id, '_ea_skill_level', true );
+        echo $skill_level ? esc_html( $skill_level ) : '—';
     } elseif ( 'ea_session' === $column ) {
         $session = get_post_meta( $post_id, '_ea_session', true );
         echo $session ? esc_html( $session ) : '—';
@@ -1396,7 +1452,7 @@ function ea_export_free_trials_csv() {
     ea_send_csv_headers( 'ea-free-trials-' . gmdate( 'Y-m-d' ) . '.csv' );
 
     $out = fopen( 'php://output', 'w' );
-    fputcsv( $out, array( 'Submission ID', 'Athlete', 'Email', 'City', 'Sport', 'Session', 'Submitted At' ) );
+    fputcsv( $out, array( 'Submission ID', 'Athlete', 'Email', 'City', 'Sport', 'Skill Level', 'Session', 'Submitted At' ) );
 
     foreach ( ea_get_export_posts( 'ea_free_trial' ) as $entry ) {
         fputcsv( $out, array(
@@ -1405,6 +1461,7 @@ function ea_export_free_trials_csv() {
             get_post_meta( $entry->ID, '_ea_email', true ),
             ea_free_trial_city_value(),
             ea_default_sport_value(),
+            get_post_meta( $entry->ID, '_ea_skill_level', true ),
             get_post_meta( $entry->ID, '_ea_session', true ),
             get_date_from_gmt( $entry->post_date_gmt, 'Y-m-d H:i:s' ),
         ) );
