@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import { Layout, useDSComponents, useViewport, getThemeData, FB } from '../lib/shared.jsx';
 import {
   cityRecordPageSegments,
+  cityRecordCoords,
   cityRecordSlug,
   findCityRecord,
   nearbyCityRecords,
@@ -130,19 +131,24 @@ export default function CityProgramsPage() {
       .filter(({ summary }) => summary && summary.availableCount > 0)
       .slice(0, NEARBY_CITY_LIMIT);
 
-    if (codedNearby.length) return codedNearby;
+    const usedNearbyKeys = new Set(codedNearby.map(({ summary }) => summary.key));
 
     const origin = currentSummary?.coords || (
-      resolvedCityRecord?.lat && resolvedCityRecord?.lng ? [Number(resolvedCityRecord.lat), Number(resolvedCityRecord.lng)] : null
+      cityRecordCoords(resolvedCityRecord)
     );
-    return buildCitySummaries(
+    const fallbackNearby = buildCitySummaries(
       allPrograms.filter((program) => norm(program.City) !== cityKey),
       origin,
       false
-    ).slice(0, NEARBY_CITY_LIMIT).map((summary) => ({
-      summary,
-      record: findCityRecord(cities, summary.slug, summary.city, summary.province),
-    }));
+    )
+      .filter((summary) => !usedNearbyKeys.has(summary.key))
+      .slice(0, NEARBY_CITY_LIMIT - codedNearby.length)
+      .map((summary) => ({
+        summary,
+        record: findCityRecord(cities, summary.slug, summary.city, summary.province),
+      }));
+
+    return [...codedNearby, ...fallbackNearby];
   }, [allPrograms, cityKey, currentSummary, resolvedCityRecord, cities]);
 
   return (

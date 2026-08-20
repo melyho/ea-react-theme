@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Layout, useDSComponents, useViewport, getThemeData, FB } from '../lib/shared.jsx';
 import { ViewToggle, LeagueHubMapView, LeagueHubCalendarView } from './LeagueHubMapCalendar.jsx';
 import { resolveVenueCoords } from '../data/venueCoords.js';
-import { summaryCityHref, useCitiesFeed } from '../data/cities.js';
+import { cityRecordCoords, summaryCityHref, useCitiesFeed } from '../data/cities.js';
 
 const SCROLL_OFFSET = 100;
 export const PROGRAMS_DATA_URL = 'https://sleep-status.github.io/ea-programs-json/data/programs.json';
@@ -663,13 +663,6 @@ function programProvince(program) {
 
 export function cityDisplayName(city, province) {
   return [city, province].filter(Boolean).join(', ');
-}
-
-function cityRecordCoords(city) {
-  if (!city) return null;
-  const lat = Number(city.lat ?? city.Lat ?? city.latitude ?? city.Latitude);
-  const lng = Number(city.lng ?? city.Lng ?? city.longitude ?? city.Longitude);
-  return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : null;
 }
 
 function cityTypeCounts(programs) {

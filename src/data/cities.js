@@ -30,6 +30,13 @@ export function cityRecordSlug(city) {
   return slugify(city?.City || city?.city);
 }
 
+export function cityRecordCoords(city) {
+  if (!city) return null;
+  const lat = Number(city.lat ?? city.Lat ?? city.latitude ?? city.Latitude);
+  const lng = Number(city.lng ?? city.Lng ?? city.longitude ?? city.Longitude);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : null;
+}
+
 export function cityRecordMatchesSlug(city, slug) {
   const target = slugify(slug);
   if (!target) return false;

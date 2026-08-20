@@ -2,9 +2,9 @@
  * src/pages/HomePage.jsx — the pickleball marketing home page.
  * Rendered when the mount div has data-page="home" (front-page.php / index.php).
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Layout, useDSComponents, useViewport, getThemeData, FB, MediaSlot, ActionButton, sectionLinkAttrs } from '../lib/shared.jsx';
-import { summaryCityHref, useCitiesFeed } from '../data/cities.js';
+import { cityRecordCoords, summaryCityHref, useCitiesFeed } from '../data/cities.js';
 
 // Scroll offset so a smooth-scrolled section isn't hidden under the sticky nav.
 const SCROLL_OFFSET = 100;
@@ -954,7 +954,7 @@ function cityStatusChips(summary) {
   return chips;
 }
 
-function buildCityList(programs, userCoords) {
+function buildCityList(programs, userCoords, cityCoords = null) {
   const byCity = new Map();
   programs.forEach((program) => {
     const city = String(program.City || '').trim();
@@ -966,13 +966,13 @@ function buildCityList(programs, userCoords) {
         slug: citySlug(city),
         city,
         province: programProvince(program),
-        coords: CITY_COORDS[key] || program.coords || null,
+        coords: cityCoords?.get(key) || CITY_COORDS[key] || program.coords || null,
         programs: [],
       });
     }
     const summary = byCity.get(key);
     if (!summary.province) summary.province = programProvince(program);
-    if (!summary.coords && program.coords) summary.coords = program.coords;
+    if (!summary.coords) summary.coords = cityCoords?.get(key) || program.coords || null;
     summary.programs.push(program);
   });
 
@@ -1479,6 +1479,15 @@ function NewsletterModal({ DS, t, location, onClose, startSubmitted = false }) {
 function ProgramsSection({ DS, isMobile, t }) {
   const { SectionHeading, Button } = DS;
   const cityRecords = useCitiesFeed();
+  const cityCoords = useMemo(() => {
+    const byKey = new Map();
+    cityRecords.forEach((city) => {
+      const key = norm(city?.City || city?.city);
+      const coords = cityRecordCoords(city);
+      if (key && coords) byKey.set(key, coords);
+    });
+    return byKey;
+  }, [cityRecords]);
   const programsHref = `${t.siteUrl || ''}/programs/`;
   const configuredViewAllLink = t.links && t.links.programsViewAll;
   const viewAllLink = configuredViewAllLink && (configuredViewAllLink.section || configuredViewAllLink.url)
@@ -1523,7 +1532,8 @@ function ProgramsSection({ DS, isMobile, t }) {
   const homepageFeed = feed ? feed.filter((program) => !isPickleballComingSoonProgram(program)) : null;
   const cityCards = buildCityList(
     (homepageFeed && homepageFeed.length ? homepageFeed : buildProgramList(PROGRAM_FALLBACKS, selectedSports, userCoords)) || [],
-    userCoords
+    userCoords,
+    cityCoords
   ).slice(0, PROGRAMS_LIMIT);
   // Which location's newsletter popup is open (null = closed).
   const [subscribeLoc, setSubscribeLoc] = useState(null);
