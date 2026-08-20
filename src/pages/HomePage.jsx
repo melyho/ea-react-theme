@@ -358,6 +358,10 @@ function SessionSelect({ id, value, options, placeholder = 'Select Choice', onCh
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
     padding: '12px 16px', textAlign: 'left',
     fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: 16,
+    fontWeight: 400,
+    lineHeight: 1.4,
+    letterSpacing: 'normal',
+    textTransform: 'none',
     background: 'var(--surface-card, #fff)',
     border: '0.5px solid var(--border-card, #E5E5E5)',
     borderRadius: 'var(--radius-input, 6px)',
@@ -366,14 +370,14 @@ function SessionSelect({ id, value, options, placeholder = 'Select Choice', onCh
   };
 
   return (
-    <div ref={rootRef} style={{ position: 'relative' }}>
+    <div ref={rootRef} style={{ position: 'relative', zIndex: open ? 30 : 'auto' }}>
       <button
         type="button" id={id}
         role="combobox" aria-haspopup="listbox" aria-expanded={open}
         onClick={() => setOpen((o) => !o)} onKeyDown={onTriggerKey}
         style={{ ...controlBase, color: value ? 'var(--ea-ink, #1E526E)' : 'var(--ea-muted, #787878)' }}
       >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || placeholder}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'none' }}>{value || placeholder}</span>
         <span style={{ display: 'inline-flex', color: 'var(--ea-navy, #10414F)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .18s ease' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
         </span>
@@ -404,13 +408,15 @@ function SessionSelect({ id, value, options, placeholder = 'Select Choice', onCh
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
                   padding: '10px 12px', borderRadius: 'var(--radius-input, 6px)', cursor: 'pointer',
                   fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: 15,
+                  letterSpacing: 'normal',
+                  textTransform: 'none',
                   color: 'var(--ea-ink, #1E526E)',
                   fontWeight: selected ? 700 : 500,
                   background: highlighted ? 'var( --ea-mist, #F0F0F0)' : 'transparent',
                   transition: 'background .12s ease',
                 }}
               >
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'none' }}>{opt}</span>
                 {selected && (
                   <span style={{ display: 'inline-flex', color: 'var(--ea-navy, #10414F)', flex: 'none' }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
@@ -568,6 +574,13 @@ function FreeTrialSection({ DS, isMobile, t }) {
     fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)', fontSize: 16,
     color: 'var(--ea-ink, #1E526E)', background: '#fff',
   };
+  const freeTrialButtonStyle = {
+    fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+    fontSize: 16,
+    fontWeight: 600,
+    letterSpacing: 'normal',
+    textTransform: 'none',
+  };
 
   const sessions = hasTrialChoices
     ? trialChoices.filter((choice) => choice.skillLevel === form.skillLevel).slice(0, 3).map((choice) => choice.label)
@@ -637,8 +650,8 @@ function FreeTrialSection({ DS, isMobile, t }) {
 
       <div style={{ marginTop: 24, display: 'flex', justifyContent: isMobile ? 'center' : 'flex-start' }}>
         {Button
-          ? <Button variant="dark" type="submit" disabled={sending}>{sending ? 'Registering…' : (t.texts.freeTrialSubmit || 'Register')}</Button>
-          : <button type="submit" disabled={sending} style={{ ...FB.btn('primary'), background: 'var(--ea-teal-900, #004356)', opacity: sending ? 0.7 : 1, cursor: sending ? 'default' : 'pointer' }}>{sending ? 'Registering…' : (t.texts.freeTrialSubmit || 'Register')}</button>
+          ? <Button variant="dark" type="submit" disabled={sending} style={freeTrialButtonStyle}>{sending ? 'Registering…' : (t.texts.freeTrialSubmit || 'Register')}</Button>
+          : <button type="submit" disabled={sending} style={{ ...FB.btn('primary'), ...freeTrialButtonStyle, background: 'var(--ea-teal-900, #004356)', opacity: sending ? 0.7 : 1, cursor: sending ? 'default' : 'pointer' }}>{sending ? 'Registering…' : (t.texts.freeTrialSubmit || 'Register')}</button>
         }
       </div>
     </form>
@@ -660,8 +673,8 @@ function FreeTrialSection({ DS, isMobile, t }) {
         </p>
         <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>
           {Button
-            ? <Button variant="dark" onClick={() => setSubmitted(false)}>Close</Button>
-            : <button onClick={() => setSubmitted(false)} style={{ ...FB.btn('primary'), background: 'var(--ea-teal-900, #004356)' }}>Close</button>
+            ? <Button variant="dark" onClick={() => setSubmitted(false)} style={freeTrialButtonStyle}>Close</Button>
+            : <button onClick={() => setSubmitted(false)} style={{ ...FB.btn('primary'), ...freeTrialButtonStyle, background: 'var(--ea-teal-900, #004356)' }}>Close</button>
           }
         </div>
       </div>
