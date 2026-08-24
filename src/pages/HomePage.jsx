@@ -122,6 +122,8 @@ function HeroSection({ DS, isMobile, t }) {
 }
 
 function HeroImageSection({ isMobile, t }) {
+  if (t.options.showHeroImage === false) return null;
+
   const src = isMobile
     ? (t.images.heroMobile || t.asset('mobile-hero.svg'))
     : (t.images.hero || t.asset('hero.png'));

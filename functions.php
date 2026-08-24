@@ -833,6 +833,8 @@ function ea_react_options() {
     return array(
         // true = photo carousel, false = the Free Trial registration form.
         'useCarousel' => (bool) get_theme_mod( 'ea_use_carousel', true ),
+        // Shows/hides only the standalone homepage hero image block.
+        'showHeroImage' => (bool) get_theme_mod( 'ea_show_hero_image', true ),
         // Sports shown in the homepage Active Programs section.
         'sports'      => $active_program_sports,
         // Hide the Active Programs action buttons (both shown by default).
@@ -1146,6 +1148,18 @@ function ea_customize_options( $wp_customize ) {
         'type'        => 'checkbox',
         'label'       => __( 'Show photo carousel', 'ea-react-theme' ),
         'description' => __( 'Uncheck to show the Free Trial registration form instead.', 'ea-react-theme' ),
+        'section'     => 'ea_options',
+    ) );
+
+    $wp_customize->add_setting( 'ea_show_hero_image', array(
+        'default'           => true,
+        'sanitize_callback' => 'wp_validate_boolean',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'ea_show_hero_image', array(
+        'type'        => 'checkbox',
+        'label'       => __( 'Show hero image', 'ea-react-theme' ),
+        'description' => __( 'Shows the standalone homepage hero image below the intro buttons on desktop and mobile.', 'ea-react-theme' ),
         'section'     => 'ea_options',
     ) );
 
