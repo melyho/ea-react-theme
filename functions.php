@@ -138,6 +138,8 @@ function ea_react_enqueue_assets() {
             'directoryLinks' => ea_react_directory_links(),
             // Admin-editable marketing copy (Appearance → Customize → EA Text).
             'texts'    => ea_react_texts(),
+            // Dedicated Camps page content (Appearance → Customize → EA Camps Page).
+            'camps'    => ea_react_camps(),
             // Layout toggles (Appearance → Customize → EA Options).
             'options'  => ea_react_options(),
             // Social profile links (Appearance → Customize → EA Social Links).
@@ -194,6 +196,12 @@ function ea_react_image_fields() {
         'ea_img_directory_card_4' => array( 'key' => 'directoryCard4', 'label' => 'EA Directory — Card 4 image' ),
         'ea_img_directory_card_5' => array( 'key' => 'directoryCard5', 'label' => 'EA Directory — Card 5 image' ),
         'ea_img_directory_card_6' => array( 'key' => 'directoryCard6', 'label' => 'EA Directory — Card 6 image' ),
+        'ea_img_directory_card_7' => array( 'key' => 'directoryCard7', 'label' => 'EA Directory — Card 7 image' ),
+        'ea_img_directory_card_8' => array( 'key' => 'directoryCard8', 'label' => 'EA Directory — Card 8 image' ),
+        'ea_img_camp_card_1' => array( 'key' => 'campCard1', 'label' => 'Camps — Card 1 image' ),
+        'ea_img_camp_card_2' => array( 'key' => 'campCard2', 'label' => 'Camps — Card 2 image' ),
+        'ea_img_camp_card_3' => array( 'key' => 'campCard3', 'label' => 'Camps — Card 3 image' ),
+        'ea_img_camp_card_4' => array( 'key' => 'campCard4', 'label' => 'Camps — Card 4 image' ),
     );
 }
 
@@ -213,6 +221,10 @@ function ea_customize_images( $wp_customize ) {
     ) );
 
     foreach ( ea_react_image_fields() as $setting => $meta ) {
+        if ( 0 === strpos( $setting, 'ea_img_camp_card_' ) ) {
+            continue;
+        }
+
         $wp_customize->add_setting( $setting, array(
             'default'           => '',
             'sanitize_callback' => 'esc_url_raw',
@@ -276,6 +288,8 @@ function ea_react_directory_link_fields() {
         4 => array( 'label' => 'Annual Membership', 'url' => 'https://elevationathletics.ca/annual-membership/' ),
         5 => array( 'label' => 'Become a Coach', 'url' => 'https://elevationathletics.ca/join-our-team/' ),
         6 => array( 'label' => 'Become a Community Leader', 'url' => 'https://elevationathletics.ca/become-a-community-leader/' ),
+        7 => array( 'label' => 'Community Partnerships', 'url' => 'https://elevationathletics.ca/partnerships/' ),
+        8 => array( 'label' => 'Work With Us', 'url' => 'https://elevationathletics.ca/join-our-team/' ),
     );
 
     foreach ( $cards as $index => $card ) {
@@ -673,6 +687,96 @@ function ea_react_text_fields() {
             'key' => 'directoryCard6Label', 'label' => 'EA Directory — Card 6 label', 'type' => 'text',
             'default' => 'Become a Community Leader',
         ),
+        'ea_txt_directory_card_7_label' => array(
+            'key' => 'directoryCard7Label', 'label' => 'EA Directory — Card 7 label', 'type' => 'text',
+            'default' => 'Community Partnerships',
+        ),
+        'ea_txt_directory_card_8_label' => array(
+            'key' => 'directoryCard8Label', 'label' => 'EA Directory — Card 8 label', 'type' => 'text',
+            'default' => 'Work With Us',
+        ),
+
+        // ── Camps Page ──────────────────────────────────────────────────────
+        'ea_txt_camps_heading' => array(
+            'key' => 'campsHeading', 'label' => 'Camps — Heading', 'type' => 'text',
+            'default' => 'Youth Camps',
+        ),
+        'ea_txt_camps_subheading' => array(
+            'key' => 'campsSubheading', 'label' => 'Camps — Subheading', 'type' => 'textarea',
+            'default' => 'Seasonal basketball, badminton, racquet sport, and multi-sport camps for active kids.',
+        ),
+        'ea_txt_camps_intro' => array(
+            'key' => 'campsIntro', 'label' => 'Camps — Intro text', 'type' => 'textarea',
+            'default' => 'Our camps typically run during March Break, summer weeks, PA days, and select seasonal windows. Each camp is designed to keep kids moving, learning, and building confidence in a positive team environment.',
+        ),
+        'ea_txt_camps_season_note' => array(
+            'key' => 'campsSeasonNote', 'label' => 'Camps — Seasonal note', 'type' => 'textarea',
+            'default' => 'Best for families looking for structured activity during school breaks, summer weeks, and seasonal program windows.',
+        ),
+        'ea_txt_camp_card_1_eyebrow' => array(
+            'key' => 'campCard1Eyebrow', 'label' => 'Camps — Card 1 label', 'type' => 'text',
+            'default' => 'Basketball',
+        ),
+        'ea_txt_camp_card_1_heading' => array(
+            'key' => 'campCard1Heading', 'label' => 'Camps — Card 1 heading', 'type' => 'text',
+            'default' => 'Newmarket Basketball Camp',
+        ),
+        'ea_txt_camp_card_1_text' => array(
+            'key' => 'campCard1Text', 'label' => 'Camps — Card 1 text', 'type' => 'textarea',
+            'default' => 'Skill-building, team games, and active play for young athletes during school breaks.',
+        ),
+        'ea_txt_camp_card_1_button' => array(
+            'key' => 'campCard1Button', 'label' => 'Camps — Card 1 button', 'type' => 'text',
+            'default' => 'Learn More',
+        ),
+        'ea_txt_camp_card_2_eyebrow' => array(
+            'key' => 'campCard2Eyebrow', 'label' => 'Camps — Card 2 label', 'type' => 'text',
+            'default' => 'Badminton',
+        ),
+        'ea_txt_camp_card_2_heading' => array(
+            'key' => 'campCard2Heading', 'label' => 'Camps — Card 2 heading', 'type' => 'text',
+            'default' => 'Newmarket Badminton Camp',
+        ),
+        'ea_txt_camp_card_2_text' => array(
+            'key' => 'campCard2Text', 'label' => 'Camps — Card 2 text', 'type' => 'textarea',
+            'default' => 'Introductory badminton, rallies, footwork, and court confidence in a fun camp setting.',
+        ),
+        'ea_txt_camp_card_2_button' => array(
+            'key' => 'campCard2Button', 'label' => 'Camps — Card 2 button', 'type' => 'text',
+            'default' => 'Learn More',
+        ),
+        'ea_txt_camp_card_3_eyebrow' => array(
+            'key' => 'campCard3Eyebrow', 'label' => 'Camps — Card 3 label', 'type' => 'text',
+            'default' => 'Multi-Sports',
+        ),
+        'ea_txt_camp_card_3_heading' => array(
+            'key' => 'campCard3Heading', 'label' => 'Camps — Card 3 heading', 'type' => 'text',
+            'default' => 'Uxbridge Multi-Sports Camp',
+        ),
+        'ea_txt_camp_card_3_text' => array(
+            'key' => 'campCard3Text', 'label' => 'Camps — Card 3 text', 'type' => 'textarea',
+            'default' => 'A mix of sports, movement games, teamwork, and activities for kids who like variety.',
+        ),
+        'ea_txt_camp_card_3_button' => array(
+            'key' => 'campCard3Button', 'label' => 'Camps — Card 3 button', 'type' => 'text',
+            'default' => 'Learn More',
+        ),
+        'ea_txt_camp_card_4_eyebrow' => array(
+            'key' => 'campCard4Eyebrow', 'label' => 'Camps — Card 4 label', 'type' => 'text',
+            'default' => 'Racquet Sports',
+        ),
+        'ea_txt_camp_card_4_heading' => array(
+            'key' => 'campCard4Heading', 'label' => 'Camps — Card 4 heading', 'type' => 'text',
+            'default' => 'Aurora Racquet Sports Camp',
+        ),
+        'ea_txt_camp_card_4_text' => array(
+            'key' => 'campCard4Text', 'label' => 'Camps — Card 4 text', 'type' => 'textarea',
+            'default' => 'Badminton, pickleball-inspired games, movement skills, and racquet confidence.',
+        ),
+        'ea_txt_camp_card_4_button' => array(
+            'key' => 'campCard4Button', 'label' => 'Camps — Card 4 button', 'type' => 'text',
+            'default' => 'Learn More',
+        ),
 
         // ── Coming Soon ─────────────────────────────────────────────────────
         'ea_txt_coming_soon_heading' => array(
@@ -786,6 +890,107 @@ function ea_react_texts() {
     return $texts;
 }
 
+// ─── Camps page content via the Customizer (Appearance → Customize → EA Camps Page) ─
+const EA_CAMPS_CARD_SLOTS = 8;
+
+function ea_camps_page_defaults() {
+    return array(
+        'heading'        => 'Youth Camps',
+        'subheading'     => 'Seasonal basketball, badminton, racquet sport, and multi-sport camps for active kids.',
+        'intro'          => '',
+        'contactHeading' => 'Not sure which camp is right?',
+        'contactText'    => 'Contact us and we’ll help you choose the best fit for your child.',
+        'contactButton'  => 'Contact Us',
+        'contactLink'    => 'mailto:info@elevationathletics.ca',
+    );
+}
+
+function ea_camp_card_defaults() {
+    return array(
+        1 => array(
+            'enabled'  => true,
+            'label'    => 'Basketball',
+            'heading'  => 'Newmarket Basketball Camp',
+            'ageRange' => 'Ages 7-12',
+            'text'     => 'Skill-building, team games, and active play during school breaks.',
+            'button'   => 'Learn More',
+            'link'     => '',
+            'image'    => '',
+        ),
+        2 => array(
+            'enabled'  => true,
+            'label'    => 'Badminton',
+            'heading'  => 'Newmarket Badminton Camp',
+            'ageRange' => 'Ages 8-14',
+            'text'     => 'Introductory badminton, rallies, footwork, and court confidence.',
+            'button'   => 'Learn More',
+            'link'     => '',
+            'image'    => '',
+        ),
+        3 => array(
+            'enabled'  => true,
+            'label'    => 'Multi-Sports',
+            'heading'  => 'Uxbridge Multi-Sports Camp',
+            'ageRange' => 'Ages 6-12',
+            'text'     => 'A mix of sports, movement games, teamwork, and active play.',
+            'button'   => 'Learn More',
+            'link'     => '',
+            'image'    => '',
+        ),
+        4 => array(
+            'enabled'  => true,
+            'label'    => 'Racquet Sports',
+            'heading'  => 'Aurora Racquet Sports Camp',
+            'ageRange' => 'Ages 7-13',
+            'text'     => 'Racquet skills, movement games, and beginner-friendly court play.',
+            'button'   => 'Learn More',
+            'link'     => '',
+            'image'    => '',
+        ),
+    );
+}
+
+function ea_react_camps() {
+    $defaults = ea_camps_page_defaults();
+    $camps    = array();
+
+    foreach ( $defaults as $key => $default ) {
+        $setting = 'ea_camps_' . strtolower( preg_replace( '/(?<!^)[A-Z]/', '_$0', $key ) );
+        $camps[ $key ] = get_theme_mod( $setting, $default );
+    }
+
+    $card_defaults = ea_camp_card_defaults();
+    $cards         = array();
+
+    for ( $i = 1; $i <= EA_CAMPS_CARD_SLOTS; $i++ ) {
+        $default = isset( $card_defaults[ $i ] ) ? $card_defaults[ $i ] : array(
+            'enabled'  => false,
+            'label'    => '',
+            'heading'  => '',
+            'ageRange' => '',
+            'text'     => '',
+            'button'   => 'Learn More',
+            'link'     => '',
+            'image'    => '',
+        );
+
+        $cards[] = array(
+            'key'      => 'campCustom' . $i,
+            'enabled'  => (bool) get_theme_mod( "ea_camps_card_{$i}_enabled", $default['enabled'] ),
+            'label'    => get_theme_mod( "ea_camps_card_{$i}_label", $default['label'] ),
+            'heading'  => get_theme_mod( "ea_camps_card_{$i}_heading", $default['heading'] ),
+            'ageRange' => get_theme_mod( "ea_camps_card_{$i}_age_range", $default['ageRange'] ),
+            'text'     => get_theme_mod( "ea_camps_card_{$i}_text", $default['text'] ),
+            'button'   => get_theme_mod( "ea_camps_card_{$i}_button", $default['button'] ),
+            'link'     => array( 'url' => esc_url( get_theme_mod( "ea_camps_card_{$i}_link", $default['link'] ) ) ),
+            'image'    => esc_url( get_theme_mod( "ea_camps_card_{$i}_image", $default['image'] ) ),
+        );
+    }
+
+    $camps['cards'] = $cards;
+    return $camps;
+}
+
 // ─── Layout toggles via the Customizer (Appearance → Customize → EA Options) ───
 // Sports that can appear in the Active Programs feed. Keys match the codes used in
 // the programs JSON (React maps common variants onto these).
@@ -825,6 +1030,11 @@ function ea_default_sport_key() {
 
 function ea_default_sports_selection() {
     return array( ea_default_sport_key() );
+}
+
+function ea_sanitize_camps_layout( $value ) {
+    $allowed = array( 'all', 'cards', 'featured', 'audience' );
+    return in_array( (string) $value, $allowed, true ) ? (string) $value : 'all';
 }
 
 function ea_react_options() {
@@ -1031,6 +1241,10 @@ function ea_button_link_fields() {
         'ea_link_rep_tryouts_hero'     => array( 'key' => 'repTryoutsHero',     'label' => 'Basketball Rep — Hero register button' ),
         'ea_link_rep_tryouts_schedule' => array( 'key' => 'repTryoutsSchedule', 'label' => 'Basketball Rep — See schedule button' ),
         'ea_link_rep_tryouts_waiver'   => array( 'key' => 'repTryoutsWaiver',   'label' => 'Basketball Rep — Waiver button' ),
+        'ea_link_camp_card_1'          => array( 'key' => 'campCard1',          'label' => 'Camps — Card 1 button' ),
+        'ea_link_camp_card_2'          => array( 'key' => 'campCard2',          'label' => 'Camps — Card 2 button' ),
+        'ea_link_camp_card_3'          => array( 'key' => 'campCard3',          'label' => 'Camps — Card 3 button' ),
+        'ea_link_camp_card_4'          => array( 'key' => 'campCard4',          'label' => 'Camps — Card 4 button' ),
     );
 }
 
@@ -1046,6 +1260,7 @@ function ea_section_choices() {
         'newsletter'      => 'Newsletter',
         'rep-tryouts'     => 'Basketball Rep Tryouts form',
         'rep-schedule'    => 'Basketball Rep Schedule',
+        'camps'           => 'Camps page',
     );
 }
 
@@ -1073,6 +1288,10 @@ function ea_customize_links( $wp_customize ) {
         'priority'    => 34,
     ) );
     foreach ( ea_button_link_fields() as $slug => $meta ) {
+        if ( 0 === strpos( $slug, 'ea_link_camp_card_' ) ) {
+            continue;
+        }
+
         // Scroll-to-section select.
         $wp_customize->add_setting( $slug . '_section', array(
             'default'           => '',
@@ -1300,6 +1519,10 @@ function ea_customize_texts( $wp_customize ) {
     ) );
 
     foreach ( ea_react_text_fields() as $setting => $meta ) {
+        if ( 0 === strpos( $setting, 'ea_txt_camps_' ) || 0 === strpos( $setting, 'ea_txt_camp_card_' ) ) {
+            continue;
+        }
+
         $map_embed_fields = array(
             'ea_txt_basketball_rep_map_1_embed',
             'ea_txt_basketball_rep_map_2_embed',
@@ -1323,6 +1546,104 @@ function ea_customize_texts( $wp_customize ) {
     }
 }
 add_action( 'customize_register', 'ea_customize_texts' );
+
+function ea_customize_camps_page( $wp_customize ) {
+    $wp_customize->add_section( 'ea_camps_page', array(
+        'title'       => __( 'EA Camps Page', 'ea-react-theme' ),
+        'description' => __( 'Edit the camps landing page. Toggle a camp card off to remove it from the page; toggle an empty card on to add a new one.', 'ea-react-theme' ),
+        'priority'    => 32,
+    ) );
+
+    $page_fields = array(
+        'heading'        => array( 'label' => 'Heading', 'type' => 'text' ),
+        'subheading'     => array( 'label' => 'Subheading', 'type' => 'textarea' ),
+        'intro'          => array( 'label' => 'Intro text', 'type' => 'textarea' ),
+        'contactHeading' => array( 'label' => 'Contact prompt — heading', 'type' => 'text' ),
+        'contactText'    => array( 'label' => 'Contact prompt — text', 'type' => 'textarea' ),
+        'contactButton'  => array( 'label' => 'Contact prompt — button text', 'type' => 'text' ),
+        'contactLink'    => array( 'label' => 'Contact prompt — button link', 'type' => 'url' ),
+    );
+    $defaults = ea_camps_page_defaults();
+
+    foreach ( $page_fields as $key => $meta ) {
+        $setting = 'ea_camps_' . strtolower( preg_replace( '/(?<!^)[A-Z]/', '_$0', $key ) );
+        $sanitize = 'url' === $meta['type'] ? 'esc_url_raw' : ( 'textarea' === $meta['type'] ? 'sanitize_textarea_field' : 'sanitize_text_field' );
+
+        $wp_customize->add_setting( $setting, array(
+            'default'           => $defaults[ $key ],
+            'sanitize_callback' => $sanitize,
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( $setting, array(
+            'type'     => $meta['type'],
+            'label'    => $meta['label'],
+            'section'  => 'ea_camps_page',
+            'settings' => $setting,
+        ) );
+    }
+
+    $card_defaults = ea_camp_card_defaults();
+    for ( $i = 1; $i <= EA_CAMPS_CARD_SLOTS; $i++ ) {
+        $default = isset( $card_defaults[ $i ] ) ? $card_defaults[ $i ] : array(
+            'enabled'  => false,
+            'label'    => '',
+            'heading'  => '',
+            'ageRange' => '',
+            'text'     => '',
+            'button'   => 'Learn More',
+            'link'     => '',
+            'image'    => '',
+        );
+
+        $wp_customize->add_setting( "ea_camps_card_{$i}_enabled", array(
+            'default'           => $default['enabled'],
+            'sanitize_callback' => 'wp_validate_boolean',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( "ea_camps_card_{$i}_enabled", array(
+            'type'    => 'checkbox',
+            'label'   => sprintf( 'Camp card %d — show on page', $i ),
+            'section' => 'ea_camps_page',
+        ) );
+
+        $card_text_fields = array(
+            'label'     => array( 'label' => sprintf( 'Camp card %d — sport/type label', $i ), 'type' => 'text', 'default_key' => 'label' ),
+            'heading'   => array( 'label' => sprintf( 'Camp card %d — heading', $i ), 'type' => 'text', 'default_key' => 'heading' ),
+            'age_range' => array( 'label' => sprintf( 'Camp card %d — age range', $i ), 'type' => 'text', 'default_key' => 'ageRange' ),
+            'text'      => array( 'label' => sprintf( 'Camp card %d — short description', $i ), 'type' => 'textarea', 'default_key' => 'text' ),
+            'button'    => array( 'label' => sprintf( 'Camp card %d — button text', $i ), 'type' => 'text', 'default_key' => 'button' ),
+            'link'      => array( 'label' => sprintf( 'Camp card %d — button/image link', $i ), 'type' => 'url', 'default_key' => 'link' ),
+        );
+
+        foreach ( $card_text_fields as $field => $meta ) {
+            $setting = "ea_camps_card_{$i}_{$field}";
+            $sanitize = 'url' === $meta['type'] ? 'esc_url_raw' : ( 'textarea' === $meta['type'] ? 'sanitize_textarea_field' : 'sanitize_text_field' );
+            $wp_customize->add_setting( $setting, array(
+                'default'           => $default[ $meta['default_key'] ],
+                'sanitize_callback' => $sanitize,
+                'transport'         => 'refresh',
+            ) );
+            $wp_customize->add_control( $setting, array(
+                'type'     => $meta['type'],
+                'label'    => $meta['label'],
+                'section'  => 'ea_camps_page',
+                'settings' => $setting,
+            ) );
+        }
+
+        $wp_customize->add_setting( "ea_camps_card_{$i}_image", array(
+            'default'           => $default['image'],
+            'sanitize_callback' => 'esc_url_raw',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( new WP_Customize_Image_Control( $wp_customize, "ea_camps_card_{$i}_image", array(
+            'label'    => sprintf( 'Camp card %d — image', $i ),
+            'section'  => 'ea_camps_page',
+            'settings' => "ea_camps_card_{$i}_image",
+        ) ) );
+    }
+}
+add_action( 'customize_register', 'ea_customize_camps_page' );
 
 // ─── FAQ questions & answers via the Customizer (Appearance → Customize → EA FAQ) ─
 // The FAQ page (the WordPress Page with slug "faq") renders these rows as

@@ -18,6 +18,7 @@ import BasketballGuidePage from './pages/BasketballGuidePage.jsx';
 import BasketballRepTryoutsPage from './pages/BasketballRepTryoutsPage.jsx';
 import ComingSoonPage from './pages/ComingSoonPage.jsx';
 import DirectoryHomePage from './pages/DirectoryHomePage.jsx';
+import CampsPage from './pages/CampsPage.jsx';
 
 const PAGES = {
   home:      HomePage,
@@ -29,6 +30,7 @@ const PAGES = {
   basketballRepTryouts: BasketballRepTryoutsPage,
   comingSoon: ComingSoonPage,
   directoryHome: DirectoryHomePage,
+  camps: CampsPage,
 };
 
 const el = document.getElementById('ea-react-root');

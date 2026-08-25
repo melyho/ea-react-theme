@@ -17,6 +17,8 @@ const PROGRAM_CARDS = [
 const TEAM_CARDS = [
   { index: 5, label: 'Become a Coach', fallbackUrl: 'https://elevationathletics.ca/join-our-team/' },
   { index: 6, label: 'Become a Community Leader', fallbackUrl: 'https://elevationathletics.ca/become-a-community-leader/' },
+  { index: 7, label: 'Community Partnerships', fallbackUrl: 'https://elevationathletics.ca/partnerships/' },
+  { index: 8, label: 'Work With Us', fallbackUrl: 'https://elevationathletics.ca/join-our-team/' },
 ];
 
 function text(t, key, fallback) {
@@ -224,7 +226,7 @@ export default function DirectoryHomePage() {
           </div>
         </section>
 
-        <section style={{ marginTop: isMobile ? 64 : 108 }}>
+        <section style={{ marginTop: isMobile ? 42 : 56 }}>
           <SectionIntro heading={joinHeading} subheading={joinSubheading} isMobile={isMobile} />
           <div style={{
             display: 'grid',
@@ -232,7 +234,7 @@ export default function DirectoryHomePage() {
               ? (isMobile ? 'minmax(0, 150px)' : 'minmax(0, 420px)')
               : 'repeat(2, minmax(0, 1fr))',
             justifyContent: 'center',
-            gap: isMobile ? 10 : 18,
+            gap: isMobile ? 10 : 24,
             maxWidth: isMobile ? 'none' : 820,
             margin: '0 auto',
           }}>
