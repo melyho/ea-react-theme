@@ -18,6 +18,7 @@ import BasketballGuidePage from './pages/BasketballGuidePage.jsx';
 import BasketballRepTryoutsPage from './pages/BasketballRepTryoutsPage.jsx';
 import ComingSoonPage from './pages/ComingSoonPage.jsx';
 import DirectoryHomePage from './pages/DirectoryHomePage.jsx';
+import CommunityPartnershipsPage from './pages/CommunityPartnershipsPage.jsx';
 import CampsPage from './pages/CampsPage.jsx';
 
 const PAGES = {
@@ -30,6 +31,7 @@ const PAGES = {
   basketballRepTryouts: BasketballRepTryoutsPage,
   comingSoon: ComingSoonPage,
   directoryHome: DirectoryHomePage,
+  communityPartnerships: CommunityPartnershipsPage,
   camps: CampsPage,
 };
 

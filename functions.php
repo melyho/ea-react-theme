@@ -136,6 +136,8 @@ function ea_react_enqueue_assets() {
             'carouselLinks' => ea_react_carousel_links(),
             // Card and social destinations for the standalone EA directory page.
             'directoryLinks' => ea_react_directory_links(),
+            // Community Partnerships page fields (Appearance -> Customize -> EA Partnerships Page).
+            'partnerships' => ea_react_partnerships(),
             // Admin-editable marketing copy (Appearance → Customize → EA Text).
             'texts'    => ea_react_texts(),
             // Dedicated Camps page content (Appearance → Customize → EA Camps Page).
@@ -350,6 +352,116 @@ function ea_customize_directory_links( $wp_customize ) {
     }
 }
 add_action( 'customize_register', 'ea_customize_directory_links' );
+
+// ─── Community Partnerships page (Appearance → Customize → EA Partnerships Page) ─
+function ea_partnership_field_defaults() {
+    return array(
+        'ea_partnership_hero_heading' => array(
+            'key' => 'heroHeading', 'label' => 'Hero — Heading', 'type' => 'text',
+            'default' => 'Community Partnership Programs',
+        ),
+        'ea_partnership_hero_lead' => array(
+            'key' => 'heroLead', 'label' => 'Hero — Lead text', 'type' => 'textarea',
+            'default' => 'Bring inclusive, high-quality sport programming to your community with a team that can help plan, promote, and deliver it.',
+        ),
+        'ea_partnership_hero_body' => array(
+            'key' => 'heroBody', 'label' => 'Hero — Body text', 'type' => 'textarea',
+            'default' => 'Elevation Athletics partners with township and municipal recreation teams to offer accessible basketball, pickleball, badminton, and seasonal sport programs for families across Canada.',
+        ),
+        'ea_partnership_cta_label' => array(
+            'key' => 'ctaLabel', 'label' => 'CTA — Button text', 'type' => 'text',
+            'default' => 'Partner With Us',
+        ),
+        'ea_partnership_cta_url' => array(
+            'key' => 'ctaUrl', 'label' => 'CTA — Button URL', 'type' => 'url',
+            'default' => 'mailto:municipal@elevationathletics.ca',
+        ),
+        'ea_partnership_map_markers' => array(
+            'key' => 'mapMarkers', 'label' => 'Map — fallback markers', 'type' => 'textarea',
+            'description' => 'The page normally uses programs.json rows where Category = TS. These fallback markers are used only if the live feed is unavailable. One marker per line: Label | latitude | longitude',
+            'default' => "Aurora, ON|44.0065|-79.4504\nBarrie, ON|44.3894|-79.6903\nBradford, ON|44.1113|-79.5614\nCambridge, ON|43.3436|-80.3063\nEast Gwillimbury, ON|44.1279|-79.4518\nEssa, ON|44.3138|-79.8846\nGeorgina, ON|44.2963|-79.4360\nInnisfil, ON|44.3001|-79.6117\nKing City, ON|43.9285|-79.5269\nNewmarket, ON|44.0592|-79.4613\nOro-Medonte, ON|44.5590|-79.6545\nRichmond Hill, ON|43.8687|-79.4352\nVaughan, ON|43.8563|-79.5085",
+        ),
+        'ea_partnership_programs_heading' => array(
+            'key' => 'programsHeading', 'label' => 'Program cards — Heading', 'type' => 'text',
+            'default' => 'Programs We Can Bring to Your Community',
+        ),
+        'ea_partnership_programs_intro' => array(
+            'key' => 'programsIntro', 'label' => 'Program cards — Intro text', 'type' => 'textarea',
+            'default' => 'Choose the sports and formats that match your community. Each card can be edited, linked, or removed from the Customizer.',
+        ),
+        'ea_partnership_program_rows' => array(
+            'key' => 'programRows', 'label' => 'Program cards', 'type' => 'textarea',
+            'description' => 'One card per line: Title | description | optional link URL | optional image URL. Remove a line to hide that card.',
+            'default' => "Basketball|Youth lessons, house leagues, rep pathways, camps, and community events.|https://elevationathletics.ca/home|\nPickleball|Adult and youth lessons, beginner clinics, leagues, and social play.|https://eapickleball.com|\nBadminton|Introductory lessons, junior leagues, camps, and seasonal programs.|https://eabadminton.com|\nSeasonal Sport Programs|Flexible pilot programs built around your community space, schedule, and demand.||",
+        ),
+        'ea_partnership_process_heading' => array(
+            'key' => 'processHeading', 'label' => 'How it works — Heading', 'type' => 'text',
+            'default' => 'How We Do It',
+        ),
+        'ea_partnership_process_intro' => array(
+            'key' => 'processIntro', 'label' => 'How it works — Intro text', 'type' => 'textarea',
+            'default' => 'We make it easier for municipal teams to add quality sport programming without building everything from scratch.',
+        ),
+        'ea_partnership_process_rows' => array(
+            'key' => 'processRows', 'label' => 'How it works — Steps', 'type' => 'textarea',
+            'description' => 'One step per line: Step title | description.',
+            'default' => "Plan|We align with your recreation team on facility access, age groups, registration goals, and seasonal timing.\nPromote|We help position the program clearly for families with simple registration paths and polished program assets.\nDeliver|Our team manages coaching, programming, communication, and on-site delivery so the experience feels organized from day one.",
+        ),
+        'ea_partnership_final_heading' => array(
+            'key' => 'finalHeading', 'label' => 'Final CTA — Heading', 'type' => 'text',
+            'default' => 'Bring Sports to Your Community',
+        ),
+        'ea_partnership_final_body' => array(
+            'key' => 'finalBody', 'label' => 'Final CTA — Body text', 'type' => 'textarea',
+            'default' => 'If you are part of a township or municipal recreation department, reach out and we can talk through what a partnership could look like.',
+        ),
+    );
+}
+
+function ea_sanitize_partnership_url( $value ) {
+    return esc_url_raw( $value, array( 'http', 'https', 'mailto' ) );
+}
+
+function ea_react_partnerships() {
+    $values = array();
+    foreach ( ea_partnership_field_defaults() as $setting => $meta ) {
+        $value = get_theme_mod( $setting, $meta['default'] );
+        if ( 'url' === $meta['type'] ) {
+            $value = ea_sanitize_partnership_url( $value );
+        }
+        $values[ $meta['key'] ] = $value;
+    }
+    return $values;
+}
+
+function ea_customize_partnerships( $wp_customize ) {
+    $wp_customize->add_section( 'ea_partnerships_page', array(
+        'title'       => __( 'EA Partnerships Page', 'ea-react-theme' ),
+        'description' => __( 'Edit the standalone municipal/community partnerships page.', 'ea-react-theme' ),
+        'priority'    => 35,
+    ) );
+
+    foreach ( ea_partnership_field_defaults() as $setting => $meta ) {
+        $sanitize = 'url' === $meta['type']
+            ? 'ea_sanitize_partnership_url'
+            : ( 'textarea' === $meta['type'] ? 'sanitize_textarea_field' : 'sanitize_text_field' );
+
+        $wp_customize->add_setting( $setting, array(
+            'default'           => $meta['default'],
+            'sanitize_callback' => $sanitize,
+            'transport'         => 'refresh',
+        ) );
+
+        $wp_customize->add_control( $setting, array(
+            'type'        => $meta['type'],
+            'label'       => $meta['label'],
+            'description' => isset( $meta['description'] ) ? $meta['description'] : '',
+            'section'     => 'ea_partnerships_page',
+            'settings'    => $setting,
+        ) );
+    }
+}
+add_action( 'customize_register', 'ea_customize_partnerships' );
 
 // ─── Swappable copy via the Customizer (Appearance → Customize → EA Text) ──────
 // Each control stores a string as a theme_mod. ea_react_texts() collects them for
