@@ -475,7 +475,7 @@ define( 'EA_CC_FIELD_REGISTRATION_DATE_ID', '...' );
 Then go to **wp-admin → Newsletter → Constant Contact** and click
 **Connect Constant Contact**. The sync is best-effort: WordPress still stores the
 subscriber locally if Constant Contact is unavailable. During sync, the theme also
-finds or creates Constant Contact tags for sport, city, Youth, season, and year,
+finds or creates Constant Contact tags for sport, city, Adult, season, and year,
 then applies those tags to the contact after the list signup succeeds.
 
 Two entry points on the home page:

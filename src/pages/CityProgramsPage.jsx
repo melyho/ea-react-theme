@@ -22,6 +22,7 @@ import {
   ProgramCard,
   LeagueCityCard,
   NewsletterModal,
+  ProgramSubscribeButton,
   buildCitySummaries,
   citySlug,
   normalizePrograms,
@@ -217,14 +218,63 @@ export default function CityProgramsPage() {
                 <strong>Loading programs...</strong>
               </div>
             ) : (
-              <div style={{ ...FB.card, textAlign: 'center' }}>
-                <strong>No active programs found for {displayCityName}.</strong>
-                <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)' }}>
-                  Check nearby cities below, or come back soon for new programs.
+              <div style={{ ...FB.card, textAlign: 'center', color: 'var(--ea-navy, #10414F)' }}>
+                <strong style={{
+                  display: 'block',
+                  fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+                  fontSize: isMobile ? 20 : 24,
+                  lineHeight: 1.2,
+                  letterSpacing: 0,
+                  color: 'var(--ea-navy, #10414F)',
+                }}>
+                  No active programs found for {displayCityName}.
+                </strong>
+                <p style={{
+                  margin: '8px auto 0',
+                  maxWidth: 720,
+                  fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+                  fontSize: isMobile ? 16 : 19,
+                  lineHeight: 1.4,
+                  letterSpacing: 0,
+                  color: 'var(--ea-ink, #1E526E)',
+                }}>
+                  Check nearby cities below or sign up for the {displayCityName} newsletter to stay updated with future programming.
                 </p>
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                  <ProgramSubscribeButton
+                    city={displayCityName}
+                    province={String(resolvedCityRecord?.Province || '').trim()}
+                    isMobile={isMobile}
+                    onSubscribe={setSubscribeLoc}
+                  />
+                </div>
               </div>
             )}
           </div>
+
+          {!cityPrograms.length && status !== 'loading' && (
+            <div
+              aria-hidden="true"
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginTop: isMobile ? 26 : 34,
+                marginBottom: isMobile ? -24 : -34,
+                pointerEvents: 'none',
+              }}
+            >
+              <img
+                src={t.images.faqQuestionSquid || t.asset('faq-pickleball-question-squid.svg')}
+                alt=""
+                style={{
+                  display: 'block',
+                  width: isMobile ? 126 : 176,
+                  maxWidth: '42vw',
+                  height: 'auto',
+                }}
+              />
+            </div>
+          )}
 
           {nearbySummaries.length > 0 && (
             <section style={{ marginTop: isMobile ? 52 : 72 }}>

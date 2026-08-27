@@ -1368,7 +1368,7 @@ function CityProgramCard({ summary, isMobile = false, onSubscribe, t, href }) {
         marginTop: 2,
       }}>
         <div style={{ position: 'relative', zIndex: 2, display: 'inline-flex', minWidth: 0, overflow: 'visible' }}>
-          <ProgramSubscribeButton city={summary.city} isMobile={isMobile} onSubscribe={onSubscribe} />
+          <ProgramSubscribeButton city={summary.city} province={summary.province} isMobile={isMobile} onSubscribe={onSubscribe} />
         </div>
       </div>
     </article>

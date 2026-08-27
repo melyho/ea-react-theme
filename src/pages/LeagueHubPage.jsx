@@ -7,11 +7,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { Layout, useDSComponents, useViewport, getThemeData, FB } from '../lib/shared.jsx';
 import { ViewToggle, LeagueHubMapView, LeagueHubCalendarView } from './LeagueHubMapCalendar.jsx';
 import { resolveVenueCoords } from '../data/venueCoords.js';
-import { cityRecordCoords, summaryCityHref, useCitiesFeed } from '../data/cities.js';
+import {
+  cityRecordCoords,
+  cityRecordPageSegments,
+  localCityHref,
+  summaryCityHref,
+  useCitiesFeed,
+} from '../data/cities.js';
 
 const SCROLL_OFFSET = 100;
 export const PROGRAMS_DATA_URL = 'https://sleep-status.github.io/ea-programs-json/data/programs.json';
-const LIST_BATCH_SIZE = 12;
 
 const FALLBACK_PROGRAMS = [
   {
@@ -577,7 +582,7 @@ export function ProgramCard({ program, isMobile, onSubscribe, stacked = false, t
   const priceStacked = price && (
     <div style={{ textAlign: stacked ? 'left' : (isMobile ? 'left' : 'right'), color: 'var(--ea-teal-800, #0B5364)', lineHeight: 1 }}>
       <div style={{ fontFamily: 'var(--font-body)', fontSize: isMobile ? 28 : 30, fontWeight: 'var(--fw-bold)' }}>{price}</div>
-      <div style={{ marginTop: 2, fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ea-slate, #47636B)' }}>incl. taxes</div>
+      <div style={{ marginTop: 2, fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ea-slate, #47636B)' }}>before taxes</div>
     </div>
   );
   const registerStyle = {
@@ -821,7 +826,7 @@ export function LeagueCityCard({ summary, isMobile = false, onSubscribe, t, href
           color: 'var(--ea-slate, #47636B)',
           lineHeight: 1.35,
         }}>
-          {detailItems.length ? detailItems.join(' · ') : 'Programs available'}
+          {detailItems.length ? detailItems.join(' · ') : (summary.inactive ? 'Join the newsletter for updates' : 'Programs available')}
         </p>
       </div>
       <div style={{
@@ -831,10 +836,124 @@ export function LeagueCityCard({ summary, isMobile = false, onSubscribe, t, href
         marginTop: 2,
       }}>
         <div style={{ position: 'relative', zIndex: 2, display: 'inline-flex', minWidth: 0, overflow: 'visible' }}>
-          <ProgramSubscribeButton city={summary.city} isMobile={isMobile} onSubscribe={onSubscribe} />
+          <ProgramSubscribeButton city={summary.city} province={summary.province} isMobile={isMobile} onSubscribe={onSubscribe} />
         </div>
       </div>
     </article>
+  );
+}
+
+function cityRecordKey(city) {
+  return citySlug(city?.City || city?.city);
+}
+
+function cityRecordProvince(city) {
+  return String(city?.Province || city?.province || '').trim();
+}
+
+function cityRecordPageUrl(city) {
+  const raw = String(city?.PageURL || city?.pageUrl || city?.URL || '').trim();
+  return raw && norm(raw) !== 'n/a' ? raw : '';
+}
+
+function cityRecordHasPage(city) {
+  return Boolean(cityRecordPageUrl(city)) && cityRecordPageSegments(city).length > 0;
+}
+
+function cityRecordSearchText(city) {
+  return normSearch([
+    city?.City || city?.city,
+    cityRecordProvince(city),
+    cityRecordPageUrl(city),
+  ].filter(Boolean).join(' '));
+}
+
+function buildInactiveCitySummaries(cityRecords, activeCityKeys, { search = '', province = '', location = '', userCoords = null } = {}) {
+  const q = normSearch(search);
+  const provinceKey = norm(province);
+  const locationKey = norm(location);
+  const seen = new Set();
+
+  return cityRecords
+    .filter((city) => {
+      const key = cityRecordKey(city);
+      if (!key || seen.has(key) || activeCityKeys.has(key)) return false;
+      if (!cityRecordHasPage(city)) return false;
+      if (provinceKey && norm(cityRecordProvince(city)) !== provinceKey) return false;
+      if (locationKey && locationKey !== key) return false;
+      if (q && !cityRecordSearchText(city).includes(q)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((city) => {
+      const cityName = String(city?.City || city?.city || '').trim();
+      const provinceName = cityRecordProvince(city);
+      const coords = cityRecordCoords(city);
+      return {
+        key: cityRecordKey(city),
+        slug: cityRecordKey(city),
+        city: cityName,
+        province: provinceName,
+        coords,
+        programs: [],
+        displayName: cityDisplayName(cityName, provinceName),
+        programCount: 0,
+        availableCount: 0,
+        startingSoonCount: 0,
+        inProgressCount: 0,
+        fullCount: 0,
+        allFull: false,
+        allClosed: false,
+        inactive: true,
+        typeCounts: { lessons: 0, leagues: 0, camps: 0 },
+        nextProgram: null,
+        nextStart: Infinity,
+        distance: userCoords && coords ? haversineKm(userCoords, coords) : Infinity,
+        _cityRecord: city,
+      };
+    })
+    .sort((a, b) => {
+      if (userCoords && a.distance !== b.distance) return a.distance - b.distance;
+      return a.displayName.localeCompare(b.displayName);
+    });
+}
+
+function InactiveCitiesSection({ summaries, isMobile, onSubscribe, t }) {
+  if (!summaries.length) return null;
+
+  return (
+    <section style={{ gridColumn: '1 / -1', marginTop: isMobile ? 34 : 46, paddingTop: isMobile ? 22 : 30, borderTop: '1px solid var(--border-card, #E5E5E5)' }}>
+      <h2 style={{
+        ...FB.h(isMobile ? 28 : 32),
+        fontWeight: 'var(--fw-regular, 400)',
+        letterSpacing: '0.01em',
+      }}>{t.texts.leagueHubInactiveCitiesHeading || 'More Cities'}</h2>
+      <p style={{
+        margin: '8px 0 20px',
+        fontFamily: 'var(--font-body)',
+        fontSize: isMobile ? 15 : 16,
+        color: 'var(--ea-ink, #1E526E)',
+        lineHeight: 1.35,
+      }}>
+        {t.texts.leagueHubInactiveCitiesDesc || 'No active programs are listed in these cities right now, but you can still join the city newsletter.'}
+      </p>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
+        gap: isMobile ? 10 : 12,
+      }}>
+        {summaries.map((summary) => (
+          <LeagueCityCard
+            key={summary.key}
+            summary={summary}
+            isMobile={isMobile}
+            onSubscribe={onSubscribe}
+            t={t}
+            href={localCityHref(summary._cityRecord, t, summary.slug)}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -1150,7 +1269,6 @@ export default function LeagueHubPage() {
   const [provinceFilter, setProvinceFilter] = useState('');
   const [showInactiveCities, setShowInactiveCities] = useState(false);
   const [view, setView] = useState('list');
-  const [visibleCount, setVisibleCount] = useState(LIST_BATCH_SIZE);
   const showMapView = !(t.options && t.options.leagueHubShowMapView === false);
   const showCalendarView = !(t.options && t.options.leagueHubShowCalendarView === false);
   const showComingSoon = t.options && t.options.leagueHubShowComingSoon === true;
@@ -1220,24 +1338,20 @@ export default function LeagueHubPage() {
     )),
     [filteredPrograms, userCoords, showInactiveCities, provinceFilter, cityCoords]
   );
-  const visibleCitySummaries = useMemo(
-    () => filteredCitySummaries.slice(0, visibleCount),
-    [filteredCitySummaries, visibleCount]
-  );
-  const hasMoreListCities = view === 'list' && visibleCount < filteredCitySummaries.length;
-  const listRenderKey = [
-    locationFilter || 'all-locations',
-    filters.search,
-    filters.level,
-    filters.type,
-    filters.age,
-    filters.time,
-    filters.days,
-    provinceFilter || 'all-provinces',
-    userCoords ? 'near-me' : 'default-sort',
-    showComingSoon ? 'with-coming-soon' : 'without-coming-soon',
-    showInactiveCities ? 'show-inactive-cities' : 'hide-inactive-cities',
-  ].join('|');
+  const activeCityKeys = useMemo(() => (
+    new Set(buildCitySummaries(programs, null, false, cityCoords).map((summary) => summary.key))
+  ), [programs, cityCoords]);
+  const hasProgramSpecificFilters = Boolean(filters.level || filters.type || filters.age || filters.time || filters.days);
+  const showInactiveCitySection = t.options.leagueHubShowInactiveCities !== false;
+  const inactiveCitySummaries = useMemo(() => {
+    if (!showInactiveCitySection || hasProgramSpecificFilters) return [];
+    return buildInactiveCitySummaries(cityRecords, activeCityKeys, {
+      search: filters.search,
+      province: provinceFilter,
+      location: locationFilter,
+      userCoords,
+    });
+  }, [cityRecords, activeCityKeys, filters.search, provinceFilter, locationFilter, userCoords, showInactiveCitySection, hasProgramSpecificFilters]);
   const cities = useMemo(() => {
     const byKey = new Map();
     allPrograms.forEach((p) => {
@@ -1277,10 +1391,6 @@ export default function LeagueHubPage() {
     setGeoError('');
     setLocating(false);
   };
-
-  useEffect(() => {
-    setVisibleCount(LIST_BATCH_SIZE);
-  }, [listRenderKey, view]);
 
   useEffect(() => {
     const handleNativeFilterChange = (event) => {
@@ -1410,7 +1520,7 @@ export default function LeagueHubPage() {
               gap: isMobile ? 10 : 12,
               marginTop: 12,
             }}>
-              {filteredCitySummaries.length ? visibleCitySummaries.map((summary) => (
+              {filteredCitySummaries.length ? filteredCitySummaries.map((summary) => (
                 <LeagueCityCard
                   key={summary.key}
                   summary={summary}
@@ -1434,31 +1544,12 @@ export default function LeagueHubPage() {
                   <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-body)', color: 'var(--ea-slate, #47636B)' }}>Try clearing one filter or searching a nearby city.</p>
                 </div>
               )}
-              {hasMoreListCities && (
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: isMobile ? 8 : 12, gridColumn: '1 / -1' }}>
-                  <button
-                    type="button"
-                    onClick={() => setVisibleCount((count) => count + LIST_BATCH_SIZE)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minHeight: 46,
-                      padding: '12px 24px',
-                      borderRadius: 8,
-                      border: '1px solid var(--ea-navy, #10414F)',
-                      background: '#fff',
-                      color: 'var(--ea-navy, #10414F)',
-                      fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
-                      fontSize: 16,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Load More Cities
-                  </button>
-                </div>
-              )}
+              <InactiveCitiesSection
+                summaries={inactiveCitySummaries}
+                isMobile={isMobile}
+                onSubscribe={setSubscribeLoc}
+                t={t}
+              />
             </div>
           )}
 

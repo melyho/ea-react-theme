@@ -739,6 +739,14 @@ function ea_react_text_fields() {
             'key' => 'leagueHubLocationButton', 'label' => 'League Hub — Location button', 'type' => 'text',
             'default' => 'Use My Location',
         ),
+        'ea_txt_league_hub_inactive_cities_heading' => array(
+            'key' => 'leagueHubInactiveCitiesHeading', 'label' => 'League Hub — Inactive cities heading', 'type' => 'text',
+            'default' => 'More Cities',
+        ),
+        'ea_txt_league_hub_inactive_cities_desc' => array(
+            'key' => 'leagueHubInactiveCitiesDesc', 'label' => 'League Hub — Inactive cities description', 'type' => 'textarea',
+            'default' => 'No active programs are listed in these cities right now, but you can still join the city newsletter.',
+        ),
 
         // ── Small Group Coaching ──────────────────────────────────────────────
         'ea_txt_coaching_heading' => array(
@@ -945,6 +953,7 @@ function ea_react_options() {
         'leagueHubFilterLocation' => (bool) get_theme_mod( 'ea_league_hub_filter_location', true ),
         'leagueHubFilterProvince' => (bool) get_theme_mod( 'ea_league_hub_filter_province', true ),
         'leagueHubShowInactiveToggle' => (bool) get_theme_mod( 'ea_league_hub_show_inactive_toggle', true ),
+        'leagueHubShowInactiveCities' => (bool) get_theme_mod( 'ea_league_hub_show_inactive_cities', true ),
         'leagueHubShowMapView'      => (bool) get_theme_mod( 'ea_league_hub_show_map_view', true ),
         'leagueHubShowCalendarView' => (bool) get_theme_mod( 'ea_league_hub_show_calendar_view', true ),
         'leagueHubShowComingSoon' => (bool) get_theme_mod( 'ea_league_hub_show_coming_soon', false ),
@@ -1195,6 +1204,7 @@ function ea_customize_options( $wp_customize ) {
         'ea_league_hub_filter_location' => array( 'default' => true, 'label' => __( 'League Hub — show location filter', 'ea-react-theme' ) ),
         'ea_league_hub_filter_province' => array( 'default' => true, 'label' => __( 'League Hub — show province filter', 'ea-react-theme' ) ),
         'ea_league_hub_show_inactive_toggle' => array( 'default' => true, 'label' => __( 'League Hub — show inactive cities toggle', 'ea-react-theme' ) ),
+        'ea_league_hub_show_inactive_cities' => array( 'default' => true, 'label' => __( 'League Hub — show inactive city pages section', 'ea-react-theme' ) ),
         'ea_league_hub_show_map_view'    => array( 'default' => true, 'label' => __( 'League Hub — show map view', 'ea-react-theme' ) ),
         'ea_league_hub_show_calendar_view' => array( 'default' => true, 'label' => __( 'League Hub — show calendar view', 'ea-react-theme' ) ),
         'ea_league_hub_show_coming_soon' => array( 'default' => false, 'label' => __( 'League Hub — show Coming Soon programs', 'ea-react-theme' ) ),
@@ -2337,7 +2347,7 @@ function ea_cc_sync_newsletter_contact( $email, $location, $entry_id = 0, $sessi
         ea_default_sport_value(),
         $city,
         $province,
-        'Youth',
+        'Adult',
         $season,
         $year,
     ) ) );
@@ -2431,6 +2441,8 @@ function ea_register_newsletter_route() {
             'email'    => array( 'required' => true, 'type' => 'string' ),
             // Which location card the signup came from (optional; blank = general signup).
             'location'       => array( 'required' => false, 'type' => 'string' ),
+            // Province for city-specific signups; used for province-level tagging.
+            'province'       => array( 'required' => false, 'type' => 'string' ),
             // First session date of the source program; used for season/year tagging.
             'sessionStart'   => array( 'required' => false, 'type' => 'string' ),
             // Human-readable source program details for optional CC mapping.
