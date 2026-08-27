@@ -582,7 +582,6 @@ export function ProgramCard({ program, isMobile, onSubscribe, stacked = false, t
   const priceStacked = price && (
     <div style={{ textAlign: stacked ? 'left' : (isMobile ? 'left' : 'right'), color: 'var(--ea-teal-800, #0B5364)', lineHeight: 1 }}>
       <div style={{ fontFamily: 'var(--font-body)', fontSize: isMobile ? 28 : 30, fontWeight: 'var(--fw-bold)' }}>{price}</div>
-      <div style={{ marginTop: 2, fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ea-slate, #47636B)' }}>before taxes</div>
     </div>
   );
   const registerStyle = {
