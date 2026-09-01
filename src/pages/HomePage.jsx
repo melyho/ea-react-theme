@@ -522,7 +522,7 @@ function buildTrialSessionChoices(rows, sports) {
 // Customizer toggle "Show photo carousel" is unchecked (options.useCarousel = false).
 function FreeTrialSection({ DS, isMobile, t }) {
   const { Button, SectionHeading } = DS;
-  const [form, setForm] = useState({ name: '', email: '', ageRange: '', session: '', website: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', ageRange: '', session: '', website: '' });
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -546,8 +546,8 @@ function FreeTrialSection({ DS, isMobile, t }) {
     setError('');
 
     // Client-side validation before hitting the server.
-    if (!form.name.trim() || !form.email.trim() || !form.ageRange.trim() || !form.session.trim()) {
-      setError('Please enter the athlete’s name, email, age range, and session.');
+    if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.ageRange.trim() || !form.session.trim()) {
+      setError('Please enter the athlete’s name, email, phone number, age range, and session.');
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
@@ -567,7 +567,7 @@ function FreeTrialSection({ DS, isMobile, t }) {
         throw new Error(data && data.message ? data.message : 'Something went wrong. Please try again.');
       }
       setSubmitted(true);
-      setForm({ name: '', email: '', ageRange: '', session: '', website: '' });
+      setForm({ name: '', email: '', phone: '', ageRange: '', session: '', website: '' });
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -576,8 +576,8 @@ function FreeTrialSection({ DS, isMobile, t }) {
   };
 
   const labelStyle = {
-    display: 'block', fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
-    fontSize: 14, fontWeight: 600, color: 'var(--ea-navy, #10414F)', marginBottom: 8,
+    position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+    overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0,
   };
   const inputStyle = {
     width: '100%', boxSizing: 'border-box', padding: '12px 16px',
@@ -621,6 +621,10 @@ function FreeTrialSection({ DS, isMobile, t }) {
       <div style={{ marginTop: 20 }}>
         <label style={labelStyle} htmlFor="ft-email">{t.texts.freeTrialEmailLabel || 'Email'}</label>
         <input id="ft-email" type="email" style={inputStyle} placeholder="Email" value={form.email} onChange={update('email')} />
+      </div>
+      <div style={{ marginTop: 20 }}>
+        <label style={labelStyle} htmlFor="ft-phone">Phone Number</label>
+        <input id="ft-phone" type="tel" style={inputStyle} placeholder="Phone Number" value={form.phone} onChange={update('phone')} />
       </div>
       <div style={{ marginTop: 20 }}>
         <label style={labelStyle} htmlFor="ft-age-range">Age Range</label>

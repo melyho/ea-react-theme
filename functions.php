@@ -1895,13 +1895,14 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
 
     $name    = sanitize_text_field( wp_unslash( $request['name'] ) );
     $email   = sanitize_email( wp_unslash( $request['email'] ) );
+    $phone     = isset( $request['phone'] ) ? sanitize_text_field( wp_unslash( $request['phone'] ) ) : '';
     $age_range = isset( $request['ageRange'] ) ? sanitize_text_field( wp_unslash( $request['ageRange'] ) ) : '';
-    $session = sanitize_text_field( wp_unslash( $request['session'] ) );
+    $session   = sanitize_text_field( wp_unslash( $request['session'] ) );
 
-    if ( '' === $name || '' === $email || ! is_email( $email ) || '' === $age_range || '' === $session ) {
+    if ( '' === $name || '' === $email || ! is_email( $email ) || '' === $phone || '' === $age_range || '' === $session ) {
         return new WP_Error(
             'ea_invalid',
-            'Please provide a valid name, email, age range, and session.',
+            'Please provide a valid name, email, phone number, age range, and session.',
             array( 'status' => 422 )
         );
     }
@@ -1923,6 +1924,7 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     }
 
     update_post_meta( $entry_id, '_ea_email', $email );
+    update_post_meta( $entry_id, '_ea_phone', $phone );
     update_post_meta( $entry_id, '_ea_age_range', $age_range );
     update_post_meta( $entry_id, '_ea_session', $session );
 
@@ -1934,6 +1936,7 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     $body    = "A new free trial registration was submitted:\n\n"
              . "Athlete's Name: {$name}\n"
              . "Email: {$email}\n"
+             . "Phone: {$phone}\n"
              . "Age Range: {$age_range}\n"
              . "Session: " . ( '' !== $session ? $session : '(not specified)' ) . "\n";
     $headers = array(
@@ -1947,6 +1950,7 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     $confirmation_subject = "We've received your EA {$sport} free trial request";
     $confirmation_body    = "Hi {$name},\n\n"
         . "Thanks for registering for a free trial with EA {$sport}. We received your request with the details below:\n\n"
+        . "Phone: {$phone}\n"
         . "Age Range: {$age_range}\n"
         . "Session: {$session}\n\n"
         . "Our team will follow up if anything changes before your selected session.\n\n"
@@ -2237,12 +2241,13 @@ function ea_newsletter_city_value( $locations ) {
 }
 
 // Columns for the Free Trials list table:
-// Athlete | Email | City | Sport | Age Range | Session | Submitted.
+// Athlete | Email | Phone | City | Sport | Age Range | Session | Submitted.
 function ea_free_trial_columns( $columns ) {
     return array(
         'cb'         => isset( $columns['cb'] ) ? $columns['cb'] : '',
         'title'      => __( 'Athlete', 'ea-react-theme' ),
         'ea_email'   => __( 'Email', 'ea-react-theme' ),
+        'ea_phone'   => __( 'Phone', 'ea-react-theme' ),
         'ea_city'    => __( 'City', 'ea-react-theme' ),
         'ea_sport'   => __( 'Sport', 'ea-react-theme' ),
         'ea_age_range' => __( 'Age Range', 'ea-react-theme' ),
@@ -2256,6 +2261,9 @@ function ea_free_trial_column_content( $column, $post_id ) {
     if ( 'ea_email' === $column ) {
         $email = get_post_meta( $post_id, '_ea_email', true );
         echo $email ? '<a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a>' : '—';
+    } elseif ( 'ea_phone' === $column ) {
+        $phone = get_post_meta( $post_id, '_ea_phone', true );
+        echo $phone ? esc_html( $phone ) : '—';
     } elseif ( 'ea_city' === $column ) {
         echo esc_html( ea_free_trial_city_value() );
     } elseif ( 'ea_sport' === $column ) {
@@ -2334,13 +2342,14 @@ function ea_export_free_trials_csv() {
     ea_send_csv_headers( 'ea-free-trials-' . gmdate( 'Y-m-d' ) . '.csv' );
 
     $out = fopen( 'php://output', 'w' );
-    fputcsv( $out, array( 'Submission ID', 'Athlete', 'Email', 'City', 'Sport', 'Age Range', 'Session', 'Submitted At' ) );
+    fputcsv( $out, array( 'Submission ID', 'Athlete', 'Email', 'Phone', 'City', 'Sport', 'Age Range', 'Session', 'Submitted At' ) );
 
     foreach ( ea_get_export_posts( 'ea_free_trial' ) as $entry ) {
         fputcsv( $out, array(
             $entry->ID,
             get_the_title( $entry ),
             get_post_meta( $entry->ID, '_ea_email', true ),
+            get_post_meta( $entry->ID, '_ea_phone', true ),
             ea_free_trial_city_value(),
             ea_default_sport_value(),
             get_post_meta( $entry->ID, '_ea_age_range', true ),
