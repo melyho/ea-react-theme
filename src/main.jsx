@@ -32,6 +32,8 @@ const PAGES = {
   comingSoon: ComingSoonPage,
   directoryHome: DirectoryHomePage,
   communityPartnerships: CommunityPartnershipsPage,
+  partnerships: CommunityPartnershipsPage,
+  'community-partnerships': CommunityPartnershipsPage,
   camps: CampsPage,
 };
 

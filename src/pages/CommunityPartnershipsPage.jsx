@@ -74,6 +74,13 @@ function splitRows(value, fallbackRows) {
     .filter(Boolean);
 }
 
+function normalizeEditableUrl(value) {
+  const url = String(value || '').trim();
+  if (!url) return '';
+  if (/^(https?:|mailto:|tel:|#|\/)/i.test(url)) return url;
+  return url.includes('.') ? `https://${url}` : url;
+}
+
 function parseMarkers(value) {
   return splitRows(value, DEFAULT_MARKERS).map((row) => {
     const [label, lat, lng] = row.split('|').map((part) => part.trim());
@@ -120,7 +127,12 @@ function buildTownshipMarkers(rows, fallbackMarkers) {
 function parsePrograms(value) {
   return splitRows(value, DEFAULT_PROGRAMS).map((row) => {
     const [title, description, url, image] = row.split('|').map((part) => part.trim());
-    return { title, description, url, image };
+    return {
+      title,
+      description,
+      url: normalizeEditableUrl(url),
+      image: normalizeEditableUrl(image),
+    };
   }).filter((item) => item.title);
 }
 
