@@ -20,6 +20,8 @@ import ComingSoonPage from './pages/ComingSoonPage.jsx';
 import DirectoryHomePage from './pages/DirectoryHomePage.jsx';
 import CommunityPartnershipsPage from './pages/CommunityPartnershipsPage.jsx';
 import CampsPage from './pages/CampsPage.jsx';
+import VolleyballPage from './pages/VolleyballPage.jsx';
+import RepDevelopmentTeamsPage from './pages/RepDevelopmentTeamsPage.jsx';
 
 const PAGES = {
   home:      HomePage,
@@ -35,6 +37,11 @@ const PAGES = {
   partnerships: CommunityPartnershipsPage,
   'community-partnerships': CommunityPartnershipsPage,
   camps: CampsPage,
+  volleyball: VolleyballPage,
+  repDevelopmentTeams: RepDevelopmentTeamsPage,
+  'rep-development-teams': RepDevelopmentTeamsPage,
+  'rep-development': RepDevelopmentTeamsPage,
+  'development-teams': RepDevelopmentTeamsPage,
 };
 
 const el = document.getElementById('ea-react-root');

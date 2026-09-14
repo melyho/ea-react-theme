@@ -133,6 +133,7 @@ const SPORTS = {
   pb: { label: 'Pickleball', aliases: ['pb', 'pickleball', 'pickle'] },
   bad: { label: 'Badminton', aliases: ['bad', 'badm', 'badmin', 'badminton'] },
   bask: { label: 'Basketball', aliases: ['bask', 'basketball', 'bball'] },
+  vball: { label: 'Volleyball', aliases: ['vball', 'volleyball', 'volley'] },
   s_camp: { label: 'Sports Camp', aliases: ['s_camp', 'camp', 'camps', 's_camps'] },
 };
 
@@ -574,8 +575,8 @@ function programSummaryLine(p) {
     .join(' - ');
 }
 
-export function ProgramCard({ program, isMobile, onSubscribe, stacked = false, t }) {
-  const sport = siteSport(t);
+export function ProgramCard({ program, isMobile, onSubscribe, stacked = false, t, sportOverride = '' }) {
+  const sport = sportOverride || siteSport(t);
   const city = String(program.City || '').trim() || `General ${sport}`;
   const province = String(program.Province || '').trim();
   const sessionStart = firstSessionDate(program);
@@ -649,9 +650,11 @@ export function ProgramCard({ program, isMobile, onSubscribe, stacked = false, t
             {meta}
           </p>
         )}
-        <div style={{ marginTop: 10 }}>
-          <ProgramSubscribeButton city={city} province={province} sessionStart={sessionStart} programSummary={programSummary} isMobile={isMobile} onSubscribe={onSubscribe} />
-        </div>
+        {onSubscribe && (
+          <div style={{ marginTop: 10 }}>
+            <ProgramSubscribeButton city={city} province={province} sessionStart={sessionStart} programSummary={programSummary} isMobile={isMobile} onSubscribe={onSubscribe} />
+          </div>
+        )}
       </div>
       {stacked ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>

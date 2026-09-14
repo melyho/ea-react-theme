@@ -65,6 +65,9 @@ export function getThemeData() {
     images:  d.images  || {},                // { hero, heroMobile, spotlight1, ... } from the Customizer
     carouselLinks: d.carouselLinks || {},     // { carousel1, carousel2, carousel3 } optional slide links
     directoryLinks: d.directoryLinks || {},   // standalone EA directory card/social links
+    partnerships: d.partnerships || {},       // standalone EA Partnerships Page fields
+    volleyball: d.volleyball || {},           // standalone Volleyball page fields
+    repDevelopment: d.repDevelopment || {},   // standalone Rep Development Teams page fields
     texts:   d.texts   || {},                // { heroDesc, programsDesc, ... } editable copy from the Customizer
     options: d.options || {},                // { useCarousel, ... } layout toggles from the Customizer
     defaults: d.defaults || {},              // { sport, region, city } site-level defaults from wp-config.php
@@ -275,11 +278,11 @@ function Hamburger({ open }) {
 // Custom header so we can support dropdown submenus, a mobile hamburger menu, and
 // the admin-swappable logo — none of which the DS NavBar exposes. Uses the same
 // design tokens, and the DS Button for the CTA when the bundle is loaded.
-function NavSection({ DS, t, isMobile }) {
+function NavSection({ DS, t, isMobile, overrides = {} }) {
   const { Button } = DS;
-  const links = navLinks(t);
-  const logoUrl = t.images.logo;            // custom logo from the Customizer, if set
-  const logoHref = 'https://elevationathletics.ca/';
+  const links = overrides.navLinks || navLinks(t);
+  const logoUrl = overrides.logoSrc || t.images.logo;            // custom logo from the Customizer, if set
+  const logoHref = overrides.logoHref || 'https://elevationathletics.ca/';
   const logoHeight = isMobile ? 40 : 52;
 
   const [openIdx, setOpenIdx] = useState(null);          // desktop dropdown index
@@ -292,8 +295,9 @@ function NavSection({ DS, t, isMobile }) {
     else { setOpenIdx(null); }
   }, [isMobile]);
 
-  const ctaLabel = t.texts.navCta || 'Find a League Near You';
-  const cta = <ActionButton DS={DS} link={t.links.navCta} variant="primary">{ctaLabel}</ActionButton>;
+  const ctaLabel = overrides.navCtaLabel || t.texts.navCta || 'Find a League Near You';
+  const ctaLink = overrides.navCtaLink || t.links.navCta;
+  const cta = <ActionButton DS={DS} link={ctaLink} variant="primary">{ctaLabel}</ActionButton>;
 
   // "Connect with us" smooth-scrolls to the footer (id="site-footer").
   const scrollToFooter = (e) => {
@@ -301,7 +305,7 @@ function NavSection({ DS, t, isMobile }) {
     if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
   };
   const contact = (
-    <a href="#site-footer" onClick={scrollToFooter} style={{ ...linkStyle, display: 'inline-flex', alignItems: 'center' }}>{t.texts.navConnect || 'Connect with us'}</a>
+    <a href="#site-footer" onClick={scrollToFooter} style={{ ...linkStyle, display: 'inline-flex', alignItems: 'center' }}>{overrides.navConnectLabel || t.texts.navConnect || 'Connect with us'}</a>
   );
 
   return (
@@ -446,9 +450,9 @@ function flatMenu(items) {
   return (items || []).map((m) => ({ label: m.title, href: m.url, target: m.target }));
 }
 
-function PageFooter({ isMobile, t }) {
-  const logoSrc = t.images.logo || t.asset('ea-logo.svg');   // same logo as the nav bar
-  const logoHref = 'https://elevationathletics.ca/';
+function PageFooter({ isMobile, t, overrides = {} }) {
+  const logoSrc = overrides.logoSrc || t.images.logo || t.asset('ea-logo.svg');   // same logo as the nav bar
+  const logoHref = overrides.logoHref || 'https://elevationathletics.ca/';
 
   // Display-scale heading, matching the section titles used across the site.
   const heading = {
@@ -480,16 +484,18 @@ function PageFooter({ isMobile, t }) {
   // Each footer group is driven by a WP menu (Appearance → Menus) when assigned,
   // otherwise the hardcoded fallback above.
   const m = t.menus || {};
-  const quickLinks  = m.footerQuickLinks && m.footerQuickLinks.length ? flatMenu(m.footerQuickLinks) : FOOTER_QUICK_LINKS;
-  const moreSports  = m.footerMoreSports && m.footerMoreSports.length ? flatMenu(m.footerMoreSports) : FOOTER_MORE_SPORTS;
-  const contactList = m.footerContact && m.footerContact.length ? flatMenu(m.footerContact) : FOOTER_CONTACT;
+  const quickLinks  = overrides.footerQuickLinks || (m.footerQuickLinks && m.footerQuickLinks.length ? flatMenu(m.footerQuickLinks) : FOOTER_QUICK_LINKS);
+  const moreSports  = overrides.footerMoreSports || (m.footerMoreSports && m.footerMoreSports.length ? flatMenu(m.footerMoreSports) : FOOTER_MORE_SPORTS);
+  const contactList = overrides.footerContact || (m.footerContact && m.footerContact.length ? flatMenu(m.footerContact) : FOOTER_CONTACT);
 
   // Social icons come from Customizer URL fields (EA Social Links); blank = hidden.
   const social = t.social || {};
-  const socials = [
-    { label: 'Instagram', icon: 'instagram.svg', href: social.instagram },
-    { label: 'Facebook',  icon: 'facebook.svg',  href: social.facebook },
-  ].filter((s) => s.href);
+  const socials = Array.isArray(overrides.footerSocials)
+    ? overrides.footerSocials
+    : [
+      { label: 'Instagram', icon: 'instagram.svg', href: social.instagram },
+      { label: 'Facebook',  icon: 'facebook.svg',  href: social.facebook },
+    ].filter((s) => s.href);
 
   // Desktop: sits under the left block. Mobile: moved below everything, centred.
   const copyright = (
@@ -533,7 +539,7 @@ function PageFooter({ isMobile, t }) {
 
           {socials.length > 0 && (
             <>
-              <h4 style={{ ...heading, marginTop: 28 }}>{t.texts.footerSocialsHeading || 'Follow us on our socials!'}</h4>
+              <h4 style={{ ...heading, marginTop: 28 }}>{overrides.footerSocialsHeading || t.texts.footerSocialsHeading || 'Follow us on our socials!'}</h4>
               <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
                 {socials.map((s) => (
                   <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} style={{ display: 'inline-flex' }}>
@@ -547,8 +553,8 @@ function PageFooter({ isMobile, t }) {
           {!isMobile && copyright}
         </div>
 
-        <LinkColumn title={t.texts.footerQuickLinksTitle || 'Quick Links'} links={quickLinks} />
-        <LinkColumn title={t.texts.footerMoreSportsTitle || 'More Sports'} links={moreSports} />
+        <LinkColumn title={overrides.footerQuickLinksTitle || t.texts.footerQuickLinksTitle || 'Quick Links'} links={quickLinks} />
+        <LinkColumn title={overrides.footerMoreSportsTitle || t.texts.footerMoreSportsTitle || 'More Sports'} links={moreSports} />
       </div>
 
       {/* Mobile: copyright sits below everything, full width and centred. */}
@@ -558,7 +564,7 @@ function PageFooter({ isMobile, t }) {
 }
 
 // ─── Layout — the shell every page renders inside ─────────────────────────────
-export function Layout({ children }) {
+export function Layout({ children, overrides = {} }) {
   const DS = useDSComponents();
   const { isMobile, width } = useViewport();
   const t = getThemeData();
@@ -567,10 +573,10 @@ export function Layout({ children }) {
   const navCollapsed = width < NAV_COLLAPSE_WIDTH;
   return (
     <div style={{ background: '#fff', minHeight: '100vh', fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)' }}>
-      <NavSection DS={DS} t={t} isMobile={navCollapsed} />
+      <NavSection DS={DS} t={t} isMobile={navCollapsed} overrides={overrides} />
       {/* A sticky nav stays in normal flow, so the content needs no offset. */}
       {children}
-      <PageFooter isMobile={isMobile} t={t} />
+      <PageFooter isMobile={isMobile} t={t} overrides={overrides} />
     </div>
   );
 }

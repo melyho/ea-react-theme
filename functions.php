@@ -138,6 +138,10 @@ function ea_react_enqueue_assets() {
             'directoryLinks' => ea_react_directory_links(),
             // Community Partnerships page fields (Appearance -> Customize -> EA Partnerships Page).
             'partnerships' => ea_react_partnerships(),
+            // Volleyball landing page fields (Appearance -> Customize -> EA Volleyball Page).
+            'volleyball' => ea_react_volleyball(),
+            // Rep Development Teams page fields (Appearance -> Customize -> EA Rep Development Teams).
+            'repDevelopment' => ea_react_rep_development(),
             // Admin-editable marketing copy (Appearance → Customize → EA Text).
             'texts'    => ea_react_texts(),
             // Dedicated Camps page content (Appearance → Customize → EA Camps Page).
@@ -462,6 +466,360 @@ function ea_customize_partnerships( $wp_customize ) {
     }
 }
 add_action( 'customize_register', 'ea_customize_partnerships' );
+
+// ─── Volleyball page (Appearance → Customize → EA Volleyball Page) ───────────
+function ea_volleyball_field_defaults() {
+    return array(
+        'ea_volleyball_logo_image' => array(
+            'key' => 'logoImage', 'label' => 'Header/footer — Logo image', 'type' => 'image',
+            'default' => '',
+        ),
+        'ea_volleyball_logo_href' => array(
+            'key' => 'logoHref', 'label' => 'Header/footer — Logo link', 'type' => 'url',
+            'default' => 'https://elevationathletics.ca/',
+        ),
+        'ea_volleyball_nav_rows' => array(
+            'key' => 'navRows', 'label' => 'Header — Navigation links', 'type' => 'textarea',
+            'description' => 'One link per line: Label | URL. Use #volleyball-programs for the programs section.',
+            'default' => "Programs|#volleyball-programs\nAll Sports|https://elevationathletics.ca/",
+        ),
+        'ea_volleyball_nav_button_label' => array(
+            'key' => 'navButtonLabel', 'label' => 'Header — Button text', 'type' => 'text',
+            'default' => 'View Programs',
+        ),
+        'ea_volleyball_nav_button_url' => array(
+            'key' => 'navButtonUrl', 'label' => 'Header — Button URL', 'type' => 'url',
+            'default' => '#volleyball-programs',
+        ),
+        'ea_volleyball_nav_contact_label' => array(
+            'key' => 'navContactLabel', 'label' => 'Header — Contact link text', 'type' => 'text',
+            'default' => 'Contact',
+        ),
+        'ea_volleyball_hero_image' => array(
+            'key' => 'heroImage', 'label' => 'Hero — Optional image', 'type' => 'image',
+            'default' => '',
+        ),
+        'ea_volleyball_hero_heading' => array(
+            'key' => 'heroHeading', 'label' => 'Hero — Heading', 'type' => 'text',
+            'default' => 'Play Volleyball in Canada',
+        ),
+        'ea_volleyball_hero_subheading' => array(
+            'key' => 'heroSubheading', 'label' => 'Hero — Subheading', 'type' => 'textarea',
+            'default' => 'Find youth volleyball programs run by Elevation Athletics and our community partners. Browse upcoming sessions by city and register for the program that fits your schedule.',
+        ),
+        'ea_volleyball_primary_button_label' => array(
+            'key' => 'primaryButtonLabel', 'label' => 'Hero — Primary button text', 'type' => 'text',
+            'default' => 'View All Programs',
+        ),
+        'ea_volleyball_primary_button_url' => array(
+            'key' => 'primaryButtonUrl', 'label' => 'Hero — Primary button URL', 'type' => 'url',
+            'default' => '#volleyball-programs',
+        ),
+        'ea_volleyball_secondary_button_label' => array(
+            'key' => 'secondaryButtonLabel', 'label' => 'Hero — Secondary button text', 'type' => 'text',
+            'default' => 'Community Partnerships',
+        ),
+        'ea_volleyball_secondary_button_url' => array(
+            'key' => 'secondaryButtonUrl', 'label' => 'Hero — Secondary button URL', 'type' => 'url',
+            'default' => 'https://elevationathletics.ca/partnerships/',
+        ),
+        'ea_volleyball_programs_heading' => array(
+            'key' => 'programsHeading', 'label' => 'Programs — Heading', 'type' => 'text',
+            'default' => 'Our Active Volleyball Programs',
+        ),
+        'ea_volleyball_programs_intro' => array(
+            'key' => 'programsIntro', 'label' => 'Programs — Intro text', 'type' => 'textarea',
+            'default' => 'Check out the volleyball programs coming up soon and register for the session that fits your schedule.',
+        ),
+        'ea_volleyball_empty_heading' => array(
+            'key' => 'emptyHeading', 'label' => 'Programs — Empty state heading', 'type' => 'text',
+            'default' => 'No active volleyball programs are listed right now.',
+        ),
+        'ea_volleyball_empty_text' => array(
+            'key' => 'emptyText', 'label' => 'Programs — Empty state text', 'type' => 'textarea',
+            'default' => 'Please check back soon for new volleyball programming.',
+        ),
+        'ea_volleyball_footer_quick_heading' => array(
+            'key' => 'footerQuickHeading', 'label' => 'Footer — Quick links heading', 'type' => 'text',
+            'default' => 'Quick Links',
+        ),
+        'ea_volleyball_footer_quick_rows' => array(
+            'key' => 'footerQuickRows', 'label' => 'Footer — Quick links', 'type' => 'textarea',
+            'description' => 'One link per line: Label | URL.',
+            'default' => "Volleyball Programs|#volleyball-programs\nCommunity Partnerships|https://elevationathletics.ca/partnerships/",
+        ),
+        'ea_volleyball_footer_sports_heading' => array(
+            'key' => 'footerSportsHeading', 'label' => 'Footer — More sports heading', 'type' => 'text',
+            'default' => 'More Sports',
+        ),
+        'ea_volleyball_footer_sports_rows' => array(
+            'key' => 'footerSportsRows', 'label' => 'Footer — More sports links', 'type' => 'textarea',
+            'description' => 'One link per line: Label | URL.',
+            'default' => "Basketball|https://elevationathletics.ca/home/\nBadminton|https://eabadminton.com/\nPickleball|https://eapickleball.com/",
+        ),
+        'ea_volleyball_footer_social_heading' => array(
+            'key' => 'footerSocialHeading', 'label' => 'Footer — Social links heading', 'type' => 'text',
+            'default' => 'Follow us on our socials!',
+        ),
+        'ea_volleyball_footer_social_rows' => array(
+            'key' => 'footerSocialRows', 'label' => 'Footer — Social links', 'type' => 'textarea',
+            'description' => 'Optional. One link per line: Instagram | URL or Facebook | URL. Leave blank to hide social links on this page.',
+            'default' => '',
+        ),
+        'ea_volleyball_footer_contact_rows' => array(
+            'key' => 'footerContactRows', 'label' => 'Footer — Contact links', 'type' => 'textarea',
+            'description' => 'One link per line: Label | URL.',
+            'default' => 'info@elevationathletics.ca|mailto:info@elevationathletics.ca',
+        ),
+    );
+}
+
+function ea_sanitize_volleyball_url( $value ) {
+    $value = trim( (string) $value );
+    if ( '' === $value ) {
+        return '';
+    }
+    if ( preg_match( '/^#[A-Za-z][A-Za-z0-9_-]*$/', $value ) ) {
+        return $value;
+    }
+    return esc_url_raw( $value, array( 'http', 'https', 'mailto', 'tel' ) );
+}
+
+function ea_react_volleyball() {
+    $values = array();
+    foreach ( ea_volleyball_field_defaults() as $setting => $meta ) {
+        $value = get_theme_mod( $setting, $meta['default'] );
+        if ( 'url' === $meta['type'] || 'image' === $meta['type'] ) {
+            $value = ea_sanitize_volleyball_url( $value );
+        }
+        $values[ $meta['key'] ] = $value;
+    }
+    return $values;
+}
+
+function ea_customize_volleyball( $wp_customize ) {
+    $wp_customize->add_section( 'ea_volleyball_page', array(
+        'title'       => __( 'EA Volleyball Page', 'ea-react-theme' ),
+        'description' => __( 'Edit the standalone volleyball landing/programs page.', 'ea-react-theme' ),
+        'priority'    => 36,
+    ) );
+
+    foreach ( ea_volleyball_field_defaults() as $setting => $meta ) {
+        $sanitize = 'url' === $meta['type'] || 'image' === $meta['type']
+            ? 'ea_sanitize_volleyball_url'
+            : ( 'textarea' === $meta['type'] ? 'sanitize_textarea_field' : 'sanitize_text_field' );
+
+        $wp_customize->add_setting( $setting, array(
+            'default'           => $meta['default'],
+            'sanitize_callback' => $sanitize,
+            'transport'         => 'refresh',
+        ) );
+
+        $control_args = array(
+            'label'       => $meta['label'],
+            'description' => isset( $meta['description'] ) ? $meta['description'] : '',
+            'section'     => 'ea_volleyball_page',
+            'settings'    => $setting,
+        );
+
+        if ( 'image' === $meta['type'] ) {
+            $wp_customize->add_control( new WP_Customize_Image_Control( $wp_customize, $setting, $control_args ) );
+        } else {
+            $wp_customize->add_control( $setting, array_merge( $control_args, array(
+                'type' => $meta['type'],
+            ) ) );
+        }
+    }
+}
+add_action( 'customize_register', 'ea_customize_volleyball' );
+
+function ea_rep_development_field_defaults() {
+    return array(
+        'ea_rep_development_accent_color' => array(
+            'key' => 'accentColor', 'label' => 'Page — Hero background colour', 'type' => 'color',
+            'default' => '#0A98D6',
+        ),
+        'ea_rep_development_heading' => array(
+            'key' => 'heading', 'label' => 'Hero — Heading', 'type' => 'text',
+            'default' => 'Newmarket Rep Development Teams',
+        ),
+        'ea_rep_development_subheading' => array(
+            'key' => 'subheading', 'label' => 'Hero — Subheading', 'type' => 'textarea',
+            'default' => 'Structured team training for athletes preparing for the next level of competitive basketball.',
+        ),
+        'ea_rep_development_primary_button_label' => array(
+            'key' => 'primaryButtonLabel', 'label' => 'Hero — Button text', 'type' => 'text',
+            'default' => 'Register Interest',
+        ),
+        'ea_rep_development_primary_button_url' => array(
+            'key' => 'primaryButtonUrl', 'label' => 'Hero — Button URL', 'type' => 'url',
+            'default' => '#rep-development-registration',
+        ),
+        'ea_rep_development_about_heading' => array(
+            'key' => 'aboutHeading', 'label' => 'About — Heading', 'type' => 'text',
+            'default' => 'Development-Focused Team Training',
+        ),
+        'ea_rep_development_about_body' => array(
+            'key' => 'aboutBody', 'label' => 'About — Body text', 'type' => 'textarea',
+            'default' => 'EA Rep Development Teams give motivated athletes a structured environment to build skills, habits, confidence, and team concepts before stepping into higher levels of competition.' . "\n\n" . 'Players train with experienced coaches, learn the standards expected in competitive basketball, and develop alongside athletes who are serious about improving.' . "\n\n" . 'This pathway is built for athletes who want more than recreational programming, but may still be preparing for full rep team competition.',
+        ),
+        'ea_rep_development_photo_1' => array(
+            'key' => 'photo1', 'label' => 'About — Photo 1', 'type' => 'image',
+            'default' => '',
+        ),
+        'ea_rep_development_photo_2' => array(
+            'key' => 'photo2', 'label' => 'About — Photo 2', 'type' => 'image',
+            'default' => '',
+        ),
+        'ea_rep_development_photo_3' => array(
+            'key' => 'photo3', 'label' => 'About — Photo 3', 'type' => 'image',
+            'default' => '',
+        ),
+        'ea_rep_development_photo_4' => array(
+            'key' => 'photo4', 'label' => 'About — Photo 4', 'type' => 'image',
+            'default' => '',
+        ),
+        'ea_rep_development_registration_heading' => array(
+            'key' => 'registrationHeading', 'label' => 'Registration — Heading', 'type' => 'text',
+            'default' => 'Tryout Registration',
+        ),
+        'ea_rep_development_registration_body' => array(
+            'key' => 'registrationBody', 'label' => 'Registration — Body text', 'type' => 'textarea',
+            'default' => 'Register for the first Newmarket Rep Development Teams tryout. Complete the form and our team will follow up with next steps, team details, and any updates families need before attending.' . "\n\n" . 'Development team placement may depend on athlete age, experience, availability, and roster needs.',
+        ),
+        'ea_rep_development_tryout_heading' => array(
+            'key' => 'tryoutHeading', 'label' => 'Tryout details — Heading', 'type' => 'text',
+            'default' => 'Newmarket Rep Development Teams Tryout',
+        ),
+        'ea_rep_development_tryout_body' => array(
+            'key' => 'tryoutBody', 'label' => 'Tryout details — Intro text', 'type' => 'textarea',
+            'default' => 'The first tryout will take place at TUC in Newmarket. Please register through the form on this page before attending.',
+        ),
+        'ea_rep_development_tryout_date' => array(
+            'key' => 'tryoutDate', 'label' => 'Tryout details — Date', 'type' => 'text',
+            'default' => 'September 25, 2026',
+        ),
+        'ea_rep_development_tryout_time' => array(
+            'key' => 'tryoutTime', 'label' => 'Tryout details — Time', 'type' => 'text',
+            'default' => '6:00-8:00 PM',
+        ),
+        'ea_rep_development_tryout_team' => array(
+            'key' => 'tryoutTeam', 'label' => 'Tryout details — Team/program', 'type' => 'text',
+            'default' => 'Newmarket Rep Development Teams',
+        ),
+        'ea_rep_development_tryout_location' => array(
+            'key' => 'tryoutLocation', 'label' => 'Tryout details — Location', 'type' => 'text',
+            'default' => 'TUC in Newmarket',
+        ),
+        'ea_rep_development_waiver_button_label' => array(
+            'key' => 'waiverButtonLabel', 'label' => 'Registration — Waiver button text', 'type' => 'text',
+            'default' => 'Download Waiver',
+        ),
+        'ea_rep_development_waiver_button_url' => array(
+            'key' => 'waiverButtonUrl', 'label' => 'Registration — Waiver button URL', 'type' => 'url',
+            'description' => 'Paste the waiver PDF or page URL. Leave blank to hide the waiver button.',
+            'default' => '',
+        ),
+        'ea_rep_development_form_shortcode' => array(
+            'key' => 'formShortcode', 'label' => 'Registration — Form shortcode', 'type' => 'textarea',
+            'description' => 'Paste the WPForms shortcode for the Rep Development Teams form.',
+            'default' => '',
+        ),
+        'ea_rep_development_map_1_heading' => array(
+            'key' => 'map1Heading', 'label' => 'Map 1 — Heading', 'type' => 'text',
+            'default' => 'Primary Training Location',
+        ),
+        'ea_rep_development_map_1_embed' => array(
+            'key' => 'map1Embed', 'label' => 'Map 1 — Embed src URL', 'type' => 'map',
+            'default' => '',
+        ),
+        'ea_rep_development_map_2_heading' => array(
+            'key' => 'map2Heading', 'label' => 'Map 2 — Heading', 'type' => 'text',
+            'default' => 'Secondary Training Location',
+        ),
+        'ea_rep_development_map_2_embed' => array(
+            'key' => 'map2Embed', 'label' => 'Map 2 — Embed src URL', 'type' => 'map',
+            'default' => '',
+        ),
+    );
+}
+
+function ea_sanitize_rep_development_url( $value ) {
+    $value = trim( (string) $value );
+    if ( '' === $value ) {
+        return '';
+    }
+    if ( preg_match( '/^#[A-Za-z][A-Za-z0-9_-]*$/', $value ) ) {
+        return $value;
+    }
+    return esc_url_raw( $value, array( 'http', 'https', 'mailto', 'tel' ) );
+}
+
+function ea_sanitize_rep_development_color( $value ) {
+    $sanitized = sanitize_hex_color( $value );
+    return $sanitized ? $sanitized : '#0A98D6';
+}
+
+function ea_react_rep_development() {
+    $values = array();
+    foreach ( ea_rep_development_field_defaults() as $setting => $meta ) {
+        $value = get_theme_mod( $setting, $meta['default'] );
+        if ( 'url' === $meta['type'] || 'image' === $meta['type'] ) {
+            $value = ea_sanitize_rep_development_url( $value );
+        } elseif ( 'color' === $meta['type'] ) {
+            $value = ea_sanitize_rep_development_color( $value );
+        } elseif ( 'map' === $meta['type'] ) {
+            $value = ea_sanitize_map_embed_field( $value );
+        }
+        $values[ $meta['key'] ] = $value;
+    }
+    return $values;
+}
+
+function ea_customize_rep_development( $wp_customize ) {
+    $wp_customize->add_section( 'ea_rep_development_page', array(
+        'title'       => __( 'EA Rep Development Teams', 'ea-react-theme' ),
+        'description' => __( 'Edit the standalone Rep Development Teams page.', 'ea-react-theme' ),
+        'priority'    => 37,
+    ) );
+
+    foreach ( ea_rep_development_field_defaults() as $setting => $meta ) {
+        if ( 'url' === $meta['type'] || 'image' === $meta['type'] ) {
+            $sanitize = 'ea_sanitize_rep_development_url';
+        } elseif ( 'color' === $meta['type'] ) {
+            $sanitize = 'ea_sanitize_rep_development_color';
+        } elseif ( 'map' === $meta['type'] ) {
+            $sanitize = 'ea_sanitize_map_embed_field';
+        } else {
+            $sanitize = ( 'textarea' === $meta['type'] ) ? 'sanitize_textarea_field' : 'sanitize_text_field';
+        }
+
+        $wp_customize->add_setting( $setting, array(
+            'default'           => $meta['default'],
+            'sanitize_callback' => $sanitize,
+            'transport'         => 'refresh',
+        ) );
+
+        $control_args = array(
+            'label'       => $meta['label'],
+            'description' => isset( $meta['description'] ) ? $meta['description'] : '',
+            'section'     => 'ea_rep_development_page',
+            'settings'    => $setting,
+        );
+
+        if ( 'image' === $meta['type'] ) {
+            $wp_customize->add_control( new WP_Customize_Image_Control( $wp_customize, $setting, $control_args ) );
+        } elseif ( 'color' === $meta['type'] ) {
+            $wp_customize->add_control( new WP_Customize_Color_Control( $wp_customize, $setting, $control_args ) );
+        } else {
+            $control_type = 'map' === $meta['type'] ? 'textarea' : $meta['type'];
+            $wp_customize->add_control( $setting, array_merge( $control_args, array(
+                'type' => $control_type,
+            ) ) );
+        }
+    }
+}
+add_action( 'customize_register', 'ea_customize_rep_development' );
 
 // ─── Swappable copy via the Customizer (Appearance → Customize → EA Text) ──────
 // Each control stores a string as a theme_mod. ea_react_texts() collects them for
