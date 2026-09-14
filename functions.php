@@ -667,16 +667,32 @@ function ea_rep_development_field_defaults() {
             'key' => 'photo1', 'label' => 'About — Photo 1', 'type' => 'image',
             'default' => '',
         ),
+        'ea_rep_development_photo_1_caption' => array(
+            'key' => 'photo1Caption', 'label' => 'About — Photo 1 caption', 'type' => 'text',
+            'default' => '',
+        ),
         'ea_rep_development_photo_2' => array(
             'key' => 'photo2', 'label' => 'About — Photo 2', 'type' => 'image',
+            'default' => '',
+        ),
+        'ea_rep_development_photo_2_caption' => array(
+            'key' => 'photo2Caption', 'label' => 'About — Photo 2 caption', 'type' => 'text',
             'default' => '',
         ),
         'ea_rep_development_photo_3' => array(
             'key' => 'photo3', 'label' => 'About — Photo 3', 'type' => 'image',
             'default' => '',
         ),
+        'ea_rep_development_photo_3_caption' => array(
+            'key' => 'photo3Caption', 'label' => 'About — Photo 3 caption', 'type' => 'text',
+            'default' => '',
+        ),
         'ea_rep_development_photo_4' => array(
             'key' => 'photo4', 'label' => 'About — Photo 4', 'type' => 'image',
+            'default' => '',
+        ),
+        'ea_rep_development_photo_4_caption' => array(
+            'key' => 'photo4Caption', 'label' => 'About — Photo 4 caption', 'type' => 'text',
             'default' => '',
         ),
         'ea_rep_development_registration_heading' => array(

@@ -10,7 +10,7 @@ import { Layout, useDSComponents, useViewport, getThemeData, ActionButton, secti
 
 const NAVY = '#10414F';
 const DEFAULT_ACCENT = '#0A98D6';
-const BUTTON_BLUE = '#159BD3';
+const ORANGE = '#FF8A5B';
 
 function pick(value, fallback) {
   return value === undefined || value === null || value === '' ? fallback : value;
@@ -56,8 +56,8 @@ function FormEmbed() {
         .ea-rep-development-form-embed .wpforms-submit,
         .ea-rep-development-form-embed button[type="submit"],
         .ea-rep-development-form-embed input[type="submit"] {
-          background: ${BUTTON_BLUE} !important;
-          border-color: ${BUTTON_BLUE} !important;
+          background: ${ORANGE} !important;
+          border-color: ${ORANGE} !important;
           color: #fff !important;
           border-radius: 8px !important;
           font-family: var(--font-body, "Inclusive Sans", sans-serif) !important;
@@ -165,7 +165,7 @@ function MapEmbed({ title, src, isMobile }) {
               minHeight: 40,
               padding: '10px 18px',
               borderRadius: 8,
-              background: BUTTON_BLUE,
+              background: ORANGE,
               color: '#fff',
               fontWeight: 700,
               textDecoration: 'none',
@@ -180,23 +180,26 @@ function MapEmbed({ title, src, isMobile }) {
 }
 
 function PhotoCarousel({ page, isMobile, accent }) {
-  const urls = [1, 2, 3, 4]
-    .map((num) => page[`photo${num}`])
-    .filter(Boolean);
+  const slides = [1, 2, 3, 4]
+    .map((num) => ({
+      url: page[`photo${num}`],
+      caption: page[`photo${num}Caption`],
+    }))
+    .filter((slide) => slide.url);
   const [active, setActive] = useState(0);
 
   useEffect(() => {
-    if (urls.length < 2) return undefined;
+    if (slides.length < 2) return undefined;
     const timer = window.setInterval(() => {
-      setActive((current) => (current + 1) % urls.length);
+      setActive((current) => (current + 1) % slides.length);
     }, 4200);
     return () => window.clearInterval(timer);
-  }, [urls.length]);
+  }, [slides.length]);
 
-  if (!urls.length) {
+  if (!slides.length) {
     return (
       <div style={{
-        aspectRatio: '1 / 1',
+        aspectRatio: isMobile ? '4 / 3' : '16 / 11',
         width: '100%',
         background: '#DDF6FF',
         borderRadius: 8,
@@ -215,43 +218,64 @@ function PhotoCarousel({ page, isMobile, accent }) {
 
   return (
     <div style={{
-      aspectRatio: '1 / 1',
       width: '100%',
       borderRadius: 8,
       overflow: 'hidden',
       position: 'relative',
+      background: '#fff',
       boxShadow: isMobile ? 'none' : '0 18px 34px rgba(0,0,0,.18)',
     }}>
-      {urls.map((url, index) => (
-        <img
-          key={url}
-          src={url}
-          alt={`EA Rep Development ${index + 1}`}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            opacity: active === index ? 1 : 0,
-            transform: active === index ? 'scale(1)' : 'scale(1.025)',
-            transition: 'opacity .7s ease, transform 1.2s ease',
-          }}
-        />
-      ))}
-      {urls.length > 1 && (
+      <div style={{
+        aspectRatio: isMobile ? '4 / 3' : '16 / 11',
+        position: 'relative',
+        background: 'rgba(255,255,255,.9)',
+      }}>
+        {slides.map((slide, index) => (
+          <img
+            key={slide.url}
+            src={slide.url}
+            alt={pick(slide.caption, `EA Rep Development ${index + 1}`)}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              opacity: active === index ? 1 : 0,
+              transform: active === index ? 'scale(1)' : 'scale(1.015)',
+              transition: 'opacity .7s ease, transform 1.2s ease',
+            }}
+          />
+        ))}
+      </div>
+      {pick(slides[active]?.caption, '') && (
+        <p style={{
+          margin: 0,
+          padding: isMobile ? '9px 12px' : '10px 14px',
+          background: '#fff',
+          color: NAVY,
+          fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+          fontSize: isMobile ? 13 : 14,
+          fontWeight: 700,
+          lineHeight: 1.35,
+          textAlign: 'center',
+        }}>
+          {slides[active].caption}
+        </p>
+      )}
+      {slides.length > 1 && (
         <div style={{
           position: 'absolute',
           left: 0,
           right: 0,
-          bottom: 14,
+          bottom: pick(slides[active]?.caption, '') ? 46 : 14,
           display: 'flex',
           justifyContent: 'center',
           gap: 7,
         }}>
-          {urls.map((url, index) => (
+          {slides.map((slide, index) => (
             <span
-              key={`${url}-dot`}
+              key={`${slide.url}-dot`}
               aria-hidden="true"
               style={{
                 width: 7,
@@ -294,9 +318,9 @@ export default function RepDevelopmentTeamsPage() {
     color: 'rgba(255,255,255,.9)',
   };
   const registerButton = {
-    background: BUTTON_BLUE,
+    background: ORANGE,
     color: '#fff',
-    borderColor: BUTTON_BLUE,
+    borderColor: ORANGE,
     outline: 'none',
     boxShadow: 'none',
   };
@@ -367,7 +391,7 @@ export default function RepDevelopmentTeamsPage() {
             </p>
             <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
               {waiverLink && (
-                <SecondaryButton link={waiverLink} accent={NAVY}>
+                <SecondaryButton link={waiverLink} accent={ORANGE}>
                   {pick(page.waiverButtonLabel, 'Download Waiver')}
                 </SecondaryButton>
               )}
