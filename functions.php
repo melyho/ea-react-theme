@@ -204,6 +204,7 @@ function ea_react_image_fields() {
         'ea_img_directory_card_6' => array( 'key' => 'directoryCard6', 'label' => 'EA Directory — Card 6 image' ),
         'ea_img_directory_card_7' => array( 'key' => 'directoryCard7', 'label' => 'EA Directory — Card 7 image' ),
         'ea_img_directory_card_8' => array( 'key' => 'directoryCard8', 'label' => 'EA Directory — Card 8 image' ),
+        'ea_img_directory_card_9' => array( 'key' => 'directoryCard9', 'label' => 'EA Directory — Card 9 image' ),
         'ea_img_camp_card_1' => array( 'key' => 'campCard1', 'label' => 'Camps — Card 1 image' ),
         'ea_img_camp_card_2' => array( 'key' => 'campCard2', 'label' => 'Camps — Card 2 image' ),
         'ea_img_camp_card_3' => array( 'key' => 'campCard3', 'label' => 'Camps — Card 3 image' ),
@@ -292,6 +293,7 @@ function ea_react_directory_link_fields() {
         2 => array( 'label' => 'Pickleball', 'url' => 'https://eapickleball.com/' ),
         3 => array( 'label' => 'Badminton', 'url' => 'https://eabadminton.com/' ),
         4 => array( 'label' => 'Annual Membership', 'url' => 'https://elevationathletics.ca/annual-membership/' ),
+        9 => array( 'label' => 'Volleyball', 'url' => 'https://elevationathletics.ca/volleyball/' ),
         5 => array( 'label' => 'Become a Coach', 'url' => 'https://elevationathletics.ca/join-our-team/' ),
         6 => array( 'label' => 'Become a Community Leader', 'url' => 'https://elevationathletics.ca/become-a-community-leader/' ),
         7 => array( 'label' => 'Community Partnerships', 'url' => 'https://elevationathletics.ca/partnerships/' ),
@@ -1156,6 +1158,10 @@ function ea_react_text_fields() {
         'ea_txt_directory_annual_membership_label' => array(
             'key' => 'directoryCard4Label', 'label' => 'EA Directory — Card 4 label', 'type' => 'text',
             'default' => 'Annual Membership',
+        ),
+        'ea_txt_directory_volleyball_label' => array(
+            'key' => 'directoryCard9Label', 'label' => 'EA Directory — Card 9 label', 'type' => 'text',
+            'default' => 'Volleyball',
         ),
         'ea_txt_directory_join_heading' => array(
             'key' => 'directoryJoinHeading', 'label' => 'EA Directory — Join section heading', 'type' => 'text',

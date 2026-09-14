@@ -12,6 +12,7 @@ const PROGRAM_CARDS = [
   { index: 2, label: 'Pickleball', fallbackUrl: 'https://eapickleball.com/' },
   { index: 3, label: 'Badminton', fallbackUrl: 'https://eabadminton.com/' },
   { index: 4, label: 'Annual Membership', fallbackUrl: 'https://elevationathletics.ca/annual-membership/' },
+  { index: 9, label: 'Volleyball', fallbackUrl: 'https://elevationathletics.ca/volleyball/' },
 ];
 
 const TEAM_CARDS = [
@@ -65,11 +66,11 @@ function SocialLinks({ instagram, facebook, t, size = 24 }) {
   );
 }
 
-function DirectoryCard({ card, t, isMobile, kind = 'program' }) {
+function DirectoryCard({ card, t, isMobile, kind = 'program', style = {} }) {
   const image = t.images?.[`directoryCard${card.index}`] || '';
   const label = text(t, `directoryCard${card.index}Label`, card.label);
   const url = t.directoryLinks?.[`card${card.index}Url`] || card.fallbackUrl;
-  const showSocials = kind === 'program' && card.index >= 1 && card.index <= 3;
+  const showSocials = kind === 'program' && (card.index >= 1 && card.index <= 3 || card.index === 9);
   const instagram = showSocials ? (t.directoryLinks?.[`card${card.index}Instagram`] || t.social?.instagram || '') : '';
   const facebook = showSocials ? (t.directoryLinks?.[`card${card.index}Facebook`] || t.social?.facebook || '') : '';
   const radius = 8;
@@ -120,7 +121,7 @@ function DirectoryCard({ card, t, isMobile, kind = 'program' }) {
   );
 
   return (
-    <article>
+    <article style={style}>
       {url ? (
         <a {...externalAttrs(url)} style={{ display: 'block', textDecoration: 'none' }}>
           {media}
@@ -219,9 +220,19 @@ export default function DirectoryHomePage() {
               gap: isMobile ? '22px 10px' : '32px 44px',
               alignItems: 'start',
             }}>
-              {PROGRAM_CARDS.map((card) => (
-                <DirectoryCard key={card.index} card={card} t={t} isMobile={isMobile} kind="program" />
-              ))}
+              {PROGRAM_CARDS.map((card, index) => {
+                const isCenteredLastCard = !isMobile && PROGRAM_CARDS.length % 2 === 1 && index === PROGRAM_CARDS.length - 1;
+                return (
+                  <DirectoryCard
+                    key={card.index}
+                    card={card}
+                    t={t}
+                    isMobile={isMobile}
+                    kind="program"
+                    style={isCenteredLastCard ? { gridColumn: '1 / -1', width: 'calc((100% - 44px) / 2)', justifySelf: 'center' } : {}}
+                  />
+                );
+              })}
             </div>
           </div>
         </section>
