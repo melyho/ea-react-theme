@@ -23,7 +23,7 @@ function linkFromUrl(url, fallback = '') {
   return { url: href };
 }
 
-function parseTryoutRows(value, fallbackRow) {
+function parseTryoutRows(value) {
   const rows = String(value || '')
     .split('\n')
     .map((row) => row.trim())
@@ -34,7 +34,7 @@ function parseTryoutRows(value, fallbackRow) {
     })
     .filter((row) => row.date || row.time || row.team || row.location);
 
-  return rows.length ? rows : [fallbackRow];
+  return rows;
 }
 
 function decodeHtmlEntities(value) {
@@ -305,6 +305,137 @@ function PhotoCarousel({ page, isMobile, accent }) {
   );
 }
 
+function TryoutScheduleTable({ rows, isMobile }) {
+  if (!rows.length) return null;
+
+  if (isMobile) {
+    const fields = [
+      ['Date', 'date'],
+      ['Time', 'time'],
+      ['Team', 'team'],
+      ['Location', 'location'],
+    ];
+
+    return (
+      <div style={{ display: 'grid', gap: 12 }}>
+        {rows.map((row, rowIndex) => (
+          <article
+            key={`${row.date}-${row.time}-${row.team}-${row.location}-${rowIndex}`}
+            style={{
+              border: '1px solid var(--border-card, #E5E5E5)',
+              borderRadius: 8,
+              background: '#fff',
+              overflow: 'hidden',
+            }}
+          >
+            {fields.map(([label, key], fieldIndex) => (
+              <div
+                key={key}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '92px minmax(0, 1fr)',
+                  gap: 12,
+                  padding: '12px 14px',
+                  borderBottom: fieldIndex === fields.length - 1 ? 'none' : '1px solid #EEF3F6',
+                  alignItems: 'start',
+                }}
+              >
+                <span style={{
+                  color: NAVY,
+                  fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+                  fontSize: 13,
+                  fontWeight: 800,
+                }}>
+                  {label}
+                </span>
+                <span style={{
+                  color: 'var(--ea-ink, #1E526E)',
+                  fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+                  fontSize: 15,
+                  fontWeight: key === 'date' || key === 'location' ? 800 : 600,
+                  lineHeight: 1.35,
+                  overflowWrap: 'anywhere',
+                }}>
+                  {row[key]}
+                </span>
+              </div>
+            ))}
+          </article>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      overflowX: 'auto',
+      border: '1px solid var(--border-card, #E5E5E5)',
+      borderRadius: 8,
+      background: '#fff',
+    }}>
+      <table style={{
+        width: '100%',
+        borderCollapse: 'collapse',
+        minWidth: 680,
+        fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+        color: 'var(--ea-ink, #1E526E)',
+      }}>
+        <thead>
+          <tr>
+            {['Date', 'Time', 'Team', 'Location'].map((head) => (
+              <th key={head} style={{
+                textAlign: 'left',
+                padding: '13px 14px',
+                background: '#F7FBFD',
+                color: NAVY,
+                fontWeight: 700,
+                borderBottom: '1px solid var(--border-card, #E5E5E5)',
+              }}>
+                {head}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rowIndex) => (
+            <tr key={`${row.date}-${row.time}-${row.team}-${row.location}-${rowIndex}`}>
+              {[row.date, row.time, row.team, row.location].map((cell, cellIndex) => (
+                <td key={cellIndex} style={{
+                  padding: '14px',
+                  borderBottom: rowIndex === rows.length - 1 ? 'none' : '1px solid #EEF3F6',
+                  fontWeight: cellIndex === 0 || cellIndex === 3 ? 700 : 500,
+                }}>
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TryoutScheduleBlock({ heading, body, rows, isMobile, bodyStyle, style = {} }) {
+  if (!heading && !body && !rows.length) return null;
+
+  return (
+    <div style={style}>
+      {heading && (
+        <SectionHeading isMobile={isMobile}>
+          {heading}
+        </SectionHeading>
+      )}
+      {body && (
+        <p style={{ ...bodyStyle, maxWidth: 740, marginBottom: 18 }}>
+          {body}
+        </p>
+      )}
+      <TryoutScheduleTable rows={rows} isMobile={isMobile} />
+    </div>
+  );
+}
+
 export default function RepDevelopmentTeamsPage() {
   const DS = useDSComponents();
   const { isMobile, isTablet } = useViewport();
@@ -313,13 +444,8 @@ export default function RepDevelopmentTeamsPage() {
   const accent = pick(page.accentColor, DEFAULT_ACCENT);
   const primaryLink = linkFromUrl(page.primaryButtonUrl, '#rep-development-registration');
   const waiverLink = linkFromUrl(page.waiverButtonUrl, '');
-  const fallbackTryoutRow = {
-    date: pick(page.tryoutDate, 'September 25, 2026'),
-    time: pick(page.tryoutTime, '6:00-8:00 PM'),
-    team: pick(page.tryoutTeam, 'Newmarket Rep Development Teams'),
-    location: pick(page.tryoutLocation, 'TUC in Newmarket'),
-  };
-  const tryoutRows = parseTryoutRows(page.tryoutRows, fallbackTryoutRow);
+  const tryoutRows = parseTryoutRows(page.tryoutRows);
+  const tryoutSecondRows = parseTryoutRows(page.tryoutSecondRows);
   const container = {
     maxWidth: 1060,
     margin: '0 auto',
@@ -433,58 +559,21 @@ export default function RepDevelopmentTeamsPage() {
           paddingTop: isMobile ? 10 : 18,
           paddingBottom: isMobile ? 40 : 58,
         }}>
-          <SectionHeading isMobile={isMobile}>
-            {pick(page.tryoutHeading, 'Newmarket Rep Development Teams Tryout')}
-          </SectionHeading>
-          <p style={{ ...bodyStyle, maxWidth: 740, marginBottom: 18 }}>
-            {pick(page.tryoutBody, 'The first tryout will take place at TUC in Newmarket. Please register through the form on this page before attending.')}
-          </p>
-          <div style={{
-            overflowX: 'auto',
-            border: '1px solid var(--border-card, #E5E5E5)',
-            borderRadius: 8,
-            background: '#fff',
-          }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              minWidth: 680,
-              fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
-              color: 'var(--ea-ink, #1E526E)',
-            }}>
-              <thead>
-                <tr>
-                  {['Date', 'Time', 'Team', 'Location'].map((head) => (
-                    <th key={head} style={{
-                      textAlign: 'left',
-                      padding: '13px 14px',
-                      background: '#F7FBFD',
-                      color: NAVY,
-                      fontWeight: 700,
-                      borderBottom: '1px solid var(--border-card, #E5E5E5)',
-                    }}>
-                      {head}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tryoutRows.map((row, rowIndex) => (
-                  <tr key={`${row.date}-${row.time}-${row.team}-${row.location}-${rowIndex}`}>
-                    {[row.date, row.time, row.team, row.location].map((cell, cellIndex) => (
-                      <td key={cellIndex} style={{
-                        padding: '14px',
-                        borderBottom: rowIndex === tryoutRows.length - 1 ? 'none' : '1px solid #EEF3F6',
-                        fontWeight: cellIndex === 0 || cellIndex === 3 ? 700 : 500,
-                      }}>
-                        {cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TryoutScheduleBlock
+            heading={pick(page.tryoutHeading, 'Newmarket Rep Development Teams Tryout')}
+            body={pick(page.tryoutBody, 'The first tryout will take place at TUC in Newmarket. Please register through the form on this page before attending.')}
+            rows={tryoutRows}
+            isMobile={isMobile}
+            bodyStyle={bodyStyle}
+          />
+          <TryoutScheduleBlock
+            heading={pick(page.tryoutSecondHeading, '')}
+            body={pick(page.tryoutSecondBody, '')}
+            rows={tryoutSecondRows}
+            isMobile={isMobile}
+            bodyStyle={bodyStyle}
+            style={{ marginTop: isMobile ? 38 : 54 }}
+          />
         </section>
 
         <section style={{
