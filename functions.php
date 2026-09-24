@@ -713,20 +713,25 @@ function ea_rep_development_field_defaults() {
             'key' => 'tryoutBody', 'label' => 'Tryout details — Intro text', 'type' => 'textarea',
             'default' => 'The first tryout will take place at TUC in Newmarket. Please register through the form on this page before attending.',
         ),
+        'ea_rep_development_tryout_rows' => array(
+            'key' => 'tryoutRows', 'label' => 'Tryout details — Table rows', 'type' => 'textarea',
+            'description' => 'One row per line: Date | Time | Team/program | Location. Leave blank to use the single fallback row fields below.',
+            'default' => '',
+        ),
         'ea_rep_development_tryout_date' => array(
-            'key' => 'tryoutDate', 'label' => 'Tryout details — Date', 'type' => 'text',
+            'key' => 'tryoutDate', 'label' => 'Tryout details — Fallback date', 'type' => 'text',
             'default' => 'September 25, 2026',
         ),
         'ea_rep_development_tryout_time' => array(
-            'key' => 'tryoutTime', 'label' => 'Tryout details — Time', 'type' => 'text',
+            'key' => 'tryoutTime', 'label' => 'Tryout details — Fallback time', 'type' => 'text',
             'default' => '6:00-8:00 PM',
         ),
         'ea_rep_development_tryout_team' => array(
-            'key' => 'tryoutTeam', 'label' => 'Tryout details — Team/program', 'type' => 'text',
+            'key' => 'tryoutTeam', 'label' => 'Tryout details — Fallback team/program', 'type' => 'text',
             'default' => 'Newmarket Rep Development Teams',
         ),
         'ea_rep_development_tryout_location' => array(
-            'key' => 'tryoutLocation', 'label' => 'Tryout details — Location', 'type' => 'text',
+            'key' => 'tryoutLocation', 'label' => 'Tryout details — Fallback location', 'type' => 'text',
             'default' => 'TUC in Newmarket',
         ),
         'ea_rep_development_waiver_button_label' => array(

@@ -23,6 +23,20 @@ function linkFromUrl(url, fallback = '') {
   return { url: href };
 }
 
+function parseTryoutRows(value, fallbackRow) {
+  const rows = String(value || '')
+    .split('\n')
+    .map((row) => row.trim())
+    .filter(Boolean)
+    .map((row) => {
+      const [date = '', time = '', team = '', location = ''] = row.split('|').map((part) => part.trim());
+      return { date, time, team, location };
+    })
+    .filter((row) => row.date || row.time || row.team || row.location);
+
+  return rows.length ? rows : [fallbackRow];
+}
+
 function decodeHtmlEntities(value) {
   if (typeof document === 'undefined') return value;
   const textarea = document.createElement('textarea');
@@ -299,6 +313,13 @@ export default function RepDevelopmentTeamsPage() {
   const accent = pick(page.accentColor, DEFAULT_ACCENT);
   const primaryLink = linkFromUrl(page.primaryButtonUrl, '#rep-development-registration');
   const waiverLink = linkFromUrl(page.waiverButtonUrl, '');
+  const fallbackTryoutRow = {
+    date: pick(page.tryoutDate, 'September 25, 2026'),
+    time: pick(page.tryoutTime, '6:00-8:00 PM'),
+    team: pick(page.tryoutTeam, 'Newmarket Rep Development Teams'),
+    location: pick(page.tryoutLocation, 'TUC in Newmarket'),
+  };
+  const tryoutRows = parseTryoutRows(page.tryoutRows, fallbackTryoutRow);
   const container = {
     maxWidth: 1060,
     margin: '0 auto',
@@ -448,21 +469,19 @@ export default function RepDevelopmentTeamsPage() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  {[
-                    pick(page.tryoutDate, 'September 25, 2026'),
-                    pick(page.tryoutTime, '6:00-8:00 PM'),
-                    pick(page.tryoutTeam, 'Newmarket Rep Development Teams'),
-                    pick(page.tryoutLocation, 'TUC in Newmarket'),
-                  ].map((cell, index) => (
-                    <td key={index} style={{
-                      padding: '14px',
-                      fontWeight: index === 0 || index === 3 ? 700 : 500,
-                    }}>
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
+                {tryoutRows.map((row, rowIndex) => (
+                  <tr key={`${row.date}-${row.time}-${row.team}-${row.location}-${rowIndex}`}>
+                    {[row.date, row.time, row.team, row.location].map((cell, cellIndex) => (
+                      <td key={cellIndex} style={{
+                        padding: '14px',
+                        borderBottom: rowIndex === tryoutRows.length - 1 ? 'none' : '1px solid #EEF3F6',
+                        fontWeight: cellIndex === 0 || cellIndex === 3 ? 700 : 500,
+                      }}>
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
