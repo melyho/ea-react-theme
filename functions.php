@@ -2320,7 +2320,7 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     // 2) Email the admin as a notification (best-effort — the entry is already
     //    saved, so a mail hiccup must not fail the submission). Locally this is
     //    caught by Local's Mailpit (Site → Tools → Open Mailpit).
-    $to      = ea_free_trial_notification_emails();
+    $to      = ea_free_trial_notification_emails( $source );
     $subject = 'New free trial registration';
     $body    = "A new free trial registration was submitted:\n\n"
              . "Athlete's Name: {$name}\n"
@@ -2349,21 +2349,33 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
         . "Elevation Athletics";
     $confirmation_headers = array(
         'Content-Type: text/plain; charset=UTF-8',
-        'Reply-To: ' . get_option( 'admin_email' ),
+        'Reply-To: ' . ea_free_trial_reply_to_email( $source ),
     );
     wp_mail( $email, $confirmation_subject, $confirmation_body, $confirmation_headers );
 
     return new WP_REST_Response( array( 'ok' => true, 'id' => (int) $entry_id ), 200 );
 }
 
-function ea_free_trial_notification_emails() {
+function ea_free_trial_reply_to_email( $source = '' ) {
+    if ( 'city-programs' === $source ) {
+        return 'daniel@elevationathletics.ca';
+    }
+
+    $admin_email = sanitize_email( get_option( 'admin_email' ) );
+    return is_email( $admin_email ) ? $admin_email : 'daniel@elevationathletics.ca';
+}
+
+function ea_free_trial_notification_emails( $source = '' ) {
+    if ( 'city-programs' === $source ) {
+        return 'daniel@elevationathletics.ca';
+    }
+
     $raw = (string) get_theme_mod( 'ea_free_trial_notification_emails', '' );
     $emails = preg_split( '/[\s,;]+/', $raw );
     $emails = array_filter( array_map( 'sanitize_email', (array) $emails ), 'is_email' );
 
     if ( empty( $emails ) ) {
-        $admin_email = sanitize_email( get_option( 'admin_email' ) );
-        return is_email( $admin_email ) ? $admin_email : '';
+        return ea_free_trial_reply_to_email( $source );
     }
 
     return array_values( array_unique( $emails ) );

@@ -84,10 +84,27 @@ function selectedSports(t) {
   return ['bask'];
 }
 
-function cleanProgramTitle(program) {
-  return String(program.Title || 'Basketball Program')
-    .trim()
-    .replace(/\s*-\s*/g, ' - ');
+function numericLevel(program) {
+  const raw = program.level ?? program.Level ?? program.LEVEL;
+  if (raw === undefined || raw === null || raw === '') return null;
+  const match = String(raw).match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+function levelLabel(program) {
+  const level = numericLevel(program);
+  if (level !== null) {
+    if (level <= 1) return 'Beginner';
+    if (level === 2) return 'Experienced Beginner';
+    if (level === 3) return 'Intermediate';
+    if (level >= 4) return 'Advanced';
+  }
+
+  const title = String(program.Title || '').toLowerCase();
+  if (title.includes('advanced')) return 'Advanced';
+  if (title.includes('intermediate')) return 'Intermediate';
+  if (title.includes('experienced beginner')) return 'Experienced Beginner';
+  return 'Beginner';
 }
 
 function parseLocalDate(dateStr) {
@@ -108,18 +125,34 @@ function formatProgramDate(dateStr) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function simpleDateRange(program) {
-  const start = formatProgramDate(program['Start Date'] || program.StartDate || program.startDate);
-  const end = formatProgramDate(program['End Date'] || program.EndDate || program.endDate);
-  if (start && end) return `${start} to ${end}`;
-  return start || end || '';
+function todayStart() {
+  const today = new Date();
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+}
+
+function getStartDate(program) {
+  return parseLocalDate(program['Start Date'] || program.StartDate || program.startDate);
+}
+
+function nextAvailableSessionDate(program) {
+  const today = todayStart();
+  const sessionDates = String(program.SessionDates || '')
+    .split(',')
+    .map((value) => parseLocalDate(value.trim()))
+    .filter((date) => date instanceof Date && !Number.isNaN(date.getTime()) && date >= today)
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  if (sessionDates.length) return sessionDates[0];
+
+  const startDate = getStartDate(program);
+  return startDate instanceof Date && !Number.isNaN(startDate.getTime()) && startDate >= today ? startDate : null;
 }
 
 function trialSessionOption(program) {
+  const nextDate = nextAvailableSessionDate(program);
   return [
-    cleanProgramTitle(program),
-    program.Day,
-    simpleDateRange(program),
+    levelLabel(program),
+    nextDate ? formatProgramDate(nextDate) : '',
     program.Time,
     program.LocationName,
   ].filter(Boolean).join(' | ');
@@ -134,7 +167,12 @@ function CityFreeTrialForm({ cityName, programs, isMobile, t }) {
   const sessionOptions = useMemo(() => {
     const seen = new Set();
     return (programs || [])
-      .map(trialSessionOption)
+      .map((program) => ({
+        label: trialSessionOption(program),
+        date: nextAvailableSessionDate(program)?.getTime() ?? Infinity,
+      }))
+      .sort((a, b) => a.date - b.date || a.label.localeCompare(b.label))
+      .map((choice) => choice.label)
       .filter((label) => {
         if (!label || seen.has(label)) return false;
         seen.add(label);
@@ -189,15 +227,15 @@ function CityFreeTrialForm({ cityName, programs, isMobile, t }) {
   };
   const fieldStyle = {
     width: '100%',
-    minHeight: 48,
+    minHeight: isMobile ? 48 : 44,
     boxSizing: 'border-box',
-    padding: '12px 14px',
+    padding: isMobile ? '12px 14px' : '10px 13px',
     border: '1px solid var(--border-card, #E5E5E5)',
     borderRadius: 8,
     background: '#fff',
     color: 'var(--ea-ink, #1E526E)',
     fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
-    fontSize: 16,
+    fontSize: isMobile ? 16 : 15,
     lineHeight: 1.25,
   };
 
@@ -207,30 +245,31 @@ function CityFreeTrialForm({ cityName, programs, isMobile, t }) {
       style={{
         ...FB.card,
         display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'minmax(240px, 0.75fr) minmax(0, 1.35fr)',
-        gap: isMobile ? 18 : 28,
+        gridTemplateColumns: isMobile ? '1fr' : 'minmax(220px, 0.44fr) minmax(0, 1fr)',
+        gap: isMobile ? 18 : 24,
         alignItems: 'center',
-        margin: isMobile ? '0 0 18px' : '0 0 24px',
-        padding: isMobile ? '20px' : '24px 28px',
-        background: 'linear-gradient(135deg, #F5FBFE 0%, #FFFFFF 64%)',
+        margin: isMobile ? '0 0 18px' : '0 0 22px',
+        padding: isMobile ? '20px' : '20px 24px',
+        background: '#fff',
       }}
     >
       <div>
         <h2 style={{
-          ...FB.h(isMobile ? 28 : 34),
+          ...FB.h(isMobile ? 28 : 27),
           margin: 0,
           fontWeight: 'var(--fw-regular, 400)',
           letterSpacing: '0.01em',
           color: 'var(--ea-navy, #10414F)',
+          lineHeight: 1.06,
         }}>
           Try a Free Class in {cityName}
         </h2>
         <p style={{
           margin: '8px 0 0',
-          maxWidth: 420,
+          maxWidth: 360,
           fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
-          fontSize: isMobile ? 15 : 16,
-          lineHeight: 1.45,
+          fontSize: isMobile ? 15 : 15,
+          lineHeight: 1.4,
           color: 'var(--ea-ink, #1E526E)',
         }}>
           Send us your details and our team will follow up about the session that works best.
@@ -252,8 +291,9 @@ function CityFreeTrialForm({ cityName, programs, isMobile, t }) {
         <form onSubmit={handleSubmit}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
-            gap: 12,
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
+            gap: isMobile ? 12 : 10,
+            alignItems: 'center',
           }}>
             <div>
               <label style={labelStyle} htmlFor="city-ft-name">Name</label>
@@ -267,7 +307,7 @@ function CityFreeTrialForm({ cityName, programs, isMobile, t }) {
               <label style={labelStyle} htmlFor="city-ft-phone">Phone Number</label>
               <input id="city-ft-phone" type="tel" value={form.phone} onChange={update('phone')} placeholder="Phone Number" autoComplete="tel" style={fieldStyle} />
             </div>
-            <div>
+            <div style={{ gridColumn: isMobile ? undefined : '1 / span 2' }}>
               <label style={labelStyle} htmlFor="city-ft-session">Session</label>
               <select id="city-ft-session" value={form.session} onChange={update('session')} style={{ ...fieldStyle, appearance: 'auto' }}>
                 <option value="">Choose Session</option>
@@ -275,6 +315,22 @@ function CityFreeTrialForm({ cityName, programs, isMobile, t }) {
                   <option key={option} value={option}>{option}</option>
                 ))}
               </select>
+            </div>
+            <div style={{ display: 'flex', justifyContent: isMobile ? 'stretch' : 'flex-end' }}>
+              <button
+                type="submit"
+                disabled={sending}
+                style={{
+                  ...FB.btn('primary'),
+                  width: isMobile ? '100%' : 'auto',
+                  minHeight: isMobile ? undefined : 44,
+                  padding: isMobile ? undefined : '10px 24px',
+                  opacity: sending ? 0.7 : 1,
+                  cursor: sending ? 'default' : 'pointer',
+                }}
+              >
+                {sending ? 'Submitting...' : 'Submit'}
+              </button>
             </div>
           </div>
 
@@ -293,21 +349,6 @@ function CityFreeTrialForm({ cityName, programs, isMobile, t }) {
               {error}
             </p>
           )}
-
-          <div style={{ marginTop: 14, display: 'flex', justifyContent: isMobile ? 'stretch' : 'flex-start' }}>
-            <button
-              type="submit"
-              disabled={sending}
-              style={{
-                ...FB.btn('primary'),
-                width: isMobile ? '100%' : 'auto',
-                opacity: sending ? 0.7 : 1,
-                cursor: sending ? 'default' : 'pointer',
-              }}
-            >
-              {sending ? 'Submitting...' : 'Submit'}
-            </button>
-          </div>
         </form>
       )}
     </section>
