@@ -84,7 +84,237 @@ function selectedSports(t) {
   return ['bask'];
 }
 
-export default function CityProgramsPage() {
+function cleanProgramTitle(program) {
+  return String(program.Title || 'Basketball Program')
+    .trim()
+    .replace(/\s*-\s*/g, ' - ');
+}
+
+function parseLocalDate(dateStr) {
+  if (!dateStr) return null;
+  const parts = String(dateStr).split('-');
+  if (parts.length !== 3) {
+    const parsed = new Date(dateStr);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const [year, month, day] = parts.map(Number);
+  const parsed = new Date(year, month - 1, day);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatProgramDate(dateStr) {
+  const date = parseLocalDate(dateStr);
+  if (!date) return '';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function simpleDateRange(program) {
+  const start = formatProgramDate(program['Start Date'] || program.StartDate || program.startDate);
+  const end = formatProgramDate(program['End Date'] || program.EndDate || program.endDate);
+  if (start && end) return `${start} to ${end}`;
+  return start || end || '';
+}
+
+function trialSessionOption(program) {
+  return [
+    cleanProgramTitle(program),
+    program.Day,
+    simpleDateRange(program),
+    program.Time,
+    program.LocationName,
+  ].filter(Boolean).join(' | ');
+}
+
+function CityFreeTrialForm({ cityName, programs, isMobile, t }) {
+  const [form, setForm] = useState({ name: '', email: '', phone: '', session: '', website: '' });
+  const [sending, setSending] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  const sessionOptions = useMemo(() => {
+    const seen = new Set();
+    return (programs || [])
+      .map(trialSessionOption)
+      .filter((label) => {
+        if (!label || seen.has(label)) return false;
+        seen.add(label);
+        return true;
+      });
+  }, [programs]);
+
+  const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+
+    if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.session.trim()) {
+      setError('Please enter your name, email, phone number, and session.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    setSending(true);
+    try {
+      const response = await fetch(`${t.apiUrl}ea/v1/free-trial`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': t.nonce },
+        body: JSON.stringify({
+          ...form,
+          city: cityName,
+          source: 'city-programs',
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data && data.message ? data.message : 'Something went wrong. Please try again.');
+      }
+
+      setSubmitted(true);
+      setForm({ name: '', email: '', phone: '', session: '', website: '' });
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const labelStyle = {
+    position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+    overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0,
+  };
+  const fieldStyle = {
+    width: '100%',
+    minHeight: 48,
+    boxSizing: 'border-box',
+    padding: '12px 14px',
+    border: '1px solid var(--border-card, #E5E5E5)',
+    borderRadius: 8,
+    background: '#fff',
+    color: 'var(--ea-ink, #1E526E)',
+    fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+    fontSize: 16,
+    lineHeight: 1.25,
+  };
+
+  return (
+    <section
+      aria-label={`Free trial signup for ${cityName}`}
+      style={{
+        ...FB.card,
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : 'minmax(240px, 0.75fr) minmax(0, 1.35fr)',
+        gap: isMobile ? 18 : 28,
+        alignItems: 'center',
+        margin: isMobile ? '0 0 18px' : '0 0 24px',
+        padding: isMobile ? '20px' : '24px 28px',
+        background: 'linear-gradient(135deg, #F5FBFE 0%, #FFFFFF 64%)',
+      }}
+    >
+      <div>
+        <h2 style={{
+          ...FB.h(isMobile ? 28 : 34),
+          margin: 0,
+          fontWeight: 'var(--fw-regular, 400)',
+          letterSpacing: '0.01em',
+          color: 'var(--ea-navy, #10414F)',
+        }}>
+          Try a Free Class in {cityName}
+        </h2>
+        <p style={{
+          margin: '8px 0 0',
+          maxWidth: 420,
+          fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+          fontSize: isMobile ? 15 : 16,
+          lineHeight: 1.45,
+          color: 'var(--ea-ink, #1E526E)',
+        }}>
+          Send us your details and our team will follow up about the session that works best.
+        </p>
+      </div>
+
+      {submitted ? (
+        <div role="status" style={{
+          padding: isMobile ? '16px' : '18px 20px',
+          borderRadius: 8,
+          background: '#CFF6D9',
+          color: '#287545',
+          fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+          fontWeight: 'var(--fw-bold, 700)',
+        }}>
+          Thank you. We received your free trial request and will follow up soon.
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
+            gap: 12,
+          }}>
+            <div>
+              <label style={labelStyle} htmlFor="city-ft-name">Name</label>
+              <input id="city-ft-name" value={form.name} onChange={update('name')} placeholder="Name" autoComplete="name" style={fieldStyle} />
+            </div>
+            <div>
+              <label style={labelStyle} htmlFor="city-ft-email">Email</label>
+              <input id="city-ft-email" type="email" value={form.email} onChange={update('email')} placeholder="Email" autoComplete="email" style={fieldStyle} />
+            </div>
+            <div>
+              <label style={labelStyle} htmlFor="city-ft-phone">Phone Number</label>
+              <input id="city-ft-phone" type="tel" value={form.phone} onChange={update('phone')} placeholder="Phone Number" autoComplete="tel" style={fieldStyle} />
+            </div>
+            <div>
+              <label style={labelStyle} htmlFor="city-ft-session">Session</label>
+              <select id="city-ft-session" value={form.session} onChange={update('session')} style={{ ...fieldStyle, appearance: 'auto' }}>
+                <option value="">Choose Session</option>
+                {sessionOptions.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
+            <label htmlFor="city-ft-website">Website</label>
+            <input id="city-ft-website" tabIndex={-1} autoComplete="off" value={form.website} onChange={update('website')} />
+          </div>
+
+          {error && (
+            <p role="alert" style={{
+              margin: '12px 0 0',
+              fontFamily: 'var(--font-body, "Inclusive Sans", sans-serif)',
+              fontSize: 14,
+              color: 'var(--ea-error, #C0392B)',
+            }}>
+              {error}
+            </p>
+          )}
+
+          <div style={{ marginTop: 14, display: 'flex', justifyContent: isMobile ? 'stretch' : 'flex-start' }}>
+            <button
+              type="submit"
+              disabled={sending}
+              style={{
+                ...FB.btn('primary'),
+                width: isMobile ? '100%' : 'auto',
+                opacity: sending ? 0.7 : 1,
+                cursor: sending ? 'default' : 'pointer',
+              }}
+            >
+              {sending ? 'Submitting...' : 'Submit'}
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
+  );
+}
+
+export default function CityProgramsPage({ showFreeTrial = false }) {
   const DS = useDSComponents();
   const { isMobile } = useViewport();
   const t = getThemeData();
@@ -174,6 +404,15 @@ export default function CityProgramsPage() {
               EA {sport} {displayCityName}
             </h1>
           </header>
+
+          {showFreeTrial && cityPrograms.length > 0 && (
+            <CityFreeTrialForm
+              cityName={displayCityName}
+              programs={cityPrograms}
+              isMobile={isMobile}
+              t={t}
+            />
+          )}
 
           <div style={{ display: 'grid', gap: isMobile ? 12 : 18 }}>
             {cityPrograms.length ? cityPrograms.map((program) => (

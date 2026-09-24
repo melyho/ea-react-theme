@@ -2260,8 +2260,11 @@ function ea_register_free_trial_route() {
         'args'                => array(
             'name'    => array( 'required' => true,  'type' => 'string' ),
             'email'   => array( 'required' => true,  'type' => 'string' ),
+            'phone'   => array( 'required' => false, 'type' => 'string' ),
+            'city'    => array( 'required' => false, 'type' => 'string' ),
             'ageRange' => array( 'required' => false, 'type' => 'string' ),
             'session' => array( 'required' => false, 'type' => 'string' ),
+            'source'  => array( 'required' => false, 'type' => 'string' ),
             // Honeypot: real users leave this empty; bots tend to fill every field.
             'website' => array( 'required' => false, 'type' => 'string' ),
         ),
@@ -2278,13 +2281,15 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     $name    = sanitize_text_field( wp_unslash( $request['name'] ) );
     $email   = sanitize_email( wp_unslash( $request['email'] ) );
     $phone     = isset( $request['phone'] ) ? sanitize_text_field( wp_unslash( $request['phone'] ) ) : '';
+    $city      = isset( $request['city'] ) ? sanitize_text_field( wp_unslash( $request['city'] ) ) : ea_default_city_value();
     $age_range = isset( $request['ageRange'] ) ? sanitize_text_field( wp_unslash( $request['ageRange'] ) ) : '';
-    $session   = sanitize_text_field( wp_unslash( $request['session'] ) );
+    $session   = isset( $request['session'] ) ? sanitize_text_field( wp_unslash( $request['session'] ) ) : '';
+    $source    = isset( $request['source'] ) ? sanitize_text_field( wp_unslash( $request['source'] ) ) : 'free-trial';
 
-    if ( '' === $name || '' === $email || ! is_email( $email ) || '' === $phone || '' === $age_range || '' === $session ) {
+    if ( '' === $name || '' === $email || ! is_email( $email ) || '' === $phone || '' === $session ) {
         return new WP_Error(
             'ea_invalid',
-            'Please provide a valid name, email, phone number, age range, and session.',
+            'Please provide a valid name, email, phone number, and session.',
             array( 'status' => 422 )
         );
     }
@@ -2307,8 +2312,10 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
 
     update_post_meta( $entry_id, '_ea_email', $email );
     update_post_meta( $entry_id, '_ea_phone', $phone );
+    update_post_meta( $entry_id, '_ea_city', $city );
     update_post_meta( $entry_id, '_ea_age_range', $age_range );
     update_post_meta( $entry_id, '_ea_session', $session );
+    update_post_meta( $entry_id, '_ea_source', $source );
 
     // 2) Email the admin as a notification (best-effort — the entry is already
     //    saved, so a mail hiccup must not fail the submission). Locally this is
@@ -2319,7 +2326,8 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
              . "Athlete's Name: {$name}\n"
              . "Email: {$email}\n"
              . "Phone: {$phone}\n"
-             . "Age Range: {$age_range}\n"
+             . "City: {$city}\n"
+             . "Age Range: " . ( '' !== $age_range ? $age_range : '(not specified)' ) . "\n"
              . "Session: " . ( '' !== $session ? $session : '(not specified)' ) . "\n";
     $headers = array(
         'Content-Type: text/plain; charset=UTF-8',
@@ -2333,7 +2341,8 @@ function ea_handle_free_trial( WP_REST_Request $request ) {
     $confirmation_body    = "Hi {$name},\n\n"
         . "Thanks for registering for a free trial with EA {$sport}. We received your request with the details below:\n\n"
         . "Phone: {$phone}\n"
-        . "Age Range: {$age_range}\n"
+        . "City: {$city}\n"
+        . ( '' !== $age_range ? "Age Range: {$age_range}\n" : '' )
         . "Session: {$session}\n\n"
         . "Our team will follow up if anything changes before your selected session.\n\n"
         . "Thanks,\n"
@@ -2573,7 +2582,14 @@ function ea_default_city_value() {
         : 'Newmarket';
 }
 
-function ea_free_trial_city_value() {
+function ea_free_trial_city_value( $post_id = 0 ) {
+    if ( $post_id ) {
+        $city = sanitize_text_field( get_post_meta( $post_id, '_ea_city', true ) );
+        if ( '' !== $city ) {
+            return $city;
+        }
+    }
+
     return ea_default_city_value();
 }
 
@@ -2647,7 +2663,7 @@ function ea_free_trial_column_content( $column, $post_id ) {
         $phone = get_post_meta( $post_id, '_ea_phone', true );
         echo $phone ? esc_html( $phone ) : '—';
     } elseif ( 'ea_city' === $column ) {
-        echo esc_html( ea_free_trial_city_value() );
+        echo esc_html( ea_free_trial_city_value( $post_id ) );
     } elseif ( 'ea_sport' === $column ) {
         echo esc_html( ea_default_sport_value() );
     } elseif ( 'ea_age_range' === $column ) {
@@ -2732,7 +2748,7 @@ function ea_export_free_trials_csv() {
             get_the_title( $entry ),
             get_post_meta( $entry->ID, '_ea_email', true ),
             get_post_meta( $entry->ID, '_ea_phone', true ),
-            ea_free_trial_city_value(),
+            ea_free_trial_city_value( $entry->ID ),
             ea_default_sport_value(),
             get_post_meta( $entry->ID, '_ea_age_range', true ),
             get_post_meta( $entry->ID, '_ea_session', true ),
